@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+
+import json
+import os
+import sys
+
+if len(sys.argv) != 2:
+    print('Usage:')
+    print('\t{} <json_result_file>'.format(sys.argv[0]))
+    sys.exit(1)
+
+with open(sys.argv[1]) as result_file:
+    result_data = json.load(result_file)
+
+# Get all results from the file
+results = [x for x in result_data if 'results' in x.keys()][0]['results']
+fails = [x for x in results if x.get('status') == 'failed']
+passes = [x for x in results if x.get('status') == 'passed']
+skips = [x for x in results if x.get('status') == 'not supported']
+
+print('Summary')
+print('-------')
+print('pass:\t{}'.format(len(passes)))
+print('fail:\t{}'.format(len(fails)))
+print('skip:\t{}'.format(len(skips)))
+print('total:\t{}'.format(len(results)))
+print('\n')
+
+if len(fails) == 0:
+    print('All tests passed!')
+else:
+    print('Failed tests:')
+    for result in fails:
+        print('{}: {}'.format(result.get('status'), result.get('id')))
+
+if os.path.exists('c3link'):
+    print('\n')
+    with open('c3link') as c3link:
+        print('Full results at: {}'.format(c3link.read()))
