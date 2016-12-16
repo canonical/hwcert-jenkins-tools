@@ -9,6 +9,12 @@ if len(sys.argv) != 2:
     print('\t{} <json_result_file>'.format(sys.argv[0]))
     sys.exit(1)
 
+if not os.path.exists('sys.argv[1]'):
+    print('No results file found!')
+    print('Usually this means that the run failed to complete. ',
+          'Check the output in the jenkins job for more details')
+    sys.exit(0)
+
 with open(sys.argv[1]) as result_file:
     result_data = json.load(result_file)
 
