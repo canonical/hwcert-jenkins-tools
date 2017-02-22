@@ -4,9 +4,10 @@ import json
 import os
 import sys
 
-if len(sys.argv) != 2:
+if len(sys.argv) < 2:
     print('Usage:')
-    print('\t{} <json_result_file>'.format(sys.argv[0]))
+    print(
+        '\t{} [JSON_RESULT_FILE [OLD_JSON_RESULT_FILE]]'.format(sys.argv[0]))
     sys.exit(1)
 
 if not os.path.exists(sys.argv[1]):
@@ -20,9 +21,14 @@ with open(sys.argv[1]) as result_file:
 
 # Get all results from the file
 results = [x for x in result_data if 'results' in x.keys()][0]['results']
-fails = [x for x in results if x.get('status') == 'failed']
-passes = [x for x in results if x.get('status') == 'passed']
-skips = [x for x in results if x.get('status') == 'not supported']
+fails = [x.get('id') for x in results if x.get('status') == 'failed']
+passes = [x.get('id') for x in results if x.get('status') == 'passed']
+skips = [x.get('id') for x in results if x.get('status') == 'not supported']
+
+if os.path.exists('c3link'):
+    print('\n')
+    with open('c3link') as c3link:
+        print('Full results at: {}'.format(c3link.read()))
 
 print('Summary')
 print('-------')
@@ -37,9 +43,42 @@ if len(fails) == 0:
 else:
     print('Failed tests:')
     for result in fails:
-        print('{}: {}'.format(result.get('status'), result.get('id')))
+        print(result)
 
-if os.path.exists('c3link'):
-    print('\n')
-    with open('c3link') as c3link:
-        print('Full results at: {}'.format(c3link.read()))
+if len(sys.argv) > 2 and os.path.exists(sys.argv[2]):
+    with open(sys.argv[2]) as result_file:
+        result_data = json.load(result_file)
+
+    # Get all results from the previous result file
+    oldresults = [
+        x for x in result_data if 'results' in x.keys()][0]['results']
+    oldfails = [
+        x.get('id') for x in oldresults if x.get('status') == 'failed']
+    oldpasses = [
+        x.get('id') for x in oldresults if x.get('status') == 'passed']
+    oldskips = [
+        x.get('id') for x in oldresults if x.get('status') == 'not supported']
+
+    print('\n\nNew failed tests:')
+    newfails = [x for x in fails if x not in oldfails]
+    if not newfails:
+        print('None')
+    else:
+        for result in newfails:
+            print(result)
+
+    print('\n\nNew passing tests:')
+    newpasses = [x for x in passes if x not in oldpasses]
+    if not newpasses:
+        print('None')
+    else:
+        for result in newpasses:
+            print(result)
+
+    print('\n\nNew skiped tests:')
+    newskips = [x for x in skips if x not in oldskips]
+    if not newskips:
+        print('None')
+    else:
+        for result in newskips:
+            print(result)
