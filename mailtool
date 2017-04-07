@@ -8,6 +8,14 @@ from email.mime.text import MIMEText
 
 SMTPSERVER = 'localhost'
 
+ERROR_MSG = """
+ERROR!
+The email for this job was supposed to be located in {} but that file
+wasn't generated for some reason. This almost never happens, so
+look for something farther up in the job related to this subject for
+clues as to what might have happened
+"""
+
 def get_args():
     parser = argparse.ArgumentParser(description='Simple Mail Tool')
     parser.add_argument('--to', '-t', required=True, help='To recipient')
@@ -18,8 +26,12 @@ def get_args():
 
 def main():
     args = get_args()
-    with open(args.messagefile) as mailfile:
-        msg = MIMEText(mailfile.read())
+    try:
+        with open(args.messagefile) as mailfile:
+            msg = MIMEText(mailfile.read())
+    except:
+        # Even if something goes wrong, we should send a message
+        msg = MIMEText(ERROR_MSG.format(args.messagefile))
 
     msg['Subject'] = args.subject
     msg['From'] = 'noreply@canonical.com'
