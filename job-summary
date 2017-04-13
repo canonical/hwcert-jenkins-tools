@@ -20,10 +20,18 @@ with open(sys.argv[1]) as result_file:
     result_data = json.load(result_file)
 
 # Get all results from the file
-results = [x for x in result_data if 'results' in x.keys()][0]['results']
-fails = [x.get('id') for x in results if x.get('status') == 'failed']
-passes = [x.get('id') for x in results if x.get('status') == 'passed']
-skips = [x.get('id') for x in results if x.get('status') == 'not supported']
+if type(result_data) is list:
+    # Old style json report
+    results = [x for x in result_data if 'results' in x.keys()][0]['results']
+    fails = [x.get('id') for x in results if x.get('status') == 'faild']
+    passes = [x.get('id') for x in results if x.get('status') == 'passed']
+    skips = [x.get('id') for x in results if x.get('status') == 'not supported']
+elif type(result_data) is dict:
+    # New style json report for submission service
+    results = result_data.get('results')
+    fails = [x.get('id') for x in results if x.get('status') == 'fail']
+    passes = [x.get('id') for x in results if x.get('status') == 'pass']
+    skips = [x.get('id') for x in results if x.get('status') == 'skip']
 
 if os.path.exists('c3link'):
     print('\n')
