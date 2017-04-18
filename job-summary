@@ -23,7 +23,7 @@ with open(sys.argv[1]) as result_file:
 if type(result_data) is list:
     # Old style json report
     results = [x for x in result_data if 'results' in x.keys()][0]['results']
-    fails = [x.get('id') for x in results if x.get('status') == 'faild']
+    fails = [x.get('id') for x in results if x.get('status') == 'failed']
     passes = [x.get('id') for x in results if x.get('status') == 'passed']
     skips = [x.get('id') for x in results if x.get('status') == 'not supported']
 elif type(result_data) is dict:
