@@ -58,14 +58,26 @@ if len(sys.argv) > 2 and os.path.exists(sys.argv[2]):
         result_data = json.load(result_file)
 
     # Get all results from the previous result file
-    oldresults = [
-        x for x in result_data if 'results' in x.keys()][0]['results']
-    oldfails = [
-        x.get('id') for x in oldresults if x.get('status') == 'failed']
-    oldpasses = [
-        x.get('id') for x in oldresults if x.get('status') == 'passed']
-    oldskips = [
-        x.get('id') for x in oldresults if x.get('status') == 'not supported']
+    if type(result_data) is list:
+        # Old style json report
+        oldresults = [
+            x for x in result_data if 'results' in x.keys()][0]['results']
+        oldfails = [
+            x.get('id') for x in oldresults if x.get('status') == 'failed']
+        oldpasses = [
+            x.get('id') for x in oldresults if x.get('status') == 'passed']
+        oldskips = [
+            x.get('id') for x in oldresults
+            if x.get('status') == 'not supported']
+    elif type(result_data) is dict:
+        # New style json report for submission service
+        oldresults = result_data.get('results')
+        oldfails = [
+            x.get('id') for x in oldresults if x.get('status') == 'fail']
+        oldpasses = [
+            x.get('id') for x in oldresults if x.get('status') == 'pass']
+        oldskips = [
+            x.get('id') for x in oldresults if x.get('status') == 'skip']
 
     print('\n\nNew failed tests:')
     newfails = [x for x in fails if x not in oldfails]
