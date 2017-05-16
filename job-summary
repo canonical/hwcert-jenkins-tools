@@ -95,7 +95,7 @@ if len(sys.argv) > 2 and os.path.exists(sys.argv[2]):
         for result in newpasses:
             print(result)
 
-    print('\n\nNew skiped tests:')
+    print('\n\nNew skipped tests:')
     newskips = [x for x in skips if x not in oldskips]
     if not newskips:
         print('None')
