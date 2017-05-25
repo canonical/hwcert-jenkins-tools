@@ -3,7 +3,10 @@
 #This should only be run from a system with postfix installed
 
 import argparse
+import os
 import smtplib
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 SMTPSERVER = 'localhost'
@@ -20,18 +23,31 @@ def get_args():
     parser = argparse.ArgumentParser(description='Simple Mail Tool')
     parser.add_argument('--to', '-t', required=True, help='To recipient')
     parser.add_argument('--subject', '-s', required=True, help='Subject')
+    parser.add_argument('--attach', '-a', required=False, help='Attach a file')
     parser.add_argument('messagefile',
                         help='File containing the message to send')
     return parser.parse_args()
 
 def main():
     args = get_args()
+    msg = MIMEMultipart()
     try:
         with open(args.messagefile) as mailfile:
-            msg = MIMEText(mailfile.read())
+            body = MIMEText(mailfile.read())
+        msg.attach(body)
     except:
         # Even if something goes wrong, we should send a message
-        msg = MIMEText(ERROR_MSG.format(args.messagefile))
+        body = MIMEText(ERROR_MSG.format(args.messagefile))
+
+    if args.attach:
+        try:
+            with open(args.attach, 'rb') as attachment:
+                part = MIMEApplication(attachment.read())
+            part.add_header('Content-Disposition', 'attachment',
+                            filename=os.path.basename(args.attach))
+            msg.attach(part)
+        except:
+            print('Error attaching {}'.format(args.attach))
 
     msg['Subject'] = args.subject
     msg['From'] = 'noreply@canonical.com'
