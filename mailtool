@@ -9,7 +9,7 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-SMTPSERVER = 'localhost'
+SMTPSERVER = os.environ.get('SMTP_SERVER', 'localhost')
 
 ERROR_MSG = """
 ERROR!
