@@ -72,10 +72,10 @@ def main():
                 break
         if lane:
             if track:
-                card = lane.add_card('{} {} ({}) [{}]'.format(
+                card = lane.add_card('{} - {} - ({}) - [{}]'.format(
                     args.snap, args.version, args.revision, track))
             else:
-                card = lane.add_card('{} {} ({})'.format(
+                card = lane.add_card('{} - {} - ({})'.format(
                     args.snap, args.version, args.revision))
     summary = '**[TESTFLINGER] {} {} {} ({}) {}**\n---\n\n'.format(
         args.name, args.snap, args.version, args.revision, args.channel)
