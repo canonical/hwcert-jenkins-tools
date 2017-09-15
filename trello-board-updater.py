@@ -98,6 +98,16 @@ def main():
                 if label not in labels:
                     card.add_label(label)
                 break
+    if not [c for c in card.fetch_checklists() if c.name == 'Sign-Off']:
+        checklist = find_or_create_checklist(card, 'Sign-Off')
+        checklist.add_checklist_item('Clear for Landing', True)
+        checklist.add_checklist_item('Ready for Edge', True)
+        checklist.add_checklist_item('Ready for Beta')
+        if args.channel == 'beta':
+            checklist.set_checklist_item('Ready for Beta', True)
+        checklist.add_checklist_item('Ready for Candidate')
+        checklist.add_checklist_item('Ready for Stable')
+        checklist.add_checklist_item('Can be Archived')
 
 
 if __name__ == "__main__":
