@@ -8,6 +8,7 @@
 import argparse
 import os
 import re
+import requests
 
 from datetime import datetime
 from trello import TrelloClient
@@ -38,6 +39,9 @@ def find_or_create_checklist(card, checklist_name):
     return checklist
 
 
+architectures = ['i386', 'ppc64el', 'amd64', 's390x', 'armhf', 'arm64']
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--key', help="Trello API key",
@@ -46,6 +50,10 @@ def main():
                         **environ_or_required('TRELLO_TOKEN'))
     parser.add_argument('--board', help="Trello board identifier",
                         **environ_or_required('TRELLO_BOARD'))
+    parser.add_argument('-a', '--arch', help="snap architecture",
+                        required=True)
+    parser.add_argument('-b', '--brandstore', help="brand store identifier",
+                        default='ubuntu')
     parser.add_argument('-n', '--name', help="SUT name", required=True)
     parser.add_argument('-s', '--snap', help="snap name", required=True)
     parser.add_argument('-v', '--version', help="snap version", required=True)
@@ -63,6 +71,45 @@ def main():
     pattern = "{}.*{}.*{}.*{}".format(
         args.snap, args.version, args.revision, track)
     card = search_card(board, pattern)
+    # Try to find the right card using other arch revision numbers
+    if not card:
+        rev_list = []
+        for arch in [a for a in architectures if a != args.arch]:
+            headers = {
+                'X-Ubuntu-Series': '16',
+                'X-Ubuntu-Architecture': arch,
+                'X-Ubuntu-Store': args.brandstore,
+            }
+            params = (
+                ('fields', 'version,revision,architecture'),
+                ('channel', args.channel),
+            )
+            json = requests.get(
+                'https://search.apps.ubuntu.com/api/v1/'
+                'snaps/details/{}'.format(args.snap),
+                headers=headers,
+                params=params).json()
+            try:
+                rev_list.append(json['revision'])
+                if json['version'] != args.version:
+                    raise KeyError
+            except KeyError:
+                continue
+        for rev in rev_list:
+            pattern = "{}.*{}.*{}.*{}".format(
+                args.snap, args.version, rev, track)
+            card = search_card(board, pattern)
+            if card:
+                # Prefer amd64 rev in card title
+                if args.arch == 'amd64':
+                    if track:
+                        card.set_name('{} - {} - ({}) - [{}]'.format(
+                            args.snap, args.version, args.revision, track))
+                    else:
+                        card.set_name('{} - {} - ({})'.format(
+                            args.snap, args.version, args.revision))
+                break
+    # Create the card in the right lane
     if not card:
         channel = args.channel.capitalize()
         lane = None
@@ -108,6 +155,10 @@ def main():
         checklist.add_checklist_item('Ready for Candidate')
         checklist.add_checklist_item('Ready for Stable')
         checklist.add_checklist_item('Can be Archived')
+    checklist = find_or_create_checklist(card, 'Revisions')
+    rev = '{} ({})'.format(args.revision, args.arch)
+    if rev not in [item['name'] for item in checklist.items]:
+        checklist.add_checklist_item(rev)
 
 
 if __name__ == "__main__":
