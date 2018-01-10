@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+# encoding: UTF-8
+# Copyright (c) 2018 Canonical Ltd.
+#
+# Authors:
+#     Paul Larson <paul.larson@canonical.com>
+#     Sylvain Pineau <sylvain.pineau@canonical.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+"""
+This is a small tool to go through a list of projects we care about,
+find active merge proposals that are old, and generate a list. This
+list can be sent out to the team to nag everyone that there are
+things that need attention.
+
+A good config file to download for the project list can be found at:
+https://raw.githubusercontent.com/checkbox/pmr-configs/master/pmr.conf
+"""
+
+import argparse
+from launchpadlib.launchpad import Launchpad
+from configparser import ConfigParser
+import datetime
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', default='pmr.conf',
+                        help='Specify file with project list')
+    parser.add_argument('--credentials', default=None,
+                        help='Specify launchpad credentials')
+    parser.add_argument('--days', default=7,
+                        help='Report on merge proposals older than --days')
+    return parser.parse_args()
+
+
+def get_project_list(config_file):
+    """ Return a list of all our projects from the configfile """
+    config = ConfigParser()
+    config.read(config_file)
+    all_projects = [section[3:] for section in config.sections() if
+                    section.startswith('lp:')]
+    return all_projects
+
+
+def main():
+    args = get_args()
+    lp = Launchpad.login_with('active-reviews', 'production', args.credentials)
+    now = datetime.datetime.now(datetime.timezone.utc)
+    all_projects = get_project_list(args.config)
+    for project in all_projects:
+        p = lp.projects[project]
+        mp_list = [x for x in p.getMergeProposals(status="Needs review") if
+                   x.date_created < now - datetime.timedelta(days=args.days)]
+        if mp_list:
+            print("###", p.name, "###")
+            for mp in mp_list:
+                print(
+                    "{} ({} days old)".format(mp.web_link,
+                                              (now - mp.date_created).days))
+            print()
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
