@@ -57,7 +57,8 @@ def get_project_list(config_file):
 
 def main():
     args = get_args()
-    lp = Launchpad.login_with('active-reviews', 'production', args.credentials)
+    lp = Launchpad.login_with('active-reviews', 'production',
+         credentials_file=args.credentials)
     now = datetime.datetime.now(datetime.timezone.utc)
     all_projects = get_project_list(args.config)
     for project in all_projects:
