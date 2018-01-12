@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import os
+import re
+
+"""
+Dump package name and version from Packages data in JSON format
+
+This is a simple tool to take the uncompressed Packages data from distro
+archives, and exports a JSON version of it for easier analysis.
+
+ex: http://us.archive.ubuntu.com/ubuntu/dists/xenial-proposed/main/binary-amd64
+"""
+
+
+def get_args():
+    parser = argparse.ArgumentParser(
+        description=(
+            'Read INPUT-FILE with package data from the archive and create '
+            'or update JSON-FILE with the name and version of each package'
+        )
+    )
+    parser.add_argument('input_file', help='Packages file to parse')
+    parser.add_argument('json_file', help='JSON file to update/export')
+    return parser.parse_args()
+
+
+def main():
+    args = get_args()
+    # If the JSON data already exists, read it so we can update it because
+    # we want to preserve the latest seen version of each package even if
+    # it's not in the Packages data because it migrated out of proposed
+    if os.path.exists(args.json_file):
+        with open(args.json_file) as j_file:
+            data = json.load(j_file)
+    else:
+        data = {}
+
+    with open(args.input_file) as p_file:
+        pkg_data = p_file.read()
+
+    pkg_list = pkg_data.split('\n\n')
+    for pkg in pkg_list:
+        pkg_name = re.search('Package: (.+)', pkg)
+        pkg_ver = re.search('Version: (.+)', pkg)
+        if pkg_name and pkg_ver:
+            data[pkg_name.group(1)] = pkg_ver.group(1)
+
+    with open(args.json_file, 'w') as j_file:
+        j_file.write(json.dumps(data))
+
+
+if __name__ == '__main__':
+    main()
