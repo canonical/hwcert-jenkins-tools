@@ -45,7 +45,9 @@ def main():
         pkg_name = re.search('Package: (.+)', pkg)
         pkg_ver = re.search('Version: (.+)', pkg)
         if pkg_name and pkg_ver:
-            data[pkg_name.group(1)] = pkg_ver.group(1)
+            # Periods in json keys are bad, convert them to _
+            pkg_name_key = pkg_name.group(1).replace('.', '_')
+            data[pkg_name_key] = pkg_ver.group(1)
 
     with open(args.json_file, 'w') as j_file:
         j_file.write(json.dumps(data))
