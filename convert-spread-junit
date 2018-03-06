@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+#
+# Copyright (C) 2018 Canonical Ltd
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Written by:
+#        Paul Larson <paul.larson@canonical.com
+# Notes:
+#        This does a very basic conversion of spread test output to junit
+#        XML format.  It will *not* handle output from parallel runs because
+#        it becomes very hard to decipher which messages were from which tests.
+#        You will need junit-xml from pypi to use this.
+
+import argparse
+import datetime
+import junit_xml
+import re
+from collections import deque
+
+
+class SpreadResults:
+    def __init__(self, filename):
+        self.fp = open(filename)
+
+    def get_result(self):
+        """ Return a deque with lines of text of one full result block from the
+            spread output file in self.fp
+        """
+        lines = deque(['DEFAULT'])
+        # Read to first test record
+        while(True):
+            try:
+                lines.append(next(self.fp).strip())
+            except StopIteration:
+                break
+            if "Executing" in lines[-1]:
+                break
+            lines.popleft()
+        while(True):
+            try:
+                lines.append(next(self.fp).strip())
+            except StopIteration:
+                break
+            if "Restoring" in lines[-1]:
+                break
+        # If it still has only the initial value, we didn't read anything
+        if lines[0] == 'DEFAULT':
+            return None
+        # If last line wasn't "Restoring", this isn't a test result section
+        if "Restoring" not in lines[-1]:
+            return None
+        return lines
+
+    def parse_result(self, result_output):
+        """ Parse one text result from spread and return a tuple with:
+            (test_name, duration, test_status, test_message)
+        """
+        test_name = "unknown_test_name"
+        test_status = "pass"
+        test_message = ""
+        timestamps = []
+        # Example:
+        # "2018-03-02 00:19:56 Executing external:ubuntu-core-16-64 (1/179)..."
+        spread_msg = re.compile("(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (.+)")
+        # Example:
+        # "Preparing external:ubuntu-core-16-64:tests/main/revert-sideload"
+        prepare_msg = re.compile(".+:(tests.+)\.\.\.")
+        for line in result_output:
+            s = spread_msg.match(line)
+            if not s:
+                continue
+            (s_time, s_msg) = s.groups()
+            # Keep a list of sequential events so we can determine duration
+            timestamps.append(s_time)
+            if s_msg.startswith('Preparing'):
+                preparing_line = prepare_msg.match(s_msg)
+                test_name = preparing_line.group(1)
+            elif s_msg.startswith('Error'):
+                # Lines with Error (preparing | executing | restoring) should
+                # be considered a fail
+                test_status = "fail"
+                test_message = s_msg
+        try:
+            duration = (self.parse_timestamp(timestamps[-1]) -
+                        self.parse_timestamp(timestamps[0])).seconds
+        except Exception:
+            # Unlikely that we don't have any timestamps, but just in case
+            duration = 0
+        return (test_name, duration, test_status, test_message)
+
+    def parse_timestamp(self, stamp_str):
+        return datetime.datetime.strptime(stamp_str, "%Y-%m-%d %H:%M:%S")
+
+    def junit_output(self):
+        tests = []
+        for result in iter(self.get_result, None):
+            (t_name, t_duration, t_status, t_msg) = self.parse_result(result)
+            tc = junit_xml.TestCase(name=t_name,
+                                    elapsed_sec=t_duration,
+                                    stdout="\n".join(result))
+            if t_status == "fail":
+                tc.add_failure_info(message=t_msg)
+            tests.append(tc)
+        suite = junit_xml.TestSuite("spread", test_cases=tests)
+        print(junit_xml.TestSuite.to_xml_string([suite], prettyprint=True))
+
+
+def get_args():
+    helpmsg = "Convert sequential spread output to junit xml"
+    parser = argparse.ArgumentParser(usage=helpmsg)
+    parser.add_argument("filename", help="Spread output file to parse")
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    args = get_args()
+    s = SpreadResults(args.filename)
+    s.junit_output()
