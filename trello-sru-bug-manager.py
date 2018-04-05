@@ -151,7 +151,8 @@ def main():
         try:
             bug = lp.find_bug(version)
         except LookupError:
-            print('No bug found for {}!'.format(version))
+            print(
+                'No bug found for {} or bug is already closed'.format(version))
             continue
         # If the bug is already fix-released, there's nothing more to do
         TARGET_TASK = 'snap-certification-testing'
@@ -166,7 +167,7 @@ def main():
         # add a comment
         print(bug)
         bug.set_task_state(TARGET_TASK, 'Fix Released')
-        comment = ("Snap beta testing complete, no regressions found. Ready"
+        comment = ("Snap beta testing complete, no regressions found. Ready "
                    "for promotion. Results here: {}".format(card.url))
         bug.add_comment(comment)
 
