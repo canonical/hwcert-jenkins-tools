@@ -39,6 +39,15 @@ def find_or_create_checklist(card, checklist_name):
     return checklist
 
 
+def no_new_fails_or_skips(summary_data):
+    """Check summary data for new fails or skips
+
+    Return True if there are no new fails or skips detected
+    """
+    return ("New failed tests:\nNone" in summary_data and
+            "New skipped tests:\nNone" in summary_data)
+
+
 architectures = ['i386', 'ppc64el', 'amd64', 's390x', 'armhf', 'arm64']
 
 
@@ -129,16 +138,21 @@ def main():
     summary += '- Jenkins build details: {}\n'.format(
         os.environ.get('BUILD_URL', ''))
     summary += '- Full results at: {}\n\n```\n'.format(c3_link)
-    summary += args.summary.read()
+    summary_data = args.summary.read()
+    summary += summary_data
     summary += '\n```\n'
     card.comment(summary)
     checklist = find_or_create_checklist(card, 'Testflinger')
     if c3_link:
-        checklist.add_checklist_item("[{} ({})]({})".format(
-            args.name, datetime.utcnow().isoformat(), c3_link))
+        checklist.add_checklist_item(
+            "[{} ({})]({})".format(
+                args.name, datetime.utcnow().isoformat(), c3_link),
+            checked=no_new_fails_or_skips(summary_data))
     else:
-        checklist.add_checklist_item("{} ({})".format(
-            args.name, datetime.utcnow().isoformat()))
+        checklist.add_checklist_item(
+            "{} ({})".format(
+                args.name, datetime.utcnow().isoformat()),
+            checked=no_new_fails_or_skips(summary_data))
         for label in board.get_labels():
             if label.name == 'TESTFLINGER CRASH':
                 labels = card.list_labels or []
