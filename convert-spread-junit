@@ -31,7 +31,7 @@ from collections import deque
 
 class SpreadResults:
     def __init__(self, filename):
-        self.fp = open(filename)
+        self.fp = open(filename, errors='replace')
 
     def get_result(self):
         """ Return a deque with lines of text of one full result block from the
