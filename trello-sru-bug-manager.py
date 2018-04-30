@@ -43,7 +43,7 @@ class LPHelper:
 
 class TrelloHelper:
     def __init__(self, api_key, token, board):
-        self.client = TrelloClient(api_key, token)
+        self.client = TrelloClient(api_key=api_key, token=token)
         self.board = self.client.get_board(board)
 
     def _get_lane(self, lane_id):
