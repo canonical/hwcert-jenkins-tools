@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+
+import json
+import os
+import requests
+import sys
+
+
+class RevcacheResults():
+    resultmap = {
+        "pass": ".",
+        "fail": "F",
+        "skip": "s"
+    }
+
+    def __init__(self, name):
+        """Class to hold results history data from revcache
+        :param name:
+            String identifier for the data, usually the job name
+        """
+        self.data = {}
+        revcache_server = os.environ.get(
+            "REVCACHE_SERVER", "https://testflinger-revcache.canonical.com")
+        revcache_url = "{}/v1/results/{}".format(revcache_server, name)
+        try:
+            req = requests.get(revcache_url)
+            run_list = json.loads(req.text)
+        except requests.exceptions.ConnectionError:
+            print("ERROR: Unable to connect to {}".format(revcache_url))
+            run_list = []
+        # Create a dict to hold all results
+        # For each individual result ID, this will hold a list of prior results
+        #     ex. {"example/testname": ["pass", "fail", "skip", "pass"]}
+        for results_list in run_list:
+            results_list = json.loads(results_list).get('results')
+            for result in results_list:
+                if result.get('id') not in self.data:
+                    self.data[result.get('id')] = [result.get('status')]
+                else:
+                    self.data[result.get('id')].append(result.get('status'))
+
+    def get_summary(self, result_id):
+        """Get a string that summarizes the list of previous results_all
+        :param result_id:
+            The name (id) of the result to get results on
+        :return:
+            String representation of the previous results ex: FF.s..FFFF
+        """
+        summary = ""
+        for result in self.data.get(result_id):
+            summary += self.resultmap.get(result)
+        return summary
+
+    def get_unique_summary(self, result_id, status):
+        """Get a summary of the prior results, only if it was ever different
+        :param result_id:
+            The name (id) of the result to get results on
+        :param status:
+            The current test status to compare it to (pass, fail, skip)
+        :return:
+            String representation of the previous results ex: FF.s..FFFF
+            or "" if all previous results are the same as status
+        """
+        for old_result in self.data.get(result_id, []):
+            if old_result != status:
+                return self.get_summary(result_id)
+        return ""
+
+    def get_unique_results(self, result_id, new_results, status):
+        """Generate a report of prior results, only if it was ever different
+        :param result_id:
+            The name (id) of the result to get results on
+        :param status:
+            The current test status to compare it to (pass, fail, skip)
+        :return:
+            String with the prior results history and the name of the test
+            if it was ever different from the current result, or "" if all
+            previous results are the same as status
+        """
+        report = ""
+        for result_id in new_results:
+            summary = self.get_unique_summary(result_id, status)
+            if summary:
+                report += "[{}] {}\n".format(
+                    summary+self.resultmap.get(status), result_id)
+        return report
+
+
+if len(sys.argv) != 3:
+    print('Usage:')
+    print(
+        '\t{} JSON_RESULT_FILE REVCACHE_KEY'.format(sys.argv[0]))
+    sys.exit(1)
+
+if not os.path.exists(sys.argv[1]):
+    print('No results file found!')
+    print('Usually this means that the run failed to complete. ',
+          'Check the output in the jenkins job for more details')
+    sys.exit(0)
+revcache_key = sys.argv[2]
+
+with open(sys.argv[1]) as result_file:
+    result_data = json.load(result_file)
+
+# Get all results from the file
+# New style json report for submission service
+results = result_data.get('results')
+fails = [x.get('id') for x in results if x.get('status') == 'fail']
+passes = [x.get('id') for x in results if x.get('status') == 'pass']
+skips = [x.get('id') for x in results if x.get('status') == 'skip']
+
+if os.path.exists('c3link'):
+    print('\n')
+    with open('c3link') as c3link:
+        print('Full results at: {}'.format(c3link.read()))
+
+print('Summary')
+print('-------')
+print('pass:\t{}'.format(len(passes)))
+print('fail:\t{}'.format(len(fails)))
+print('skip:\t{}'.format(len(skips)))
+print('total:\t{}'.format(len(results)))
+print('\n')
+
+if len(fails) == 0:
+    print('All tests passed!')
+else:
+    print('Failed tests:')
+    for result in fails:
+        print(result)
+print()
+print('-' * 80)
+print()
+
+history = RevcacheResults(revcache_key)
+
+report = history.get_unique_results(revcache_key, fails, "fail")
+if report:
+    print('Unstable failed tests:')
+    print(report)
+report = history.get_unique_results(revcache_key, skips, "skip")
+if report:
+    print('Unstable skipped tests:')
+    print(report)
+report = history.get_unique_results(revcache_key, passes, "pass")
+if report:
+    print('Unstable passing tests:')
+    print(report)
