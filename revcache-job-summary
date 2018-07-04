@@ -25,19 +25,22 @@ class RevcacheResults():
         try:
             req = requests.get(revcache_url)
             run_list = json.loads(req.text)
-        except requests.exceptions.ConnectionError:
-            print("ERROR: Unable to connect to {}".format(revcache_url))
+        except requests.exceptions.ConnectionError as exc:
+            print(exc)
             run_list = []
         # Create a dict to hold all results
         # For each individual result ID, this will hold a list of prior results
         #     ex. {"example/testname": ["pass", "fail", "skip", "pass"]}
         for results_list in run_list:
-            results_list = json.loads(results_list).get('results')
+            results_list = json.loads(results_list).get('results', [])
             for result in results_list:
-                if result.get('id') not in self.data:
-                    self.data[result.get('id')] = [result.get('status')]
+                id = result.get('id')
+                if not id:
+                    continue
+                if id not in self.data:
+                    self.data[id] = [result.get('status')]
                 else:
-                    self.data[result.get('id')].append(result.get('status'))
+                    self.data[id].append(result.get('status'))
 
     def get_summary(self, result_id):
         """Get a string that summarizes the list of previous results_all
@@ -86,63 +89,66 @@ class RevcacheResults():
         return report
 
 
-if len(sys.argv) != 3:
-    print('Usage:')
-    print(
-        '\t{} JSON_RESULT_FILE REVCACHE_KEY'.format(sys.argv[0]))
-    sys.exit(1)
+def main():
+    if len(sys.argv) != 3:
+        print('Usage:')
+        print('\t{} JSON_RESULT_FILE REVCACHE_KEY'.format(sys.argv[0]))
+        return 1
 
-if not os.path.exists(sys.argv[1]):
-    print('No results file found!')
-    print('Usually this means that the run failed to complete. ',
-          'Check the output in the jenkins job for more details')
-    sys.exit(0)
-revcache_key = sys.argv[2]
+    if not os.path.exists(sys.argv[1]):
+        print('No results file found!')
+        print('Usually this means that the run failed to complete. ',
+              'Check the output in the jenkins job for more details')
+        return 0
+    revcache_key = sys.argv[2]
 
-with open(sys.argv[1]) as result_file:
-    result_data = json.load(result_file)
+    with open(sys.argv[1]) as result_file:
+        result_data = json.load(result_file)
 
-# Get all results from the file
-# New style json report for submission service
-results = result_data.get('results')
-fails = [x.get('id') for x in results if x.get('status') == 'fail']
-passes = [x.get('id') for x in results if x.get('status') == 'pass']
-skips = [x.get('id') for x in results if x.get('status') == 'skip']
+    # Get all results from the file
+    # New style json report for submission service
+    results = result_data.get('results')
+    fails = [x.get('id') for x in results if x.get('status') == 'fail']
+    passes = [x.get('id') for x in results if x.get('status') == 'pass']
+    skips = [x.get('id') for x in results if x.get('status') == 'skip']
 
-if os.path.exists('c3link'):
+    if os.path.exists('c3link'):
+        print('\n')
+        with open('c3link') as c3link:
+            print('Full results at: {}'.format(c3link.read()))
+
+    print('Summary')
+    print('-------')
+    print('pass:\t{}'.format(len(passes)))
+    print('fail:\t{}'.format(len(fails)))
+    print('skip:\t{}'.format(len(skips)))
+    print('total:\t{}'.format(len(results)))
     print('\n')
-    with open('c3link') as c3link:
-        print('Full results at: {}'.format(c3link.read()))
 
-print('Summary')
-print('-------')
-print('pass:\t{}'.format(len(passes)))
-print('fail:\t{}'.format(len(fails)))
-print('skip:\t{}'.format(len(skips)))
-print('total:\t{}'.format(len(results)))
-print('\n')
+    if len(fails) == 0:
+        print('All tests passed!')
+    else:
+        print('Failed tests:')
+        print('\n'.join(fails))
+    print()
+    print('-' * 80)
+    print()
 
-if len(fails) == 0:
-    print('All tests passed!')
-else:
-    print('Failed tests:')
-    for result in fails:
-        print(result)
-print()
-print('-' * 80)
-print()
+    history = RevcacheResults(revcache_key)
 
-history = RevcacheResults(revcache_key)
+    report = history.get_unique_results(revcache_key, fails, "fail")
+    if report:
+        print('Unstable failed tests:')
+        print(report)
+    report = history.get_unique_results(revcache_key, skips, "skip")
+    if report:
+        print('Unstable skipped tests:')
+        print(report)
+    report = history.get_unique_results(revcache_key, passes, "pass")
+    if report:
+        print('Unstable passing tests:')
+        print(report)
 
-report = history.get_unique_results(revcache_key, fails, "fail")
-if report:
-    print('Unstable failed tests:')
-    print(report)
-report = history.get_unique_results(revcache_key, skips, "skip")
-if report:
-    print('Unstable skipped tests:')
-    print(report)
-report = history.get_unique_results(revcache_key, passes, "pass")
-if report:
-    print('Unstable passing tests:')
-    print(report)
+
+if __name__ == "__main__":
+    sys.exit(main())
