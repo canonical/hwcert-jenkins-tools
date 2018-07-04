@@ -28,6 +28,9 @@ class RevcacheResults():
         except requests.exceptions.ConnectionError as exc:
             print(exc)
             run_list = []
+        except json.decoder.JSONDecodeError:
+            print('Unexpected response from revcache server:')
+            print(req.text)
         # Create a dict to hold all results
         # For each individual result ID, this will hold a list of prior results
         #     ex. {"example/testname": ["pass", "fail", "skip", "pass"]}
