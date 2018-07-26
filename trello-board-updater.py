@@ -44,8 +44,7 @@ def no_new_fails_or_skips(summary_data):
 
     Return True if there are no new fails or skips detected
     """
-    return ("New failed tests:\nNone" in summary_data and
-            "New skipped tests:\nNone" in summary_data)
+    return "No new failed or skipped tests" in summary_data
 
 
 architectures = ['i386', 'ppc64el', 'amd64', 's390x', 'armhf', 'arm64']
