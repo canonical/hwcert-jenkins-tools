@@ -19,6 +19,7 @@ class RevcacheResults():
             String identifier for the data, usually the job name
         """
         self.data = {}
+        self.new_fails_or_skips = False
         revcache_server = os.environ.get(
             "REVCACHE_SERVER", "https://testflinger-revcache.canonical.com")
         revcache_url = "{}/v1/results/{}".format(revcache_server, name)
@@ -67,9 +68,12 @@ class RevcacheResults():
             String representation of the previous results ex: FF.s..FFFF
             or "" if all previous results are the same as status
         """
-        for old_result in self.data.get(result_id, []):
+        result_history = self.data.get(result_id, [])
+        if not result_history:
+            return self.resultmap.get(status)
+        for old_result in result_history:
             if old_result != status:
-                return self.get_summary(result_id)
+                return self.get_summary(result_id) + self.resultmap.get(status)
         return ""
 
     def get_unique_results(self, result_id, new_results, status):
@@ -87,8 +91,13 @@ class RevcacheResults():
         for result_id in new_results:
             summary = self.get_unique_summary(result_id, status)
             if summary:
-                report += "[{}] {}\n".format(
-                    summary+self.resultmap.get(status), result_id)
+                report += "[{}] {}\n".format(summary.rjust(11), result_id)
+                # Detect if there are new failed or skipped tests
+                if status in ('fail', 'skip'):
+                    # Fewer than 2 means this is the first time we've seen
+                    # this test and it was failed or skipped
+                    if len(summary) < 2 or summary[-1] != summary[-2]:
+                        self.new_fails_or_skips = True
         return report
 
 
@@ -151,6 +160,9 @@ def main():
     if report:
         print('Unstable passing tests:')
         print(report)
+
+    if not history.new_fails_or_skips:
+        print('No new failed or skipped tests')
 
 
 if __name__ == "__main__":
