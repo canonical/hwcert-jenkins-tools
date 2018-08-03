@@ -113,6 +113,7 @@ class SyncTool:
                         umbrella_project, '[ODM bug] ' + bug_title,
                         bug.description, bug_task.status,
                         bug.tags + [proj], owners[proj])
+                    self.add_bug_to_db(new_bug.bug_tasks[0])
                     message = 'Bug filed in {}. See {} for details'.format(
                         umbrella_project, new_bug.web_link)
                     self.add_comment(bug_task, message)
