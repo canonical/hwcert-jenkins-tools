@@ -128,7 +128,11 @@ def get_args():
 def card_ready_for_candidate(card):
     """Return True if the signoff checkbox 'Ready for Candidate' is checked"""
     # Find the Sign-Off checklist
-    checklist = [x for x in card.fetch_checklists() if x.name == 'Sign-Off'][0]
+    try:
+        checklist = [x for x in card.fetch_checklists() if x.name == 'Sign-Off'][0]
+    except IndexError:
+        print("WARNING: No Sign-Off checklist found!")
+        return False
     return get_checklist_value(checklist, 'Ready for Candidate')
 
 
@@ -138,6 +142,7 @@ def main():
     trello = TrelloHelper(args.key, args.token, args.board)
     print("Processing SRU snaps ready for promotion...")
     for card in trello.search_cards_in_lane('beta', '-kernel'):
+        print('{} ({})'.format(card.name, card.short_url))
         # If we can't get version from title, it's not formatted how we
         # expect, so ignore it
         try:
