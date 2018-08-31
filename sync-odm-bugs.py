@@ -55,6 +55,21 @@ ODM_COMMENT_HEADER = '[Automated ODM-sync-tool comment]\n'
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
+def url_to_bug_ref(text):
+    """
+    Search the `text` for bug's url and return the number of the first
+    bug found, or None when bug URL is not found.
+
+    >>> url_to_bug_ref('https://bugs.launchpad.net/bugs/123')
+    123
+    >>> url_to_bug_ref('Foobar 3000')
+    >>> url_to_bug_ref('twoline\\nhttps://bugs.launchpad.net/bugs/456')
+    456
+    >>> url_to_bug_ref('https://bugs.launchpad.net/bugs/onetwo')
+    """
+    match = re.compile(r'https://bugs.launchpad.net/bugs/(\d+)').search(text)
+    if match:
+        return int(match.groups()[0])
 
 class SyncTool:
     def __init__(self, credentials_file):
@@ -102,13 +117,18 @@ class SyncTool:
             if proj == umbrella_project:
                 continue
             for bug_title, bug in proj_bugs.items():
+                logging.debug("Checking if %s is in the umbrella", bug_title)
                 # look for bug in the umbrella project
-                for umb_bug_title in self.bug_db[umbrella_project].keys():
-                    if bug_title in umb_bug_title:
-                        logging.debug(
-                            'bug "%s" already defined in the umbrella project',
-                            bug_title)
-                        break
+                for u_title, u_bug in self.bug_db[umbrella_project].items():
+                    if u_bug.messages.total_size >= 2:
+                        first_comment = u_bug.messages[1].content
+                        if first_comment.startswith(ODM_COMMENT_HEADER):
+                            bug_no = url_to_bug_ref(first_comment)
+                            if bug_no == bug.id:
+                                logging.debug(
+                                    "bug %s already defined in umbrella",
+                                    u_title)
+                                break
                 else:
                     bug_task = bug.bug_tasks[0]
                     new_bug = self.file_bug(
@@ -116,6 +136,9 @@ class SyncTool:
                         bug.description, bug_task.status,
                         bug.tags + [proj], owners[proj])
                     self.add_bug_to_db(new_bug.bug_tasks[0])
+                    message = 'Bug filed from {} see {} for details'.format(
+                        proj, bug.web_link)
+                    self.add_odm_comment(new_bug.bug_tasks[0], message)
                     message = 'Bug filed in {}. See {} for details'.format(
                         umbrella_project, new_bug.web_link)
                     self.add_odm_comment(bug_task, message)
@@ -123,8 +146,7 @@ class SyncTool:
     def sync_comments(self):
         for proj in odm_projects:
             for odm_bug_name, odm_bug in self.bug_db[proj].items():
-                umb_bug_name = umbrella_prefix + odm_bug_name
-                umb_bug = self.bug_db[umbrella_project][umb_bug_name]
+                umb_bug = self.lp.bugs[self.bug_xref_db[odm_bug.id]]
                 odm_comments = [msg.content for msg in odm_bug.messages][1:]
                 umb_comments = [msg.content for msg in umb_bug.messages][1:]
                 # sync from odm to umbrella
