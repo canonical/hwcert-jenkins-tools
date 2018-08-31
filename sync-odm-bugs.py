@@ -50,6 +50,8 @@ umbrella_prefix = '[ODM bug] '
 status_list = ['New', 'Confirmed', 'Triaged', 'In Progress', 'Fix Committed']
 QMETRY_RE = re.compile('.*\[QMetry#(\d+)\]')
 
+ODM_COMMENT_HEADER = '[Automated ODM-sync-tool comment]\n'
+
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
@@ -80,12 +82,12 @@ class SyncTool:
             comment = 'No activity for more than 14 days'
             logging.info("%s on bug %s", comment, bug.bug.id)
         if comment:
-            self.add_comment(bug, comment)
+            self.add_odm_comment(bug, comment)
             bug.status = 'Invalid'
             bug.lp_save()
         if 'checkbox' not in bug.bug.tags:
             comment = "Bug report isn't tagged with 'checkbox'"
-            self.add_comment(bug, comment)
+            self.add_odm_comment(bug, comment)
             bug.status = 'Invalid'
             bug.lp_save()
         # TODO: add additional checks, like bug layout
@@ -116,7 +118,7 @@ class SyncTool:
                     self.add_bug_to_db(new_bug.bug_tasks[0])
                     message = 'Bug filed in {}. See {} for details'.format(
                         umbrella_project, new_bug.web_link)
-                    self.add_comment(bug_task, message)
+                    self.add_odm_comment(bug_task, message)
 
     def sync_comments(self):
         for proj in odm_projects:
@@ -128,15 +130,19 @@ class SyncTool:
                 # sync from odm to umbrella
                 for comment in [
                         c for c in odm_comments if c not in umb_comments]:
+                    if comment.startswith(ODM_COMMENT_HEADER):
+                        continue
                     logging.info('Adding missing comment from %s to %s',
                                  proj, umbrella_project)
-                    self.add_comment(umb_bug.bug_tasks[0], comment)
+                    self._add_comment(umb_bug.bug_tasks[0], comment)
                 # sync from umbrella to odm
                 for comment in [
                         c for c in umb_comments if c not in odm_comments]:
+                    if comment.startswith(ODM_COMMENT_HEADER):
+                        continue
                     logging.info('Adding missing comment from %s to %s',
                                  umbrella_project, proj)
-                    self.add_comment(odm_bug.bug_tasks[0], comment)
+                    self._add_comment(odm_bug.bug_tasks[0], comment)
 
     def file_bug(self, project, title, description, status, tags, assignee):
         bug = self.lp.bugs.createBug(
@@ -150,7 +156,10 @@ class SyncTool:
         task.lp_save()
         return bug
 
-    def add_comment(self, bug, message):
+    def add_odm_comment(self, bug, message):
+        self._add_comment(bug, ODM_COMMENT_HEADER + message)
+
+    def _add_comment(self, bug, message):
         bug.bug.newMessage(content=message)
 
     def main(self):
