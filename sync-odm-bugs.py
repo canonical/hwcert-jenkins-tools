@@ -78,6 +78,7 @@ class SyncTool:
             credentials_file=credentials_file)
         self.bug_db = dict()
         self.proj_db = dict()
+        self.bug_xref_db = dict()
         for proj in odm_projects + [umbrella_project]:
             self.bug_db[proj] = dict()
             self.proj_db[proj] = self.lp.projects[proj]
@@ -128,6 +129,8 @@ class SyncTool:
                                 logging.debug(
                                     "bug %s already defined in umbrella",
                                     u_title)
+                                self.bug_xref_db[bug.id] = u_bug.id
+                                self.bug_xref_db[u_bug.id] = bug.id
                                 break
                 else:
                     bug_task = bug.bug_tasks[0]
@@ -136,6 +139,8 @@ class SyncTool:
                         bug.description, bug_task.status,
                         bug.tags + [proj], owners[proj])
                     self.add_bug_to_db(new_bug.bug_tasks[0])
+                    self.bug_xref_db[bug.id] = new_bug.id
+                    self.bug_xref_db[new_bug.id] = bug.id
                     message = 'Bug filed from {} see {} for details'.format(
                         proj, bug.web_link)
                     self.add_odm_comment(new_bug.bug_tasks[0], message)
