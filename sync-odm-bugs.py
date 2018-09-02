@@ -55,6 +55,7 @@ ODM_COMMENT_HEADER = '[Automated ODM-sync-tool comment]\n'
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
+
 def url_to_bug_ref(text):
     """
     Search the `text` for bug's url and return the number of the first
@@ -70,6 +71,7 @@ def url_to_bug_ref(text):
     match = re.compile(r'https://bugs.launchpad.net/bugs/(\d+)').search(text)
     if match:
         return int(match.groups()[0])
+
 
 class SyncTool:
     def __init__(self, credentials_file):
@@ -170,6 +172,46 @@ class SyncTool:
                     logging.info('Adding missing comment from %s to %s',
                                  umbrella_project, proj)
                     self._add_comment(odm_bug.bug_tasks[0], comment)
+                self._sync_meta(odm_bug, umb_bug)
+
+    def _sync_meta(self, bug1, bug2):
+        if bug1.date_last_updated > bug2.date_last_updated:
+            src = bug1
+            dest = bug2
+        else:
+            src = bug2
+            dest = bug1
+        changed = False
+        # for comparing titles we need to make sure the prefix is removed
+        src_title = src.title.split(umbrella_prefix, maxsplit=1)[-1]
+        dest_title = dest.title.split(umbrella_prefix, maxsplit=1)[-1]
+        if src_title != dest_title:
+            if src.title.startswith(umbrella_prefix):
+                # copying FROM umbrella bug so the prefix is already stripped
+                dest.title = src_title
+            else:
+                # copying TO umbrella bug so we need to add the prefix
+                dest.title = umbrella_prefix + src_title
+            changed = True
+
+        if src.description != dest.description:
+            dest.description = src.description
+            changed = True
+
+        # get bug_task for both bugs
+        src_bt = src.bug_tasks[0]
+        dest_bt = dest.bug_tasks[0]
+        bt_changed = False
+
+        for f in ['assignee', 'status', 'milestone', 'importance']:
+            if getattr(src_bt, f) != getattr(dest_bt, f):
+                setattr(dest_bt, f, getattr(src_bt, f))
+                bt_changed = True
+
+        if changed:
+            dest.lp_save()
+        if bt_changed:
+            dest_bt.lp_save()
 
     def file_bug(self, project, title, description, status, tags, assignee):
         bug = self.lp.bugs.createBug(
