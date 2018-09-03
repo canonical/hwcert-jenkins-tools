@@ -113,7 +113,7 @@ class SyncTool:
     def add_bug_to_db(self, bug):
         self.bug_db[bug.bug_target_name][bug.bug.title] = bug.bug
 
-    def sync(self):
+    def build_bug_db(self):
         for proj, proj_bugs in self.bug_db.items():
             if proj == umbrella_project:
                 continue
@@ -200,7 +200,7 @@ class SyncTool:
         project = self.lp.projects[umbrella_project]
         for bug in project.searchTasks(status=status_list, tags=odm_projects):
             self.add_bug_to_db(bug)
-        self.sync()
+        self.build_bug_db()
         self.sync_all()
 
 
