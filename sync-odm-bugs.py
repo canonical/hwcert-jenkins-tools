@@ -148,7 +148,7 @@ class SyncTool:
                         umbrella_project, new_bug.web_link)
                     self.add_odm_comment(bug_task, message)
 
-    def sync_comments(self):
+    def sync_all(self):
         for proj in odm_projects:
             for odm_bug_name, odm_bug in self.bug_db[proj].items():
                 umb_bug = self.lp.bugs[self.bug_xref_db[odm_bug.id]]
@@ -201,7 +201,7 @@ class SyncTool:
         for bug in project.searchTasks(status=status_list, tags=odm_projects):
             self.add_bug_to_db(bug)
         self.sync()
-        self.sync_comments()
+        self.sync_all()
 
 
 def main():
