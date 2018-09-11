@@ -42,9 +42,11 @@ def find_or_create_checklist(card, checklist_name):
 def no_new_fails_or_skips(summary_data):
     """Check summary data for new fails or skips
 
-    Return True if there are no new fails or skips detected
+    Return True if there are no new fails or skips detected and if all
+    tests passed
     """
-    return "No new failed or skipped tests" in summary_data
+    return ("No new failed or skipped tests" in summary_data and
+            "All tests passed" in summary_data)
 
 
 architectures = ['i386', 'ppc64el', 'amd64', 's390x', 'armhf', 'arm64']
