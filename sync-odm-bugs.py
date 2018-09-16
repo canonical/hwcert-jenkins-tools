@@ -22,6 +22,7 @@
 import argparse
 from launchpadlib.launchpad import Launchpad
 import datetime
+import pygsheets
 import re
 import logging
 import sys
@@ -37,13 +38,18 @@ For more information see: goo.gl/ajiwG4
 odm_projects = ['civet-cat', 'flying-fox', 'pygmy-possum', 'white-whale']
 # project that should contain bugs from all projects
 umbrella_project = 'somerville'
-# mapping between LP project names and people that should own the bugs from
-# that project
-owners = {
-        # FILL ME!
-}
+
 # bug title prefix that's added to bugs replicated in the umbrella project
 umbrella_prefix = '[ODM bug] '
+
+# mapping between names found in AR column of the management spreadsheet
+# and LP usernames
+lp_names = {
+    'Cyrus': 'cyruslien',
+    'Fourdollars': 'fourdollars',
+    'Leon': 'lihow731',
+    'Kai-Heng': 'kaihengfeng'
+}
 # ----------   END OF CONFIGURATION ----------
 
 
@@ -75,6 +81,7 @@ def url_to_bug_ref(text):
 
 class SyncTool:
     def __init__(self, credentials_file):
+        self._owners_spreadsheet = OwnersSpreadsheet()
         self.lp = Launchpad.login_with(
             'sync-odm-bugs', 'production',
             credentials_file=credentials_file)
@@ -85,7 +92,7 @@ class SyncTool:
             self.bug_db[proj] = dict()
             self.proj_db[proj] = self.lp.projects[proj]
         self.user_db = dict()
-        for person in set(owners.values()):
+        for person in set(self._owners_spreadsheet.owners.values()):
             self.user_db[person] = self.lp.people[person]
 
     def verify_bug(self, bug):
@@ -108,6 +115,15 @@ class SyncTool:
             self.add_odm_comment(bug, comment)
             bug.status = 'Invalid'
             bug.lp_save()
+        for tag in bug.bug.tags:
+            if tag in self._owners_spreadsheet.owners.keys():
+                break
+        else:
+            comment = "Bug report isn't tagged with a platform tag"
+            self.add_odm_comment(bug, comment)
+            bug.status = 'Invalid'
+            bug.lp_save()
+
         # TODO: add additional checks, like bug layout
 
         return not comment
@@ -139,7 +155,8 @@ class SyncTool:
                     new_bug = self.file_bug(
                         umbrella_project, '[ODM bug] ' + bug_title,
                         bug.description, bug_task.status,
-                        bug.tags + [proj], owners[proj])
+                        bug.tags + [proj],
+                        self._owners_spreadsheet.owners[proj])
                     self.add_bug_to_db(new_bug.bug_tasks[0])
                     self.bug_xref_db[bug.id] = new_bug.id
                     self.bug_xref_db[new_bug.id] = bug.id
@@ -244,6 +261,40 @@ class SyncTool:
             self.add_bug_to_db(bug)
         self.build_bug_db()
         self.sync_all()
+
+class OwnersSpreadsheet:
+
+    def __init__(self):
+        self._gcli = pygsheets.authorize()
+        self._owners = None
+
+    @property
+    def owners(self):
+        if not self._owners:
+            sheet = self._gcli.open_by_key(
+                tracking_doc_id)
+            column_j = sheet.worksheet_by_title(
+                'Platforms').get_col(10)[2:]
+            # 44 - AR column
+            column_ar = sheet.worksheet_by_title(
+                'Platforms').get_col(44)[2:]
+            self._owners = dict()
+            for platform, raw_owner in zip(column_j, column_ar):
+                if not raw_owner:
+                    logging.warning(
+                        "%s platform doesn't have an owner!", platform)
+                    continue
+                owner = lp_names.get(raw_owner)
+                if not platform:
+                    continue
+                if platform in self._owners.keys():
+                    logging.debug('%s platform already registered', platform)
+                    if self._owners[platform] != owner:
+                        logging.warning(
+                            'And the owner is different! Previous %s, now %s',
+                            self._owners[platform], owner)
+                self._owners[platform] = owner
+        return self._owners
 
 
 def main():
