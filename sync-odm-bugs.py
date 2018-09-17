@@ -152,11 +152,18 @@ class SyncTool:
                                 break
                 else:
                     bug_task = bug.bug_tasks[0]
+                    if proj not in self._owners_spreadsheet.owners.keys():
+                        logging.error(
+                            '%s project is not listed in the Management Spreadsheet',
+                            proj)
+                        owner = ''
+                    else:
+                        owner = self._owners_spreadsheet.owners[proj]
                     new_bug = self.file_bug(
                         umbrella_project, '[ODM bug] ' + bug_title,
                         bug.description, bug_task.status,
                         bug.tags + [proj],
-                        self._owners_spreadsheet.owners[proj])
+                        owner)
                     self.add_bug_to_db(new_bug.bug_tasks[0])
                     self.bug_xref_db[bug.id] = new_bug.id
                     self.bug_xref_db[new_bug.id] = bug.id
