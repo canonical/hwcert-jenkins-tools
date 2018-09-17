@@ -39,6 +39,19 @@ def find_or_create_checklist(card, checklist_name):
     return checklist
 
 
+def change_checklist_item(checklist, name, checked=False):
+    # keep the trailing space so that we don't match the wrong thing later
+    r = re.match('\[*(.* )\(', name)
+    if r:
+        snapname = r.group(1)
+        for item in checklist.items:
+            if snapname in item.get('name'):
+                checklist.rename_checklist_item(item.get('name'), name)
+                checklist.set_checklist_item(name, checked)
+    else:
+        checklist.add_checklist_item(name, checked)
+
+
 def no_new_fails_or_skips(summary_data):
     """Check summary data for new fails or skips
 
@@ -145,12 +158,14 @@ def main():
     card.comment(summary)
     checklist = find_or_create_checklist(card, 'Testflinger')
     if c3_link:
-        checklist.add_checklist_item(
+        change_checklist_item(
+            checklist,
             "[{} ({})]({})".format(
                 args.name, datetime.utcnow().isoformat(), c3_link),
             checked=no_new_fails_or_skips(summary_data))
     else:
-        checklist.add_checklist_item(
+        change_checklist_item(
+            checklist,
             "{} ({})".format(
                 args.name, datetime.utcnow().isoformat()),
             checked=no_new_fails_or_skips(summary_data))
