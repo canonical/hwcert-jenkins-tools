@@ -71,8 +71,7 @@ def no_new_fails_or_skips(summary_data):
 def load_expected_tests(config, snapname):
     if not config:
         return []
-    with open(config) as c:
-        data = yaml.load(c)
+    data = yaml.load(config)
     if data:
         return data.get(snapname, {}).get('expected_tests', [])
     return []
@@ -89,7 +88,8 @@ def main():
                         **environ_or_required('TRELLO_TOKEN'))
     parser.add_argument('--board', help="Trello board identifier",
                         **environ_or_required('TRELLO_BOARD'))
-    parser.add_argument('--config', help="Snaps configuration")
+    parser.add_argument('--config', help="Snaps configuration",
+                        type=argparse.FileType())
     parser.add_argument('-a', '--arch', help="snap architecture",
                         required=True)
     parser.add_argument('-b', '--brandstore', help="brand store identifier",
