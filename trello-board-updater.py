@@ -9,6 +9,7 @@ import argparse
 import os
 import re
 import requests
+import sys
 import yaml
 
 from datetime import datetime
@@ -71,7 +72,11 @@ def no_new_fails_or_skips(summary_data):
 def load_expected_tests(config, snapname):
     if not config:
         return []
-    data = yaml.load(config)
+    try:
+        data = yaml.load(config)
+    except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+        print('ERROR: Error parsing', config.name)
+        sys.exit(1)
     if data:
         return data.get(snapname, {}).get('expected_tests', [])
     return []
