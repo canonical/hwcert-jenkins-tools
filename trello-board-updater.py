@@ -48,8 +48,11 @@ def change_checklist_item(checklist, name, checked=False):
             if snapname in item.get('name'):
                 checklist.rename_checklist_item(item.get('name'), name)
                 checklist.set_checklist_item(name, checked)
+                break
+        else:
+            checklist.add_checklist_item(name, checked)
     else:
-        checklist.add_checklist_item(name, checked)
+        print('WARNING: Invalid name specified', name)
 
 
 def no_new_fails_or_skips(summary_data):
