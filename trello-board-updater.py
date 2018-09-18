@@ -9,6 +9,7 @@ import argparse
 import os
 import re
 import requests
+import yaml
 
 from datetime import datetime
 from trello import TrelloClient
@@ -27,7 +28,7 @@ def search_card(board, query, card_filter="open"):
             return card
 
 
-def find_or_create_checklist(card, checklist_name):
+def find_or_create_checklist(card, checklist_name, items=[]):
     existing_checklists = card.fetch_checklists()
     checklist = None
     for c in existing_checklists:
@@ -36,6 +37,8 @@ def find_or_create_checklist(card, checklist_name):
             break
     if not checklist:
         checklist = card.add_checklist(checklist_name, [])
+        for item in items:
+            checklist.add_checklist_item(item + ' (NO RESULTS)')
     return checklist
 
 
@@ -48,9 +51,9 @@ def change_checklist_item(checklist, name, checked=False):
             if snapname in item.get('name'):
                 checklist.rename_checklist_item(item.get('name'), name)
                 checklist.set_checklist_item(name, checked)
-                break
+                return True
         else:
-            checklist.add_checklist_item(name, checked)
+            return False
     else:
         print('WARNING: Invalid name specified', name)
 
@@ -65,6 +68,16 @@ def no_new_fails_or_skips(summary_data):
             "All tests passed" in summary_data)
 
 
+def load_expected_tests(config, snapname):
+    if not config:
+        return []
+    with open(config) as c:
+        data = yaml.load(c)
+    if data:
+        return data.get(snapname, {}).get('expected_tests', [])
+    return []
+
+
 architectures = ['i386', 'ppc64el', 'amd64', 's390x', 'armhf', 'arm64']
 
 
@@ -76,6 +89,7 @@ def main():
                         **environ_or_required('TRELLO_TOKEN'))
     parser.add_argument('--board', help="Trello board identifier",
                         **environ_or_required('TRELLO_BOARD'))
+    parser.add_argument('--config', help="Snaps configuration")
     parser.add_argument('-a', '--arch', help="snap architecture",
                         required=True)
     parser.add_argument('-b', '--brandstore', help="brand store identifier",
@@ -97,6 +111,7 @@ def main():
     pattern = "{}.*{}.*{}.*{}".format(
         args.snap, args.version, args.revision, track)
     card = search_card(board, pattern)
+    expected_tests = load_expected_tests(args.config, args.snap)
     # Try to find the right card using other arch revision numbers
     if not card:
         rev_list = []
@@ -159,19 +174,30 @@ def main():
     summary += summary_data
     summary += '\n```\n'
     card.comment(summary)
-    checklist = find_or_create_checklist(card, 'Testflinger')
+    checklist = find_or_create_checklist(card, 'Testflinger', expected_tests)
+    checklist_nonblocking = find_or_create_checklist(
+        card, 'Testflinger - NonBlocking')
     if c3_link:
-        change_checklist_item(
-            checklist,
-            "[{} ({})]({})".format(
-                args.name, datetime.utcnow().isoformat(), c3_link),
-            checked=no_new_fails_or_skips(summary_data))
+        item_name = "[{} ({})]({})".format(
+            args.name, datetime.utcnow().isoformat(), c3_link)
+        if not change_checklist_item(
+                checklist, item_name,
+                checked=no_new_fails_or_skips(summary_data)):
+            if not change_checklist_item(
+                    checklist_nonblocking, item_name,
+                    checked=no_new_fails_or_skips(summary_data)):
+                checklist_nonblocking.add_checklist_item(
+                    item_name, checked=no_new_fails_or_skips(summary_data))
     else:
-        change_checklist_item(
-            checklist,
-            "{} ({})".format(
-                args.name, datetime.utcnow().isoformat()),
-            checked=no_new_fails_or_skips(summary_data))
+        item_name = "{} ({})".format(args.name, datetime.utcnow().isoformat())
+        if not change_checklist_item(
+                checklist, item_name,
+                checked=no_new_fails_or_skips(summary_data)):
+            if not change_checklist_item(
+                    checklist_nonblocking, item_name,
+                    checked=no_new_fails_or_skips(summary_data)):
+                checklist_nonblocking.add_checklist_item(
+                    item_name, checked=no_new_fails_or_skips(summary_data))
         for label in board.get_labels():
             if label.name == 'TESTFLINGER CRASH':
                 labels = card.list_labels or []
