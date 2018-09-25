@@ -14,6 +14,7 @@ import yaml
 
 from datetime import datetime
 from trello import TrelloClient
+from trello.exceptions import ResourceUnavailable
 
 
 def environ_or_required(key):
@@ -207,7 +208,11 @@ def main():
             if label.name == 'TESTFLINGER CRASH':
                 labels = card.list_labels or []
                 if label not in labels:
-                    card.add_label(label)
+                    # Avoid crash if checking labels fails to find it
+                    try:
+                        card.add_label(label)
+                    except ResourceUnavailable:
+                        pass
                 break
     if not [c for c in card.fetch_checklists() if c.name == 'Sign-Off']:
         checklist = find_or_create_checklist(card, 'Sign-Off')
