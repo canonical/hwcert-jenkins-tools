@@ -30,6 +30,7 @@ from yaml.parser import ParserError
 
 channel_promotion_map = {
     # channel -> next-channel
+    'edge': 'beta',
     'beta': 'candidate',
     'candidate': 'stable',
 }
@@ -41,6 +42,11 @@ def environ_or_required(key):
         return {'default': os.environ.get(key)}
     else:
         return {'required': True}
+
+
+def archive_card(card):
+    print('Archiving old revision:', card)
+    card.set_closed(True)
 
 
 def move_card(config, lane_name, card):
@@ -78,6 +84,12 @@ def move_card(config, lane_name, card):
                     ori = next_channel = channel_promotion_map[lane_name]
                     if track != 'latest':
                         next_channel = "{}/{}".format(track, next_channel)
+                    # If the snap with this name, in this channel is a
+                    # differet revision, then this is old so archive it
+                    if (channel == lane_name and
+                            revision != m.group("revision")):
+                        archive_card(card)
+                        continue
                     if (
                         channel == next_channel and
                         version == m.group("version") and
