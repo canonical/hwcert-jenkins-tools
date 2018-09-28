@@ -70,17 +70,29 @@ def no_new_fails_or_skips(summary_data):
             "All tests passed" in summary_data)
 
 
-def load_expected_tests(config, snapname):
-    if not config:
+def load_config(configfile, snapname):
+    if not configfile:
         return []
     try:
-        data = yaml.load(config)
+        data = yaml.load(configfile)
     except (yaml.parser.ParserError, yaml.scanner.ScannerError):
-        print('ERROR: Error parsing', config.name)
+        print('ERROR: Error parsing', configfile.name)
         sys.exit(1)
-    if data:
-        return data.get(snapname, {}).get('expected_tests', [])
-    return []
+    return data
+
+
+def attach_labels(board, card, label_list):
+    for labelstr in label_list:
+        for label in board.get_labels():
+            if label.name == labelstr:
+                labels = card.list_labels or []
+                if label not in labels:
+                    # Avoid crash if checking labels fails to find it
+                    try:
+                        card.add_label(label)
+                    except ResourceUnavailable:
+                        pass
+                break
 
 
 architectures = ['i386', 'ppc64el', 'amd64', 's390x', 'armhf', 'arm64']
@@ -117,7 +129,9 @@ def main():
     pattern = "{}.*{}.*{}.*{}".format(
         args.snap, args.version, args.revision, track)
     card = search_card(board, pattern)
-    expected_tests = load_expected_tests(args.config, args.snap)
+    config = load_config(args.config, args.snap)
+    expected_tests = config.get(args.snap, {}).get('expected_tests', [])
+    snap_labels = config.get(args.snap, {}).get('labels', [])
     # Try to find the right card using other arch revision numbers
     if not card:
         rev_list = []
@@ -180,6 +194,7 @@ def main():
     summary += summary_data
     summary += '\n```\n'
     card.comment(summary)
+    attach_labels(board, card, snap_labels)
     checklist = find_or_create_checklist(card, 'Testflinger', expected_tests)
     checklist_nonblocking = find_or_create_checklist(
         card, 'Testflinger - NonBlocking')
@@ -204,16 +219,7 @@ def main():
                     checked=no_new_fails_or_skips(summary_data)):
                 checklist_nonblocking.add_checklist_item(
                     item_name, checked=no_new_fails_or_skips(summary_data))
-        for label in board.get_labels():
-            if label.name == 'TESTFLINGER CRASH':
-                labels = card.list_labels or []
-                if label not in labels:
-                    # Avoid crash if checking labels fails to find it
-                    try:
-                        card.add_label(label)
-                    except ResourceUnavailable:
-                        pass
-                break
+        attach_labels(board, card, ['TESTFLINGER CRASH'])
     if not [c for c in card.fetch_checklists() if c.name == 'Sign-Off']:
         checklist = find_or_create_checklist(card, 'Sign-Off')
         checklist.add_checklist_item('Clear for Landing', True)
