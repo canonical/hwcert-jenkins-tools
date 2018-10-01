@@ -28,7 +28,7 @@ class InfluxQueryWriterTests(unittest.TestCase):
             'results': [],
         }
         iqw = InfluxQueryWriter(submission)
-        self.assertEqual(list(iqw.get_influx_inserts()), [])
+        self.assertEqual(list(iqw.generate_sql_inserts()), [])
 
     def test_one_result_no_meta_infos(self):
         submission = {
@@ -42,11 +42,11 @@ class InfluxQueryWriterTests(unittest.TestCase):
             expected = ('INSERT snap_timing,project_name="unknown",'
                         'job_name="snap-install",hw_id="unknown",'
                         'os_kind="unknown" elapsed=0.5 1000000000')
-            self.assertEqual(list(iqw.get_influx_inserts()), [expected])
+            self.assertEqual(list(iqw.generate_sql_inserts()), [expected])
 
     def test_empty_suspension(self):
         iqw = InfluxQueryWriter(dict())
-        self.assertEqual(list(iqw.get_influx_inserts()), [])
+        self.assertEqual(list(iqw.generate_sql_inserts()), [])
 
     def test_full_meta(self):
         submission = {
@@ -68,4 +68,4 @@ class InfluxQueryWriterTests(unittest.TestCase):
         with unittest.mock.patch('time.time', MagicMock(return_value=1)):
             iqw = InfluxQueryWriter(submission)
             self.assertEqual(
-                list(iqw.get_influx_inserts()), [expected1, expected2])
+                list(iqw.generate_sql_inserts()), [expected1, expected2])

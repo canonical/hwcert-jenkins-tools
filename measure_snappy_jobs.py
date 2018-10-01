@@ -46,7 +46,7 @@ class InfluxQueryWriter():
             'description', 'unknown'))
         self._results = submission.get('results', [])
 
-    def get_influx_inserts(self):
+    def generate_sql_inserts(self):
         for result in self._results:
             for job in MEASURED_JOBS:
                 if result['id'].endswith(job):
@@ -70,7 +70,7 @@ def main():
         with open(sys.argv[1], 'rt') as f:
             content = json.load(f)
             iqw = InfluxQueryWriter(content)
-            for insert in iqw.get_influx_inserts():
+            for insert in iqw.generate_sql_inserts():
                 print(insert)
     except Exception as exc:
         raise exc
