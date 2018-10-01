@@ -30,8 +30,6 @@ def dquote(s):
     return '"{}"'.format(s)
 
 class InfluxQueryWriter():
-    TMPL = ("INSERT snap_timing,project_name={proj},job_name={job},"
-            "hw_id={hw},os_kind={os} elapsed={elapsed} {tstamp}")
 
     def __init__(self, submission):
         self._proj = dquote(submission.get('title', 'unknown'))
@@ -47,20 +45,37 @@ class InfluxQueryWriter():
         self._results = submission.get('results', [])
 
     def generate_sql_inserts(self):
+        TMPL = ("INSERT snap_timing,project_name={proj},job_name={job},"
+                "hw_id={hw},os_kind={os} elapsed={elapsed} {tstamp}")
+        for m in self.extract_measurements():
+                yield TMPL.format(
+                    proj=m['tags']['project_name'],
+                    job=m['tags']['job_name'],
+                    hw=m['tags']['hw_id'],
+                    os=m['tags']['os_kind'],
+                    elapsed=m['fields']['elapsed'],
+                    tstamp=m['time'])
+
+    def extract_measurements(self):
         for result in self._results:
             for job in MEASURED_JOBS:
                 if result['id'].endswith(job):
                     if not result.get('duration'):
                         continue
-                    yield InfluxQueryWriter.TMPL.format(
-                        proj=self._proj,
-                        job=dquote(job),
-                        hw=self._hw_id,
-                        os=self._os_kind,
-                        elapsed=result['duration'],
-                        tstamp=self._time)
-
-
+                    measurement = {
+                        "measurement": "snap_timing",
+                        "tags": {
+                            "project_name": self._proj,
+                            "job_name": dquote(job),
+                            "hw_id": self._hw_id,
+                            "os_kind": self._os_kind,
+                        },
+                        "time": self._time,
+                        "fields": {
+                            "elapsed": result["duration"],
+                        }
+                    }
+                    yield measurement
 
 
 def main():
