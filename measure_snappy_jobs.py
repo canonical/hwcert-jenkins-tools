@@ -17,6 +17,7 @@
 #       Maciej Kisielewski <maciej.kisielewski@canonical.com>
 
 import json
+import re
 import sys
 import time
 
@@ -24,10 +25,13 @@ MEASURED_JOBS = [
         'snap-install',
         'snap-remove',
 ]
+BOOTUP_JOB_ID = 'info/systemd-analyze'
+
 
 def dquote(s):
     # surround s with double quotes
     return '"{}"'.format(s)
+
 
 class InfluxQueryWriter():
 
@@ -58,6 +62,7 @@ class InfluxQueryWriter():
 
     def extract_measurements(self):
         for result in self._results:
+            # for some jobs extract elapsed time as measured by checkbox
             for job in MEASURED_JOBS:
                 if result['id'].endswith(job):
                     if not result.get('duration'):
@@ -76,6 +81,42 @@ class InfluxQueryWriter():
                         }
                     }
                     yield measurement
+            # for boot-up job extract time from the job's output
+            if result['id'].endswith(BOOTUP_JOB_ID):
+                timings = parse_sysd_analyze(result['io_log'])
+                if not timings or len(timings) < 3:
+                    print("{} job didn't have proper output."
+                          " It returned:\n{}".format(
+                              result['id'], result['io_log']))
+                else:
+                    measurement = {
+                        "measurement": "snap_timing",
+                        "tags": {
+                            "project_name": self._proj,
+                            "job_name": dquote(BOOTUP_JOB_ID),
+                            "hw_id": self._hw_id,
+                            "os_kind": self._os_kind,
+                        },
+                        "time": self._time,
+                        "fields": {
+                            "elapsed": timings[2],
+                        }
+                    }
+                    yield measurement
+
+
+def parse_sysd_analyze(text):
+    """
+    >>> parse_sysd_analyze('Startup finished in 5.459s (kernel)'
+    ... '+ 18.985s (userspace) = 24.444s')
+    (5.459, 18.985, 24.444)
+    >>> parse_sysd_analyze('Weird output')
+    """
+    RE = r'.*\s(\d+\.\d+)s.*\s(\d+\.\d+)s.*\s(\d+\.\d+)s'
+    matches = re.match(RE, text)
+    if not matches:
+        return None
+    return tuple(float(x) for x in matches.groups())
 
 
 def main():
