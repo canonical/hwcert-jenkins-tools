@@ -15,16 +15,32 @@
 #
 # Written by:
 #       Maciej Kisielewski <maciej.kisielewski@canonical.com>
-
 import json
 import re
 import sys
 import time
 
+from influxdb import InfluxDBClient
+
+from influx_credentials import credentials
+
+"""
+Extract job timing information from a submission file and push it to the
+influxDB.
+
+For jobs listed in MEASURED_JOBS take 'duration' field as reported by Checkbox.
+For job specified by BOOTUP_JOB_ID parse the jobs output in search for
+systemd-analyze output and use that as the measurement.
+
+After measurements are extracted, they are pushed to the influxDB specified
+in the influx_credentials.py.
+"""
+
 MEASURED_JOBS = [
         'snap-install',
         'snap-remove',
 ]
+
 BOOTUP_JOB_ID = 'info/systemd-analyze'
 
 
@@ -35,15 +51,15 @@ def dquote(s):
 
 class InfluxQueryWriter():
 
-    def __init__(self, submission):
+    def __init__(self, hw_id, submission):
         self._proj = dquote(submission.get('title', 'unknown'))
         # XXX: In theory the explicit timestamp is not needed, as influx would
         #      use time of insert as time of measurement, but since there are
-        #      multiple measurements from one submission, let's use the sime
+        #      multiple measurements from one submission, let's use the same
         #      timestamp
         self._time = int(time.time() * 10 ** 9)  # timestamp in nanoseconds
         # TODO: figure out how to get hardware info
-        self._hw_id = dquote('unknown')
+        self._hw_id = dquote(hw_id)
         self._os_kind = dquote(submission.get('distribution', dict()).get(
             'description', 'unknown'))
         self._results = submission.get('results', [])
@@ -119,19 +135,24 @@ def parse_sysd_analyze(text):
     return tuple(float(x) for x in matches.groups())
 
 
+def push_to_influx(measurements):
+    client = InfluxDBClient(
+        credentials['host'], 8086, credentials['user'], credentials['pass'],
+        credentials['dbname'])
+    client.write_points(measurements)
+
+
 def main():
-    if len(sys.argv) < 2:
-        raise SystemExit('Usage: {} submission.json'.format(sys.argv[0]))
+    if len(sys.argv) < 3:
+        raise SystemExit('Usage: {} HARDWARE_ID submission.json'.format(
+            sys.argv[0]))
     try:
-        with open(sys.argv[1], 'rt') as f:
+        with open(sys.argv[2], 'rt') as f:
             content = json.load(f)
-            iqw = InfluxQueryWriter(content)
-            for insert in iqw.generate_sql_inserts():
-                print(insert)
+            iqw = InfluxQueryWriter(sys.argv[1], content)
+            push_to_influx(iqw.extract_measurements())
     except Exception as exc:
         raise exc
-
-
 
 if __name__ == '__main__':
     main()
