@@ -51,13 +51,16 @@ def dquote(s):
 
 class InfluxQueryWriter():
 
-    def __init__(self, hw_id, submission):
+    def __init__(self, hw_id, submission, tstamp=None):
         self._proj = dquote(submission.get('title', 'unknown'))
         # XXX: In theory the explicit timestamp is not needed, as influx would
         #      use time of insert as time of measurement, but since there are
         #      multiple measurements from one submission, let's use the same
         #      timestamp
-        self._time = int(time.time() * 10 ** 9)  # timestamp in nanoseconds
+        if tstamp:
+            self._time = int(tstamp * 10 ** 9)
+        else:
+            self._time = int(time.time() * 10 ** 9)  # timestamp in nanoseconds
         # TODO: figure out how to get hardware info
         self._hw_id = dquote(hw_id)
         self._os_kind = dquote(submission.get('distribution', dict()).get(
@@ -143,13 +146,18 @@ def push_to_influx(measurements):
 
 
 def main():
-    if len(sys.argv) < 3:
-        raise SystemExit('Usage: {} HARDWARE_ID submission.json'.format(
+    if len(sys.argv) < 4:
+        raise SystemExit('Usage: {} HARDWARE_ID TIMESTAMP submission.json'.format(
             sys.argv[0]))
     try:
-        with open(sys.argv[2], 'rt') as f:
-            content = json.load(f)
-            iqw = InfluxQueryWriter(sys.argv[1], content)
+        with open(sys.argv[3], 'rt') as f:
+            try:
+                content = json.load(f)
+            except json.JSONDecodeError:
+                raise SystemExit("Failed to parse {}".format(
+                    sys.argv[3]))
+            iqw = InfluxQueryWriter(
+                sys.argv[1], content, tstamp=float(sys.argv[2]))
             push_to_influx(iqw.extract_measurements())
     except Exception as exc:
         raise exc
