@@ -39,6 +39,8 @@ in the influx_credentials.py.
 MEASURED_JOBS = [
         'snap-install',
         'snap-remove',
+        'connect-tillamook-plugs',
+        'connect-caracalla-plugs',
 ]
 
 BOOTUP_JOB_ID = 'info/systemd-analyze'
