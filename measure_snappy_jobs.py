@@ -145,6 +145,8 @@ def main():
     parser.add_argument('SUBMISSION_FILE')
     parser.add_argument('--hw_id', default='unknown')
     parser.add_argument('--timestamp', default=time.time(), type=float)
+    parser.add_argument('--sql', action='store_true', help=(
+        "Print out insert queries instead of pushing object to influx"))
     args = parser.parse_args()
 
     try:
@@ -155,7 +157,10 @@ def main():
                 raise SystemExit("Failed to parse {}".format(
                     args.SUBMISSION_FILE))
             iqw = InfluxQueryWriter(args.hw_id, content, args.timestamp)
-            push_to_influx(iqw.extract_measurements())
+            if args.sql:
+                print('\n'.join(iqw.generate_sql_inserts()))
+            else:
+                push_to_influx(iqw.extract_measurements())
     except Exception as exc:
         raise exc
 
