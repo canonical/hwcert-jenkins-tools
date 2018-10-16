@@ -57,6 +57,13 @@ class InfluxQueryWriter():
         self._hw_id = dquote(hw_id)
         self._os_kind = dquote(submission.get('distribution', dict()).get(
             'description', 'unknown'))
+        snap_packages = submission.get('snap-packages', dict())
+        for snap in snap_packages:
+            if snap.get('name', '') == 'core':
+                self._core_rev = snap.get('revision', '0')
+                break
+        else:
+            self._core_rev = '0'
         self._results = (
                 submission.get('results', []) +
                 submission.get('resource-results', [])
@@ -64,13 +71,15 @@ class InfluxQueryWriter():
 
     def generate_sql_inserts(self):
         TMPL = ("INSERT snap_timing,project_name={proj},job_name={job},"
-                "hw_id={hw},os_kind={os} elapsed={elapsed} {tstamp}")
+                "hw_id={hw},os_kind={os},core_revision={core_rev} "
+                "elapsed={elapsed} {tstamp}")
         for m in self.extract_measurements():
                 yield TMPL.format(
                     proj=m['tags']['project_name'],
                     job=m['tags']['job_name'],
                     hw=m['tags']['hw_id'],
                     os=m['tags']['os_kind'],
+                    core_rev=m['tags']['core_revision'],
                     elapsed=m['fields']['elapsed'],
                     tstamp=m['time'])
 
@@ -88,6 +97,7 @@ class InfluxQueryWriter():
                             "job_name": dquote(job),
                             "hw_id": self._hw_id,
                             "os_kind": self._os_kind,
+                            "core_revision": self._core_rev,
                         },
                         "time": self._time,
                         "fields": {
@@ -110,6 +120,7 @@ class InfluxQueryWriter():
                             "job_name": dquote(BOOTUP_JOB_ID),
                             "hw_id": self._hw_id,
                             "os_kind": self._os_kind,
+                            "core_revision": self._core_rev,
                         },
                         "time": self._time,
                         "fields": {
