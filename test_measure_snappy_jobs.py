@@ -27,7 +27,7 @@ class InfluxQueryWriterTests(unittest.TestCase):
         submission = {
             'results': [],
         }
-        iqw = InfluxQueryWriter(submission)
+        iqw = InfluxQueryWriter('', submission, 0)
         self.assertEqual(list(iqw.generate_sql_inserts()), [])
 
     def test_one_result_no_meta_infos(self):
@@ -38,14 +38,14 @@ class InfluxQueryWriterTests(unittest.TestCase):
             }],
         }
         with unittest.mock.patch('time.time', MagicMock(return_value=1)):
-            iqw = InfluxQueryWriter(submission)
+            iqw = InfluxQueryWriter('unknown', submission, 1)
             expected = ('INSERT snap_timing,project_name="unknown",'
-                        'job_name="snap-install",hw_id="unknown",'
-                        'os_kind="unknown" elapsed=0.5 1000000000')
+                'job_name="snap-install",hw_id="unknown",'
+                'os_kind="unknown",core_revision=0 elapsed=0.5 1000000000')
             self.assertEqual(list(iqw.generate_sql_inserts()), [expected])
 
     def test_empty_suspension(self):
-        iqw = InfluxQueryWriter(dict())
+        iqw = InfluxQueryWriter('', dict(), 0)
         self.assertEqual(list(iqw.generate_sql_inserts()), [])
 
     def test_full_meta(self):
@@ -61,11 +61,11 @@ class InfluxQueryWriterTests(unittest.TestCase):
         }
         expected1 = ('INSERT snap_timing,project_name="checkbox-project",'
                      'job_name="snap-install",hw_id="unknown",'
-                     'os_kind="Ubuntu" elapsed=1.5 1000000000')
+                     'os_kind="Ubuntu",core_revision=0 elapsed=1.5 1000000000')
         expected2 = ('INSERT snap_timing,project_name="checkbox-project",'
                      'job_name="snap-remove",hw_id="unknown",'
-                     'os_kind="Ubuntu" elapsed=2.5 1000000000')
+                     'os_kind="Ubuntu",core_revision=0 elapsed=2.5 1000000000')
         with unittest.mock.patch('time.time', MagicMock(return_value=1)):
-            iqw = InfluxQueryWriter(submission)
+            iqw = InfluxQueryWriter('unknown', submission, 1)
             self.assertEqual(
                 list(iqw.generate_sql_inserts()), [expected1, expected2])
