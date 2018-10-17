@@ -178,24 +178,27 @@ class SyncTool:
         for proj in odm_projects:
             for odm_bug_name, odm_bug in self.bug_db[proj].items():
                 umb_bug = self.lp.bugs[self.bug_xref_db[odm_bug.id]]
-                odm_comments = [msg.content for msg in odm_bug.messages][1:]
-                umb_comments = [msg.content for msg in umb_bug.messages][1:]
-                # sync from odm to umbrella
-                for comment in [
-                        c for c in odm_comments if c not in umb_comments]:
-                    if comment.startswith(ODM_COMMENT_HEADER):
+                odm_messages = [msg for msg in odm_bug.messages][1:]
+                umb_messages = [msg for msg in umb_bug.messages][1:]
+                odm_comments = [msg.content for msg in odm_messages]
+                umb_comments = [msg.content for msg in umb_messages]
+
+                for msg in odm_messages:
+                    if msg.content in umb_comments:
+                        continue
+                    if msg.content.startswith(ODM_COMMENT_HEADER):
                         continue
                     logging.info('Adding missing comment from %s to %s',
                                  proj, umbrella_project)
-                    self._add_comment(umb_bug.bug_tasks[0], comment)
-                # sync from umbrella to odm
-                for comment in [
-                        c for c in umb_comments if c not in odm_comments]:
-                    if comment.startswith(ODM_COMMENT_HEADER):
+                    self._add_comment(umb_bug.bug_tasks[0], msg.content)
+                for msg in umb_messages:
+                    if msg.content in odm_comments:
+                        continue
+                    if msg.content.startswith(ODM_COMMENT_HEADER):
                         continue
                     logging.info('Adding missing comment from %s to %s',
                                  umbrella_project, proj)
-                    self._add_comment(odm_bug.bug_tasks[0], comment)
+                    self._add_comment(odm_bug.bug_tasks[0], msg.content)
                 self._sync_meta(odm_bug, umb_bug)
 
     def _sync_meta(self, bug1, bug2):
