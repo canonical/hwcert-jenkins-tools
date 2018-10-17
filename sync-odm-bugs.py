@@ -190,7 +190,8 @@ class SyncTool:
                         continue
                     logging.info('Adding missing comment from %s to %s',
                                  proj, umbrella_project)
-                    self._add_comment(umb_bug.bug_tasks[0], msg.content)
+                    attachments = [a for a in msg.bug_attachments]
+                    self._add_comment(umb_bug.bug_tasks[0], msg.content, attachments)
                 for msg in umb_messages:
                     if msg.content in odm_comments:
                         continue
@@ -198,7 +199,8 @@ class SyncTool:
                         continue
                     logging.info('Adding missing comment from %s to %s',
                                  umbrella_project, proj)
-                    self._add_comment(odm_bug.bug_tasks[0], msg.content)
+                    attachments = [a for a in msg.bug_attachments]
+                    self._add_comment(odm_bug.bug_tasks[0], msg.content, attachments)
                 self._sync_meta(odm_bug, umb_bug)
 
     def _sync_meta(self, bug1, bug2):
@@ -255,8 +257,16 @@ class SyncTool:
     def add_odm_comment(self, bug, message):
         self._add_comment(bug, ODM_COMMENT_HEADER + message)
 
-    def _add_comment(self, bug, message):
-        bug.bug.newMessage(content=message)
+    def _add_comment(self, bug, message, attachments=None):
+        # XXX: I think LP allows one attachment per bug message
+        if attachments:
+            bug.bug.addAttachment(
+                data=attachments[0].data.open().read(),
+                comment=message,
+                filename=attachments[0].title,
+                is_patch=attachments[0].type == 'Patch')
+        else:
+            bug.bug.newMessage(content=message)
 
     def main(self):
         for p in odm_projects:
