@@ -292,6 +292,10 @@ class OwnersSpreadsheet:
                         "%s platform doesn't have an owner!", platform)
                     continue
                 owner = lp_names.get(raw_owner)
+                if not owner:
+                    logging.warning(
+                        "No mapping to launchpad id for %s", raw_owner)
+                    continue
                 if not platform:
                     continue
                 if platform in self._owners.keys():
