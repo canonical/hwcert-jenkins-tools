@@ -227,6 +227,10 @@ class SyncTool:
             dest.description = src.description
             changed = True
 
+        if src.tags != dest.tags:
+            dest.tags = src.tags
+            changed = True
+
         # get bug_task for both bugs
         src_bt = src.bug_tasks[0]
         dest_bt = dest.bug_tasks[0]
