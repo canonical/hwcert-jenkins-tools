@@ -133,6 +133,9 @@ def main():
     expected_tests = config.get(args.snap, {}).get('expected_tests', [])
     snap_labels = config.get(args.snap, {}).get('labels', [])
     # Try to find the right card using other arch revision numbers
+    # i.e. We could be recording a result for core rev 111 on armhf, but we
+    # want to record it against the core rev 110 results with amd64, so find
+    # that card by finding the arch/rev from the store to use in the search
     if not card:
         rev_list = []
         for arch in [a for a in architectures if a != args.arch]:
@@ -170,7 +173,7 @@ def main():
                         card.set_name('{} - {} - ({})'.format(
                             args.snap, args.version, args.revision))
                 break
-    # Create the card in the right lane
+    # Create the card in the right lane, since we still didn't find it
     if not card:
         channel = args.channel.capitalize()
         lane = None

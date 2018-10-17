@@ -76,14 +76,15 @@ def move_card(config, lane_name, card):
             if i["track"] == track:
                 for channel_info in i["map"]:
                     channel = channel_info['channel']
+                    # If we're not in the latest track strip the
+                    # track/channel to just be channel
+                    channel = channel.split('/')[-1]
                     try:
                         version = channel_info['version']
                         revision = str(channel_info['revision'])
                     except KeyError:
                         continue
                     ori = next_channel = channel_promotion_map[lane_name]
-                    if track != 'latest':
-                        next_channel = "{}/{}".format(track, next_channel)
                     # If the snap with this name, in this channel is a
                     # differet revision, then this is old so archive it
                     if (channel == lane_name and
