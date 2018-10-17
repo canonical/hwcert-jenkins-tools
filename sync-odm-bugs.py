@@ -98,8 +98,9 @@ class SyncTool:
     def verify_bug(self, bug):
         qmetry_match = QMETRY_RE.match(bug.bug.title)
         comment = ""
-        if not qmetry_match:
-            comment = 'Missing QMetry info in the title'
+        if not qmetry_match and 'checkbox' not in bug.bug.tags:
+            comment = ('Missing QMetry info in the title and missing checkbox'
+                'tag')
             logging.info("%s for bug %s", comment, bug.bug.id)
         last_updated = bug.bug.date_last_updated
         if (datetime.datetime.now(
@@ -107,11 +108,6 @@ class SyncTool:
             comment = 'No activity for more than 14 days'
             logging.info("%s on bug %s", comment, bug.bug.id)
         if comment:
-            self.add_odm_comment(bug, comment)
-            bug.status = 'Invalid'
-            bug.lp_save()
-        if 'checkbox' not in bug.bug.tags:
-            comment = "Bug report isn't tagged with 'checkbox'"
             self.add_odm_comment(bug, comment)
             bug.status = 'Invalid'
             bug.lp_save()
