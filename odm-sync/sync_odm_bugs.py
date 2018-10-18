@@ -32,26 +32,13 @@ This programs keeps ODM projects' bugs in sync with the Somerville project.
 
 For more information see: goo.gl/ajiwG4
 """
-
-# -------------   CONFIGURATION   ------------
-# projects to scan for new bugs
-odm_projects = ['civet-cat', 'flying-fox', 'pygmy-possum', 'white-whale']
-# project that should contain bugs from all projects
-umbrella_project = 'somerville'
-
-# bug title prefix that's added to bugs replicated in the umbrella project
-umbrella_prefix = '[ODM bug] '
-
-# mapping between names found in AR column of the management spreadsheet
-# and LP usernames
-lp_names = {
-    'Cyrus': 'cyruslien',
-    'Fourdollars': 'fourdollars',
-    'Leon': 'lihow731',
-    'Kai-Heng': 'kaihengfeng'
-}
-# ----------   END OF CONFIGURATION ----------
-
+try:
+    from odm_sync_config import (
+        odm_projects, umbrella_project, umbrella_prefix, lp_names,
+        tracking_doc_id,
+    )
+except ImportError as exc:
+    raise SystemExit("Problem with reading the config: {}".format(exc))
 
 status_list = ['New', 'Confirmed', 'Triaged', 'In Progress', 'Fix Committed']
 QMETRY_RE = re.compile('.*\[QMetry#(\d+)\]')
