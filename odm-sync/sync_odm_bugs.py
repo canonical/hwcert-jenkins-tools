@@ -82,10 +82,11 @@ class SyncTool:
 
     def verify_bug(self, bug):
         qmetry_match = QMETRY_RE.match(bug.bug.title)
+        if not qmetry_match:
+            qmetry_match = QMETRY_RE.match(bug.bug.description)
         comment = ""
         if not qmetry_match and 'checkbox' not in bug.bug.tags:
-            comment = ('Missing QMetry info in the title and missing checkbox'
-                'tag')
+            comment = ('Missing QMetry info and missing checkbox tag')
             logging.info("%s for bug %s", comment, bug.bug.id)
         last_updated = bug.bug.date_last_updated
         if (datetime.datetime.now(
