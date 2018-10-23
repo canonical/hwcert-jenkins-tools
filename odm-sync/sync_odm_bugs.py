@@ -103,7 +103,7 @@ class SyncTool:
         else:
             comment = "Bug report isn't tagged with a platform tag"
             self.add_odm_comment(bug, comment)
-            bug.status = 'Invalid'
+            bug.status = 'Incomplete'
             bug.lp_save()
 
         # TODO: add additional checks, like bug layout
