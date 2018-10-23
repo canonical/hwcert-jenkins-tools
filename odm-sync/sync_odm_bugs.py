@@ -89,7 +89,9 @@ class SyncTool:
             comment = ('Missing QMetry info and missing checkbox tag')
             logging.info("%s for bug %s", comment, bug.bug.id)
         last_updated = bug.bug.date_last_updated
-        if (datetime.datetime.now(
+        being_worked_on = bug.status in [
+            'Confirmed', 'Triaged', 'In Progress']
+        if not being_worked_on and (datetime.datetime.now(
                 last_updated.tzinfo) - last_updated).days > 14:
             comment = 'No activity for more than 14 days'
             logging.info("%s on bug %s", comment, bug.bug.id)
