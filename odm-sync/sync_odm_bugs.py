@@ -33,10 +33,7 @@ This programs keeps ODM projects' bugs in sync with the Somerville project.
 For more information see: goo.gl/ajiwG4
 """
 try:
-    from odm_sync_config import (
-        odm_projects, umbrella_project, umbrella_prefix, lp_names,
-        tracking_doc_id,
-    )
+    import odm_sync_config
 except ImportError as exc:
     raise SystemExit("Problem with reading the config: {}".format(exc))
 
@@ -67,15 +64,16 @@ def url_to_bug_ref(text):
 
 
 class SyncTool:
-    def __init__(self, credentials_file):
-        self._owners_spreadsheet = OwnersSpreadsheet()
+    def __init__(self, credentials_file, config):
+        self._cfg = config
+        self._owners_spreadsheet = OwnersSpreadsheet(config)
         self.lp = Launchpad.login_with(
             'sync-odm-bugs', 'production',
             credentials_file=credentials_file)
         self.bug_db = dict()
         self.proj_db = dict()
         self.bug_xref_db = dict()
-        for proj in odm_projects + [umbrella_project]:
+        for proj in self._cfg.odm_projects + [self._cfg.umbrella_project]:
             self.bug_db[proj] = dict()
             self.proj_db[proj] = self.lp.projects[proj]
         self.user_db = dict()
@@ -116,12 +114,13 @@ class SyncTool:
 
     def build_bug_db(self):
         for proj, proj_bugs in self.bug_db.items():
-            if proj == umbrella_project:
+            if proj == self._cfg.umbrella_project:
                 continue
             for bug_title, bug in proj_bugs.items():
                 logging.debug("Checking if %s is in the umbrella", bug_title)
                 # look for bug in the umbrella project
-                for u_title, u_bug in self.bug_db[umbrella_project].items():
+                for u_title, u_bug in self.bug_db[
+                        self._cfg.umbrella_project].items():
                     if u_bug.messages.total_size >= 2:
                         first_comment = u_bug.messages[1].content
                         if first_comment.startswith(ODM_COMMENT_HEADER):
@@ -143,7 +142,7 @@ class SyncTool:
                     else:
                         owner = self._owners_spreadsheet.owners[proj]
                     new_bug = self.file_bug(
-                        umbrella_project, '[ODM bug] ' + bug_title,
+                        self._cfg.umbrella_project, '[ODM bug] ' + bug_title,
                         bug.description, bug_task.status,
                         bug.tags + [proj],
                         owner)
@@ -154,11 +153,11 @@ class SyncTool:
                         proj, bug.web_link)
                     self.add_odm_comment(new_bug.bug_tasks[0], message)
                     message = 'Bug filed in {}. See {} for details'.format(
-                        umbrella_project, new_bug.web_link)
+                        self._cfg.umbrella_project, new_bug.web_link)
                     self.add_odm_comment(bug_task, message)
 
     def sync_all(self):
-        for proj in odm_projects:
+        for proj in self._cfg.odm_projects:
             for odm_bug_name, odm_bug in self.bug_db[proj].items():
                 umb_bug = self.lp.bugs[self.bug_xref_db[odm_bug.id]]
                 odm_messages = [msg for msg in odm_bug.messages][1:]
@@ -172,7 +171,7 @@ class SyncTool:
                     if msg.content.startswith(ODM_COMMENT_HEADER):
                         continue
                     logging.info('Adding missing comment from %s to %s',
-                                 proj, umbrella_project)
+                                 proj, self._cfg.umbrella_project)
                     attachments = [a for a in msg.bug_attachments]
                     self._add_comment(umb_bug.bug_tasks[0], msg.content, attachments)
                 for msg in umb_messages:
@@ -181,7 +180,7 @@ class SyncTool:
                     if msg.content.startswith(ODM_COMMENT_HEADER):
                         continue
                     logging.info('Adding missing comment from %s to %s',
-                                 umbrella_project, proj)
+                                 self._cfg.umbrella_project, proj)
                     attachments = [a for a in msg.bug_attachments]
                     self._add_comment(odm_bug.bug_tasks[0], msg.content, attachments)
                 self._sync_meta(odm_bug, umb_bug)
@@ -195,15 +194,15 @@ class SyncTool:
             dest = bug1
         changed = False
         # for comparing titles we need to make sure the prefix is removed
-        src_title = src.title.split(umbrella_prefix, maxsplit=1)[-1]
-        dest_title = dest.title.split(umbrella_prefix, maxsplit=1)[-1]
+        src_title = src.title.split(self._cfg.umbrella_prefix, maxsplit=1)[-1]
+        dest_title = dest.title.split(self._cfg.umbrella_prefix, maxsplit=1)[-1]
         if src_title != dest_title:
-            if src.title.startswith(umbrella_prefix):
+            if src.title.startswith(self._cfg.umbrella_prefix):
                 # copying FROM umbrella bug so the prefix is already stripped
                 dest.title = src_title
             else:
                 # copying TO umbrella bug so we need to add the prefix
-                dest.title = umbrella_prefix + src_title
+                dest.title = self._cfg.umbrella_prefix + src_title
             changed = True
 
         if src.description != dest.description:
@@ -256,22 +255,24 @@ class SyncTool:
             bug.bug.newMessage(content=message)
 
     def main(self):
-        for p in odm_projects:
+        for p in self._cfg.odm_projects:
             project = self.lp.projects[p]
             bug_tasks = project.searchTasks(
                 status=status_list, tags=["dm-reviewed"])
             for bug in bug_tasks:
                 if self.verify_bug(bug):
                     self.add_bug_to_db(bug)
-        project = self.lp.projects[umbrella_project]
-        for bug in project.searchTasks(status=status_list, tags=odm_projects):
+        project = self.lp.projects[self._cfg.umbrella_project]
+        for bug in project.searchTasks(
+                status=status_list, tags=self._cfg.odm_projects):
             self.add_bug_to_db(bug)
         self.build_bug_db()
         self.sync_all()
 
 class OwnersSpreadsheet:
 
-    def __init__(self):
+    def __init__(self, config):
+        self._cfg = config
         self._gcli = pygsheets.authorize()
         self._owners = None
 
@@ -279,7 +280,7 @@ class OwnersSpreadsheet:
     def owners(self):
         if not self._owners:
             sheet = self._gcli.open_by_key(
-                tracking_doc_id)
+                self._cfg.tracking_doc_id)
             column_j = sheet.worksheet_by_title(
                 'Platforms').get_col(10)[2:]
             # 44 - AR column
@@ -291,7 +292,7 @@ class OwnersSpreadsheet:
                     logging.warning(
                         "%s platform doesn't have an owner!", platform)
                     continue
-                owner = lp_names.get(raw_owner)
+                owner = self._cfg.lp_names.get(raw_owner)
                 if not owner:
                     logging.warning(
                         "No mapping to launchpad id for %s", raw_owner)
@@ -313,7 +314,7 @@ def main():
     parser.add_argument('--credentials', default=None,
                         help='Path to launchpad credentials file')
     args = parser.parse_args()
-    sync_tool = SyncTool(args.credentials)
+    sync_tool = SyncTool(args.credentials, odm_sync_config)
     sync_tool.main()
 
 
