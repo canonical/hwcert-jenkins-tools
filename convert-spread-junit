@@ -24,6 +24,7 @@
 
 import argparse
 import datetime
+import json
 import junit_xml
 import re
 from collections import deque
@@ -111,7 +112,7 @@ class SpreadResults:
                           status=t_status,
                           summary=t_msg,
                           duration=t_duration,
-                          io_log=spread_unit)
+                          io_log="\n".join(spread_unit))
             results.append(result)
         return results
 
@@ -120,7 +121,7 @@ class SpreadResults:
         for result in self.results:
             tc = junit_xml.TestCase(name=result['id'],
                                     elapsed_sec=result['duration'],
-                                    stdout="\n".join(result['io_log']))
+                                    stdout=result['io_log'])
             if result['status'] == "fail":
                 tc.add_failure_info(message=result['summary'])
             tests.append(tc)
@@ -132,9 +133,13 @@ def get_args():
     helpmsg = "Convert sequential spread output to junit xml"
     parser = argparse.ArgumentParser(usage=helpmsg)
     parser.add_argument("filename", help="Spread output file to parse")
+    parser.add_argument("-j", "--json", help="save json in specified filename")
     return parser.parse_args()
 
 if __name__ == "__main__":
     args = get_args()
     s = SpreadResults(args.filename)
     s.junit_output()
+    if args.json:
+        with open(args.json, 'wt') as json_output:
+            json.dump(dict(results=s.results), json_output, indent=2)
