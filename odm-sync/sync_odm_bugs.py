@@ -108,7 +108,20 @@ class SyncTool:
             bug.status = 'Incomplete'
             bug.lp_save()
 
-        # TODO: add additional checks, like bug layout
+        mandatory_items = [
+            'expected result', 'actual result', 'sku', 'bios version',
+            'image/manifest', 'cpu', 'gpu', 'reproduce steps']
+
+        missing = []
+        for item in mandatory_items:
+            if not re.search(item, bug.bug.description, flags=re.IGNORECASE):
+                missing.append(item)
+        if missing:
+            comment = ('Marking as Incomplete because of missing information:'
+                       ' {}'.format(', '.join(missing)))
+            self.add_odm_comment(bug, comment)
+            bug.status = 'Incomplete'
+            bug.lp_save()
 
         return not comment
 
