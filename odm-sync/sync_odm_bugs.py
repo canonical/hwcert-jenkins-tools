@@ -73,6 +73,7 @@ class SyncTool:
         self.bug_db = dict()
         self.proj_db = dict()
         self.bug_xref_db = dict()
+        self.platform_map = dict()
         for proj in self._cfg.odm_projects + [self._cfg.umbrella_project]:
             self.bug_db[proj] = dict()
             self.proj_db[proj] = self.lp.projects[proj]
@@ -95,12 +96,12 @@ class SyncTool:
                 last_updated.tzinfo) - last_updated).days > 14:
             comment = 'No activity for more than 14 days'
             logging.info("%s on bug %s", comment, bug.bug.id)
-        if comment:
             self.add_odm_comment(bug, comment)
             bug.status = 'Invalid'
             bug.lp_save()
         for tag in bug.bug.tags:
             if tag in self._owners_spreadsheet.owners.keys():
+                self.platform_map[bug.bug.id] = tag
                 break
         else:
             comment = "Bug report isn't tagged with a platform tag"
@@ -150,13 +151,14 @@ class SyncTool:
                                 break
                 else:
                     bug_task = bug.bug_tasks[0]
-                    if proj not in self._owners_spreadsheet.owners.keys():
+                    if bug.id not in self.platform_map.keys():
                         logging.error(
                             '%s project is not listed in the Management Spreadsheet',
                             proj)
                         owner = ''
                     else:
-                        owner = self._owners_spreadsheet.owners[proj]
+                        owner = self._owners_spreadsheet.owners[
+                            self.platform_map[bug.id]]
                     new_bug = self.file_bug(
                         self._cfg.umbrella_project, '[ODM bug] ' + bug_title,
                         bug.description, bug_task.status,
