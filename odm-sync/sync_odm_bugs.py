@@ -93,9 +93,7 @@ class SyncTool:
             bug.lp_save()
             return
         last_updated = bug.bug.date_last_updated
-        being_worked_on = bug.status in [
-            'Confirmed', 'Triaged', 'In Progress']
-        if not being_worked_on and (datetime.datetime.now(
+        if bug.status == 'Incomplete' and (datetime.datetime.now(
                 last_updated.tzinfo) - last_updated).days > 14:
             comment = 'No activity for more than 14 days'
             logging.info("%s on bug %s", comment, bug.bug.id)
