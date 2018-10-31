@@ -89,6 +89,9 @@ class SyncTool:
         if not qmetry_match and 'checkbox' not in bug.bug.tags:
             comment = ('Missing QMetry info and missing checkbox tag')
             logging.info("%s for bug %s", comment, bug.bug.id)
+            bug.status = 'Incomplete'
+            bug.lp_save()
+            return
         last_updated = bug.bug.date_last_updated
         being_worked_on = bug.status in [
             'Confirmed', 'Triaged', 'In Progress']
