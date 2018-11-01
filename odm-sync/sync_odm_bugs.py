@@ -86,8 +86,8 @@ class SyncTool:
         if not qmetry_match:
             qmetry_match = QMETRY_RE.match(bug.bug.description)
         comment = ""
-        if not qmetry_match and 'checkbox' not in bug.bug.tags:
-            comment = ('Missing QMetry info and missing checkbox tag')
+        if not qmetry_match:
+            comment = ('Missing QMetry info')
             logging.info("%s for bug %s", comment, bug.bug.id)
             bug.status = 'Incomplete'
             bug.lp_save()
