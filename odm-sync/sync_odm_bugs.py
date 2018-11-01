@@ -38,8 +38,6 @@ except ImportError as exc:
     raise SystemExit("Problem with reading the config: {}".format(exc))
 
 status_list = ['New', 'Confirmed', 'Triaged', 'In Progress', 'Fix Committed']
-QMETRY_RE = re.compile('.*\[QMetry#(\d+)\]')
-
 ODM_COMMENT_HEADER = '[Automated ODM-sync-tool comment]\n'
 
 
@@ -82,16 +80,7 @@ class SyncTool:
             self.user_db[person] = self.lp.people[person]
 
     def verify_bug(self, bug):
-        qmetry_match = QMETRY_RE.match(bug.bug.title)
-        if not qmetry_match:
-            qmetry_match = QMETRY_RE.match(bug.bug.description)
-        comment = ""
-        if not qmetry_match:
-            comment = ('Missing QMetry info')
-            logging.info("%s for bug %s", comment, bug.bug.id)
-            bug.status = 'Incomplete'
-            bug.lp_save()
-            return
+        comment = ''
         last_updated = bug.bug.date_last_updated
         if bug.status == 'Incomplete' and (datetime.datetime.now(
                 last_updated.tzinfo) - last_updated).days > 14:
@@ -112,7 +101,7 @@ class SyncTool:
 
         mandatory_items = [
             'expected result', 'actual result', 'sku', 'bios version',
-            'image/manifest', 'cpu', 'gpu', 'reproduce steps']
+            'image/manifest', 'cpu', 'gpu', 'reproduce steps', 'qmetry id']
 
         missing = []
         for item in mandatory_items:
