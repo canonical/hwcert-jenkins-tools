@@ -126,6 +126,7 @@ def main():
     board = client.get_board(args.board)
     track = args.track.replace('__track__', '')
     c3_link = os.environ.get('C3LINK', '')
+    jenkins_link = os.environ.get('BUILD_URL', '')
     pattern = "{}.*{}.*{}.*{}".format(
         args.snap, args.version, args.revision, track)
     card = search_card(board, pattern)
@@ -190,8 +191,7 @@ def main():
                     args.snap, args.version, args.revision))
     summary = '**[TESTFLINGER] {} {} {} ({}) {}**\n---\n\n'.format(
         args.name, args.snap, args.version, args.revision, args.channel)
-    summary += '- Jenkins build details: {}\n'.format(
-        os.environ.get('BUILD_URL', ''))
+    summary += '- Jenkins build details: {}\n'.format(jenkins_link)
     summary += '- Full results at: {}\n\n```\n'.format(c3_link)
     summary_data = args.summary.read()
     summary += summary_data
@@ -201,9 +201,10 @@ def main():
     checklist = find_or_create_checklist(card, 'Testflinger', expected_tests)
     checklist_nonblocking = find_or_create_checklist(
         card, 'Testflinger - NonBlocking')
-    if c3_link:
+    if c3_link or jenkins_link:
+        results_link = c3_link or jenkins_link
         item_name = "[{} ({})]({})".format(
-            args.name, datetime.utcnow().isoformat(), c3_link)
+            args.name, datetime.utcnow().isoformat(), results_link)
         if not change_checklist_item(
                 checklist, item_name,
                 checked=no_new_fails_or_skips(summary_data)):
