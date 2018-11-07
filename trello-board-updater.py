@@ -201,29 +201,24 @@ def main():
     checklist = find_or_create_checklist(card, 'Testflinger', expected_tests)
     checklist_nonblocking = find_or_create_checklist(
         card, 'Testflinger - NonBlocking')
-    if c3_link or jenkins_link:
-        results_link = c3_link or jenkins_link
-        item_name = "[{} ({})]({})".format(
-            args.name, datetime.utcnow().isoformat(), results_link)
-        if not change_checklist_item(
-                checklist, item_name,
-                checked=no_new_fails_or_skips(summary_data)):
-            if not change_checklist_item(
-                    checklist_nonblocking, item_name,
-                    checked=no_new_fails_or_skips(summary_data)):
-                checklist_nonblocking.add_checklist_item(
-                    item_name, checked=no_new_fails_or_skips(summary_data))
+    item_name = "{} ({})".format(args.name, datetime.utcnow().isoformat())
+    if jenkins_link:
+        item_name += " [[JENKINS]({})]".format(jenkins_link)
+    if c3_link:
+        item_name += " [[C3]({})]".format(c3_link)
     else:
-        item_name = "{} ({})".format(args.name, datetime.utcnow().isoformat())
-        if not change_checklist_item(
-                checklist, item_name,
-                checked=no_new_fails_or_skips(summary_data)):
-            if not change_checklist_item(
-                    checklist_nonblocking, item_name,
-                    checked=no_new_fails_or_skips(summary_data)):
-                checklist_nonblocking.add_checklist_item(
-                    item_name, checked=no_new_fails_or_skips(summary_data))
+        # If there was no c3_link, it's because the submission failed
         attach_labels(board, card, ['TESTFLINGER CRASH'])
+
+    if not change_checklist_item(
+            checklist, item_name,
+            checked=no_new_fails_or_skips(summary_data)):
+        if not change_checklist_item(
+                checklist_nonblocking, item_name,
+                checked=no_new_fails_or_skips(summary_data)):
+            checklist_nonblocking.add_checklist_item(
+                item_name, checked=no_new_fails_or_skips(summary_data))
+
     if not [c for c in card.fetch_checklists() if c.name == 'Sign-Off']:
         checklist = find_or_create_checklist(card, 'Sign-Off')
         checklist.add_checklist_item('Clear for Landing', True)
