@@ -41,7 +41,7 @@ def get_args():
                         help='Specify file with project list')
     parser.add_argument('--credentials', default=None,
                         help='Specify launchpad credentials')
-    parser.add_argument('--days', default=7,
+    parser.add_argument('--days', type=int, default=7,
                         help='Report on merge proposals older than --days')
     return parser.parse_args()
 
@@ -58,7 +58,7 @@ def get_project_list(config_file):
 def main():
     args = get_args()
     lp = Launchpad.login_with('active-reviews', 'production',
-         credentials_file=args.credentials)
+                              credentials_file=args.credentials)
     now = datetime.datetime.now(datetime.timezone.utc)
     all_projects = get_project_list(args.config)
     for project in all_projects:
