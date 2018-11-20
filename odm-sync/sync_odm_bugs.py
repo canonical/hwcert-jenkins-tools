@@ -291,9 +291,9 @@ class OwnersSpreadsheet:
                 self._cfg.tracking_doc_id)
             column_j = sheet.worksheet_by_title(
                 'Platforms').get_col(10)[2:]
-            # 44 - AR column
+            OWNER_COLUMN = 49
             column_ar = sheet.worksheet_by_title(
-                'Platforms').get_col(44)[2:]
+                'Platforms').get_col(OWNER_COLUMN)[2:]
             self._owners = dict()
             for platform, raw_owner in zip(column_j, column_ar):
                 if not raw_owner:
