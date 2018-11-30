@@ -138,7 +138,35 @@ def parse_sysd_analyze(text):
     ... '+ 18.985s (userspace) = 24.444s')
     (5.459, 18.985, 24.444)
     >>> parse_sysd_analyze('Weird output')
+    >>> parse_sysd_analyze('Startup finished in 5.459s (kernel)'
+    ... '+ 2min 18.985s (userspace) = 2min 24.444s')
+    (5.459, 138.985, 144.444)
+    >>> parse_sysd_analyze('Startup finished in 1min 36.935s (kernel)'
+    ... '+ 1min 42.338s (userspace) = 3min 19.273s')
+    (96.935, 102.338, 199.273)
+    >>> parse_sysd_analyze('Startup finihsed in 1h 4min 20.111s (kernel)'
+    ... '+ 2h 2min 30.222s (userspace) = 3h 6min 50.333s')
+    (3860.111, 7350.222, 11210.333)
+    >>> parse_sysd_analyze('Startup finished in 5s (kernel)'
+    ... '+ 4s (userspace) = 9s')
+    (5.0, 4.0, 9.0)
     """
+    if '+' not in text or '=' not in text:
+        return
+    kernel, tmp = text.split('+')
+    user, total = tmp.split('=')
+    def extract(tx):
+        RE = r'[^\d]*(?P<hours>\s\d+h)?(?P<minutes>\s\d+min)?(?P<seconds>\s\d+)(?P<decimal>\.\d+)?s'
+        groups = re.match(RE, tx).groupdict()
+        hours = (groups['hours'] or '0h')[:-1]
+        minutes = (groups['minutes'] or '0min')[:-3]
+        seconds = (groups['seconds'] or '0')
+        decimal = groups['decimal'] or '.0'
+        res = (float(hours) * 3600 + float(minutes) * 60
+                + float(seconds) + float(decimal))
+        return res
+    return (extract(kernel), extract(user), extract(total))
+
     RE = r'.*\s(\d+\.\d+)s.*\s(\d+\.\d+)s.*\s(\d+\.\d+)s'
     matches = re.match(RE, text)
     if not matches:
