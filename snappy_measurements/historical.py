@@ -32,6 +32,8 @@ PROJECTS = [
     'cert-tampere-core-beta',
     'cert-tillamook-core-beta',
     'cert-vienna-ioter5-core-beta',
+    'plars-tillamook-core-beta',
+    'cert-caracalla-transport-checkbox-plano-edge',
 ]
 
 JENKINS = 'http://10.101.50.238:8080/'
