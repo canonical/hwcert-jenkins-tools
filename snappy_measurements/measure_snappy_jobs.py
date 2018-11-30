@@ -50,13 +50,21 @@ def dquote(s):
     # surround s with double quotes
     return '"{}"'.format(s)
 
+def to_human_name(hw_id):
+    better_names = {
+        'cert-caracalla-transport-checkbox-plano-edge': 'Caracalla plano-edge',
+        'cert-tillamook-core-beta': 'Tillamook core beta',
+        'cert-cm3-core-beta': 'CM3 core-beta',
+    }
+    return better_names.get(hw_id, hw_id)
+
 
 class InfluxQueryWriter():
 
     def __init__(self, hw_id, submission, tstamp=None):
         self._proj = dquote(submission.get('title', 'unknown'))
         self._time = int(tstamp * 10 ** 9)
-        self._hw_id = dquote(hw_id)
+        self._hw_id = dquote(to_human_name(hw_id))
         self._os_kind = dquote(submission.get('distribution', dict()).get(
             'description', 'unknown'))
         snap_packages = submission.get('snap-packages', dict())
