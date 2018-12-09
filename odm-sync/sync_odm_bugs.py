@@ -21,6 +21,7 @@
 
 import argparse
 from launchpadlib.launchpad import Launchpad
+from lazr.restfulclient.errors import NotFound
 import datetime
 import pygsheets
 import re
@@ -180,8 +181,14 @@ class SyncTool:
                         continue
                     logging.info('Adding missing comment from %s to %s',
                                  proj, self._cfg.umbrella_project)
-                    attachments = [a for a in msg.bug_attachments]
-                    self._add_comment(umb_bug.bug_tasks[0], msg.content, attachments)
+                    # LP lets us view the hidden comments, but not their
+                    # attachments
+                    try:
+                        attachments = [a for a in msg.bug_attachments]
+                        self._add_comment(
+                            umb_bug.bug_tasks[0], msg.content, attachments)
+                    except NotFound as exc:
+                        logging.info('Skipping comment (Probably hidden)')
                 for msg in umb_messages:
                     if msg.content in odm_comments:
                         continue
@@ -189,8 +196,12 @@ class SyncTool:
                         continue
                     logging.info('Adding missing comment from %s to %s',
                                  self._cfg.umbrella_project, proj)
-                    attachments = [a for a in msg.bug_attachments]
-                    self._add_comment(odm_bug.bug_tasks[0], msg.content, attachments)
+                    try:
+                        attachments = [a for a in msg.bug_attachments]
+                        self._add_comment(
+                            odm_bug.bug_tasks[0], msg.content, attachments)
+                    except NotFound as exc:
+                        logging.info('Skipping comment (Probably hidden)')
                 self._sync_meta(odm_bug, umb_bug)
 
     def _sync_meta(self, bug1, bug2):
