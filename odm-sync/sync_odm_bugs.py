@@ -254,10 +254,14 @@ class SyncTool:
     def _add_comment(self, bug, message, attachments=None):
         # XXX: I think LP allows one attachment per bug message
         if attachments:
+            prohibited_chars = '/'
+            new_filename = attachments[0].title
+            for c in prohibited_chars:
+                new_filename = new_filename.replace(c, '_')
             bug.bug.addAttachment(
                 data=attachments[0].data.open().read(),
                 comment=message,
-                filename=attachments[0].title,
+                filename=new_filename,
                 is_patch=attachments[0].type == 'Patch')
         else:
             bug.bug.newMessage(content=message)
