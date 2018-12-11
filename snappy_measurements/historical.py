@@ -76,7 +76,7 @@ def download_artifacts(projects):
     for proj in projects.keys():
         os.mkdir(proj)
         os.chdir(proj)
-        for index in range(1, projects[proj]):
+        for index in range(1, projects[proj] + 1):
             os.mkdir(str(index))
             os.chdir(str(index))
             pull(proj, index)
@@ -97,7 +97,7 @@ def extract_timestamp(path):
 
 def measurement_tool_invocation(projects):
     for proj in projects.keys():
-        for index in range(1, projects[proj]):
+        for index in range(1, projects[proj] + 1):
             val = extract_timestamp(os.path.join(proj, str(index)))
             if val:
                 timestamp = (val - datetime(1970, 1, 1)) / timedelta(seconds=1)
