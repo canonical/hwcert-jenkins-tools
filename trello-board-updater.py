@@ -138,7 +138,7 @@ def main():
     # want to record it against the core rev 110 results with amd64, so find
     # that card by finding the arch/rev from the store to use in the search
     if not card:
-        rev_list = []
+        rev_list = dict()
         for arch in [a for a in architectures if a != args.arch]:
             headers = {
                 'X-Ubuntu-Series': '16',
@@ -155,12 +155,12 @@ def main():
                 headers=headers,
                 params=params).json()
             try:
-                rev_list.append(json['revision'])
+                rev_list[arch] = json['revision']
                 if json['version'] != args.version:
                     raise KeyError
             except KeyError:
                 continue
-        for rev in rev_list:
+        for rev in rev_list.values():
             pattern = "{}.*{}.*{}.*{}".format(
                 args.snap, args.version, rev, track)
             card = search_card(board, pattern)
@@ -175,6 +175,11 @@ def main():
                             args.snap, args.version, args.revision))
                 break
     # Create the card in the right lane, since we still didn't find it
+    # We only one one card for all architectures, so use the revision
+    # declared for the default arch in snaps.yaml
+    default_arch = config.get(args.snap, {}).get('arch', args.arch)
+    default_rev = rev_list.get(default_arch, args.revision)
+
     if not card:
         channel = args.channel.capitalize()
         lane = None
@@ -185,10 +190,10 @@ def main():
         if lane:
             if track:
                 card = lane.add_card('{} - {} - ({}) - [{}]'.format(
-                    args.snap, args.version, args.revision, track))
+                    args.snap, args.version, default_rev, track))
             else:
                 card = lane.add_card('{} - {} - ({})'.format(
-                    args.snap, args.version, args.revision))
+                    args.snap, args.version, default_rev))
     summary = '**[TESTFLINGER] {} {} {} ({}) {}**\n---\n\n'.format(
         args.name, args.snap, args.version, args.revision, args.channel)
     summary += '- Jenkins build details: {}\n'.format(jenkins_link)
