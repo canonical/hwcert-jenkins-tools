@@ -51,55 +51,50 @@ def archive_card(card):
 
 def move_card(config, lane_name, card):
     """Move trello cards according to the snap current channel."""
+    print(card.name)
     m = re.match(
         r"(?P<snap>.*?)(?:\s+\-\s+)(?P<version>.*?)(?:\s+\-\s+)"
         r"\((?P<revision>.*?)\)(?:\s+\-\s+\[(?P<track>.*?)\])?", card.name)
     if m:
+        arch = config[m.group("snap")]["arch"]
         headers = {
-            'X-Ubuntu-Series': '16',
-            'X-Ubuntu-Architecture': config[m.group("snap")]["arch"],
-            'X-Ubuntu-Store': config[m.group("snap")]["store"],
+            'Snap-Device-Series': '16',
+            'Snap-Device-Architecture': arch,
+            'Snap-Device-Store': config[m.group("snap")]["store"],
         }
-        params = (
-            ('fields', 'channel_maps_list'),
-        )
         req = requests.get(
-            'https://search.apps.ubuntu.com/api/v1/'
-            'snaps/details/{}'.format(m.group("snap")),
-            headers=headers,
-            params=params)
+            'https://api.snapcraft.io/v2/'
+            'snaps/info/{}'.format(m.group("snap")),
+            headers=headers)
         json_resp = req.json()
         track = m.group("track")
         if not track:
             track = 'latest'
-        for i in json_resp['channel_maps_list']:
-            if i["track"] == track:
-                for channel_info in i["map"]:
-                    channel = channel_info['channel']
-                    # If we're not in the latest track strip the
-                    # track/channel to just be channel
-                    channel = channel.split('/')[-1]
-                    try:
-                        version = channel_info['version']
-                        revision = str(channel_info['revision'])
-                    except KeyError:
-                        continue
-                    ori = next_channel = channel_promotion_map[lane_name]
-                    # If the snap with this name, in this channel is a
-                    # differet revision, then this is old so archive it
-                    if (channel == lane_name and
-                            revision != m.group("revision")):
-                        archive_card(card)
-                        continue
-                    if (
-                        channel == next_channel and
-                        version == m.group("version") and
-                        revision == m.group("revision")
-                    ):
-                        for l in card.board.open_lists():
-                            if ori.capitalize() == l.name:
-                                card.change_list(l.id)
-                                return
+        for channel_info in json_resp["channel-map"]:
+            if (channel_info["channel"]["track"] == track and
+                    channel_info["channel"]["architecture"] == arch):
+                risk = channel_info["channel"]["risk"]
+                try:
+                    version = channel_info['version']
+                    revision = str(channel_info['revision'])
+                except KeyError:
+                    continue
+                ori = next_risk = channel_promotion_map[lane_name]
+                # If the snap with this name, in this channel is a
+                # differet revision, then this is old so archive it
+                if (risk == lane_name and
+                        revision != m.group("revision")):
+                    archive_card(card)
+                    continue
+                if (
+                    risk == next_risk and
+                    version == m.group("version") and
+                    revision == m.group("revision")
+                ):
+                    for l in card.board.open_lists():
+                        if ori.capitalize() == l.name:
+                            card.change_list(l.id)
+                            return
 
 
 def main():
