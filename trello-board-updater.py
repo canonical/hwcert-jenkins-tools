@@ -95,9 +95,6 @@ def attach_labels(board, card, label_list):
                 break
 
 
-architectures = ['i386', 'ppc64el', 'amd64', 's390x', 'armhf', 'arm64']
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--key', help="Trello API key",
@@ -127,8 +124,11 @@ def main():
     track = args.track.replace('__track__', '')
     c3_link = os.environ.get('C3LINK', '')
     jenkins_link = os.environ.get('BUILD_URL', '')
-    pattern = "{}.*{}.*{}.*{}".format(
-        args.snap, args.version, args.revision, track)
+    pattern = "{} - {} - \({}\).*{}".format(
+        re.escape(args.snap),
+        re.escape(args.version),
+        args.revision,
+        re.escape(track))
     card = search_card(board, pattern)
     config = load_config(args.config, args.snap)
     expected_tests = config.get(args.snap, {}).get('expected_tests', [])
@@ -139,30 +139,32 @@ def main():
     # that card by finding the arch/rev from the store to use in the search
     if not card:
         rev_list = dict()
-        for arch in [a for a in architectures if a != args.arch]:
-            headers = {
-                'X-Ubuntu-Series': '16',
-                'X-Ubuntu-Architecture': arch,
-                'X-Ubuntu-Store': args.brandstore,
-            }
-            params = (
-                ('fields', 'version,revision,architecture'),
-                ('channel', args.channel),
-            )
-            json = requests.get(
-                'https://search.apps.ubuntu.com/api/v1/'
-                'snaps/details/{}'.format(args.snap),
-                headers=headers,
-                params=params).json()
+        headers = {
+            'Snap-Device-Series': '16',
+            'Snap-Device-Store': args.brandstore,
+        }
+        json = requests.get(
+            'https://api.snapcraft.io/v2/'
+            'snaps/info/{}'.format(args.snap),
+            headers=headers).json()
+        # If track is empty, get data for latest track
+        search_track = track or "latest"
+        for channel_info in json['channel-map']:
             try:
-                rev_list[arch] = json['revision']
-                if json['version'] != args.version:
-                    raise KeyError
+                if channel_info['version'] != args.version:
+                    continue
+                if (channel_info["channel"]["track"] == search_track and
+                        channel_info["channel"]["risk"] == args.channel):
+                    arch = channel_info["channel"]["architecture"]
+                    rev_list[arch] = channel_info['revision']
             except KeyError:
                 continue
         for rev in rev_list.values():
-            pattern = "{}.*{}.*{}.*{}".format(
-                args.snap, args.version, rev, track)
+            pattern = "{} - {} - \({}\).*{}".format(
+                re.escape(args.snap),
+                re.escape(args.version),
+                rev,
+                re.escape(track))
             card = search_card(board, pattern)
             if card:
                 # Prefer amd64 rev in card title
@@ -177,10 +179,9 @@ def main():
     # Create the card in the right lane, since we still didn't find it
     # We only one one card for all architectures, so use the revision
     # declared for the default arch in snaps.yaml
-    default_arch = config.get(args.snap, {}).get('arch', args.arch)
-    default_rev = rev_list.get(default_arch, args.revision)
-
     if not card:
+        default_arch = config.get(args.snap, {}).get('arch', args.arch)
+        default_rev = rev_list.get(default_arch, args.revision)
         channel = args.channel.capitalize()
         lane = None
         for l in board.open_lists():
