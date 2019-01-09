@@ -118,7 +118,7 @@ class InfluxQueryWriter():
             # for boot-up job extract time from the job's output
             if result['id'].endswith(BOOTUP_JOB_ID):
                 timings = parse_sysd_analyze(result['io_log'])
-                if not timings or len(timings) < 3:
+                if 'total' not in timings.keys():
                     print("{} job didn't have proper output."
                           " It returned:\n{}".format(
                               result['id'], result['io_log']))
@@ -134,35 +134,44 @@ class InfluxQueryWriter():
                         },
                         "time": self._time,
                         "fields": {
-                            "elapsed": timings[2],
+                            "elapsed": timings['total'],
                         }
                     }
                     yield measurement
 
-
 def parse_sysd_analyze(text):
     """
+    >>> expected = {'kernel': 5.459, 'userspace': 18.985, 'total': 24.444}
     >>> parse_sysd_analyze('Startup finished in 5.459s (kernel)'
-    ... '+ 18.985s (userspace) = 24.444s')
-    (5.459, 18.985, 24.444)
+    ... '+ 18.985s (userspace) = 24.444s') == {
+    ... 'kernel': 5.459, 'userspace': 18.985, 'total': 24.444}
+    True
     >>> parse_sysd_analyze('Weird output')
     >>> parse_sysd_analyze('Startup finished in 5.459s (kernel)'
-    ... '+ 2min 18.985s (userspace) = 2min 24.444s')
-    (5.459, 138.985, 144.444)
+    ... '+ 2min 18.985s (userspace) = 2min 24.444s') == {
+    ... 'kernel': 5.459, 'userspace': 138.985, 'total': 144.444}
+    True
     >>> parse_sysd_analyze('Startup finished in 1min 36.935s (kernel)'
-    ... '+ 1min 42.338s (userspace) = 3min 19.273s')
-    (96.935, 102.338, 199.273)
+    ... '+ 1min 42.338s (userspace) = 3min 19.273s') == {
+    ... 'kernel': 96.935, 'userspace': 102.338, 'total': 199.273}
+    True
     >>> parse_sysd_analyze('Startup finihsed in 1h 4min 20.111s (kernel)'
-    ... '+ 2h 2min 30.222s (userspace) = 3h 6min 50.333s')
-    (3860.111, 7350.222, 11210.333)
+    ... '+ 2h 2min 30.222s (userspace) = 3h 6min 50.333s') == {
+    ... 'kernel': 3860.111, 'userspace': 7350.222, 'total': 11210.333}
+    True
     >>> parse_sysd_analyze('Startup finished in 5s (kernel)'
-    ... '+ 4s (userspace) = 9s')
-    (5.0, 4.0, 9.0)
+    ... '+ 4s (userspace) = 9s') == {
+    ... 'kernel': 5.0, 'userspace': 4.0, 'total': 9.0}
+    True
+    >>> parse_sysd_analyze('Startup finished in 18.420s (firmware)'
+    ... '+ 18.034s (loader) + 10.429s (kernel) + 38.353s (userspace)'
+    ... '= 1min 25.239s') == {
+    ... 'firmware': 18.420, 'loader': 18.034, 'kernel': 10.429,
+    ... 'userspace': 38.353, 'total': 85.239}
+    True
     """
     if '+' not in text or '=' not in text:
         return
-    kernel, tmp = text.split('+')
-    user, total = tmp.split('=')
     def extract(tx):
         RE = r'[^\d]*(?P<hours>\s\d+h)?(?P<minutes>\s\d+min)?(?P<seconds>\s\d+)(?P<decimal>\.\d+)?s'
         groups = re.match(RE, tx).groupdict()
@@ -173,14 +182,13 @@ def parse_sysd_analyze(text):
         res = (float(hours) * 3600 + float(minutes) * 60
                 + float(seconds) + float(decimal))
         return res
-    return (extract(kernel), extract(user), extract(total))
-
-    RE = r'.*\s(\d+\.\d+)s.*\s(\d+\.\d+)s.*\s(\d+\.\d+)s'
-    matches = re.match(RE, text)
-    if not matches:
-        return None
-    return tuple(float(x) for x in matches.groups())
-
+    head, tail = text.split('=')
+    res = {'total': extract(tail)}
+    segments = head.split('+')
+    for seg in segments:
+        label = re.search(r'\((.+)\)', seg).groups()[0]
+        res[label] = extract(seg)
+    return res
 
 def push_to_influx(measurements):
     client = InfluxDBClient(
