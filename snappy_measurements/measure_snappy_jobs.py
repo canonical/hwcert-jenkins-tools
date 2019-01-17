@@ -169,18 +169,27 @@ def parse_sysd_analyze(text):
     ... 'firmware': 18.420, 'loader': 18.034, 'kernel': 10.429,
     ... 'userspace': 38.353, 'total': 85.239}
     True
+    >>> parse_sysd_analyze('Startup finished in 17.105s (firmware)'
+    ... '+ 18.256s (loader) + 11.252s (kernel) + 1min 14.137s (userspace)'
+    ... '= 2min 752ms') == {
+    ... 'firmware': 17.105, 'loader': 18.256, 'kernel': 11.252,
+    ... 'userspace': 74.137, 'total': 120.752}
+    True
     """
     if '+' not in text or '=' not in text:
         return
     def extract(tx):
-        RE = r'[^\d]*(?P<hours>\s\d+h)?(?P<minutes>\s\d+min)?(?P<seconds>\s\d+)(?P<decimal>\.\d+)?s'
+        # XXX: fractions of a seconds can be printed in two ways depending if
+        # there are whole seconds to report
+        RE = (r'[^\d]*(?P<hours>\s?\d+h)?(?P<minutes>\s?\d+min)?'
+                 '(?P<seconds>\s?\d+(\.\d*)?s)?(?P<millis>\s?\d+ms)?')
         groups = re.match(RE, tx).groupdict()
         hours = (groups['hours'] or '0h')[:-1]
         minutes = (groups['minutes'] or '0min')[:-3]
-        seconds = (groups['seconds'] or '0')
-        decimal = groups['decimal'] or '.0'
-        res = (float(hours) * 3600 + float(minutes) * 60
-                + float(seconds) + float(decimal))
+        seconds = (groups['seconds'] or '0s')[:-1]
+        milliseconds = (groups['millis'] or '0ms')[:-2]
+        res = (float(hours) * 3600 + float(minutes) * 60 + float(seconds) +
+                  float(milliseconds) / 1000)
         return res
     head, tail = text.split('=')
     res = {'total': extract(tail)}
