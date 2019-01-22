@@ -205,8 +205,6 @@ def main():
     card.comment(summary)
     attach_labels(board, card, snap_labels)
     checklist = find_or_create_checklist(card, 'Testflinger', expected_tests)
-    checklist_nonblocking = find_or_create_checklist(
-        card, 'Testflinger - NonBlocking')
     item_name = "{} ({})".format(args.name, datetime.utcnow().isoformat())
     if jenkins_link:
         item_name += " [[JENKINS]({})]".format(jenkins_link)
@@ -219,11 +217,13 @@ def main():
     if not change_checklist_item(
             checklist, item_name,
             checked=no_new_fails_or_skips(summary_data)):
-        if not change_checklist_item(
-                checklist_nonblocking, item_name,
-                checked=no_new_fails_or_skips(summary_data)):
-            checklist_nonblocking.add_checklist_item(
-                item_name, checked=no_new_fails_or_skips(summary_data))
+        if args.name.endswith('spread'):
+            checklist_spread = find_or_create_checklist(card, 'Spread')
+            if not change_checklist_item(
+                    checklist_spread, item_name,
+                    checked=no_new_fails_or_skips(summary_data)):
+                checklist_spread.add_checklist_item(
+                    item_name, checked=no_new_fails_or_skips(summary_data))
 
     if not [c for c in card.fetch_checklists() if c.name == 'Sign-Off']:
         checklist = find_or_create_checklist(card, 'Sign-Off')
