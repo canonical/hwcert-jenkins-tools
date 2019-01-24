@@ -147,8 +147,13 @@ def main():
             'https://api.snapcraft.io/v2/'
             'snaps/info/{}'.format(args.snap),
             headers=headers).json()
-        # If track is empty, get data for latest track
-        search_track = track or "latest"
+        # If a default_track is declared in snaps.yaml, use it for search_track
+        # otherwise, use the track specified with -t when this was called
+        # if that track is empty, get data for 'latest' track
+        # this is so that things like pi-kernel can all be tracked on one card
+        # even though there are tracks for each sub-arch
+        search_track = config.get(
+            args.snap, {}).get('default_track', track) or "latest"
         for channel_info in json['channel-map']:
             try:
                 if channel_info['version'] != args.version:
@@ -164,14 +169,15 @@ def main():
                 re.escape(args.snap),
                 re.escape(args.version),
                 rev,
-                re.escape(track))
+                re.escape(search_track))
             card = search_card(board, pattern)
             if card:
                 # Prefer amd64 rev in card title
                 if args.arch == 'amd64':
-                    if track:
+                    if search_track:
                         card.set_name('{} - {} - ({}) - [{}]'.format(
-                            args.snap, args.version, args.revision, track))
+                            args.snap, args.version, args.revision,
+                            search_track))
                     else:
                         card.set_name('{} - {} - ({})'.format(
                             args.snap, args.version, args.revision))
@@ -184,6 +190,8 @@ def main():
         default_rev = rev_list.get(default_arch, args.revision)
         channel = args.channel.capitalize()
         lane = None
+        # Use the default_track if there is one, else use track name specified
+        track = config.get(args.snap, {}).get('default_track', track)
         for l in board.open_lists():
             if channel == l.name:
                 lane = l
