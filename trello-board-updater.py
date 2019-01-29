@@ -147,18 +147,17 @@ def main():
             'https://api.snapcraft.io/v2/'
             'snaps/info/{}'.format(args.snap),
             headers=headers).json()
-        # If a default_track is declared in snaps.yaml, use it for search_track
-        # otherwise, use the track specified with -t when this was called
-        # if that track is empty, get data for 'latest' track
-        # this is so that things like pi-kernel can all be tracked on one card
-        # even though there are tracks for each sub-arch
-        search_track = config.get(
-            args.snap, {}).get('default_track', track) or "latest"
+        # store_track is used for searching for the right track name in the
+        # store, which would be latest if nothing is defined
+        # track is used for search in the cards, which will be either the
+        # default_track, the defined track for the run, or empty for 'latest'
+        track = config.get(args.snap, {}).get('default_track', track)
+        store_track = track or "latest"
         for channel_info in json['channel-map']:
             try:
                 if channel_info['version'] != args.version:
                     continue
-                if (channel_info["channel"]["track"] == search_track and
+                if (channel_info["channel"]["track"] == store_track and
                         channel_info["channel"]["risk"] == args.channel):
                     arch = channel_info["channel"]["architecture"]
                     rev_list[arch] = channel_info['revision']
@@ -169,15 +168,15 @@ def main():
                 re.escape(args.snap),
                 re.escape(args.version),
                 rev,
-                re.escape(search_track))
+                re.escape(track))
             card = search_card(board, pattern)
             if card:
                 # Prefer amd64 rev in card title
                 if args.arch == 'amd64':
-                    if search_track:
+                    if track:
                         card.set_name('{} - {} - ({}) - [{}]'.format(
                             args.snap, args.version, args.revision,
-                            search_track))
+                            track))
                     else:
                         card.set_name('{} - {} - ({})'.format(
                             args.snap, args.version, args.revision))
