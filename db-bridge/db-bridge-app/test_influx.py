@@ -22,42 +22,51 @@ def test_payload_not_json(client):
     assert(b'Not json!' in rv.data)
 
 
-def test_payload_not_a_list(client):
+def test_payload_no_database_specified(client):
     rv = client.post('/influx', json={})
     assert(rv.status_code == 400)
-    assert(b'not a list' in rv.data)
+    assert(b'No database specified' in rv.data)
 
 
-def test_empty_list(client):
-    rv = client.post('/influx', json=[])
+def test_no_measurements(client):
+    rv = client.post('/influx', json={
+        'database': 'foobar',
+        'measurements': []
+    })
     assert(rv.status_code == 200)
 
 
 def test_bad_item(client):
-    rv = client.post('/influx', json=[{}])
+    rv = client.post('/influx', json={
+        'database': 'foobar',
+        'measurements': [{}]
+    })
     assert(rv.status_code == 400)
     assert(b'Bad data point' in rv.data)
 
 
 def test_good_item(client):
-    rv = client.post('/influx', json=[{
-        'measurement': 'foobar',
-        'tags': dict(),
-        'time': 42,
-        'fields': dict(),
-    }])
-    assert(rv.status_code == 200)
-
-
-def test_good_and_bad_items(client):
-    rv = client.post('/influx', json=[
-        {
+    rv = client.post('/influx', json={
+        'database': 'foobar',
+        'measurements': [{
             'measurement': 'foobar',
             'tags': dict(),
             'time': 42,
             'fields': dict(),
-        },
-        {},
-    ])
+        }],
+        })
+    assert(rv.status_code == 200)
+
+
+def test_good_and_bad_items(client):
+    rv = client.post('/influx', json={
+        'database': 'foobar',
+        'measurements': [{
+            'measurement': 'foobar',
+            'tags': dict(),
+            'time': 42,
+            'fields': dict(),
+        }, {}]
+    })
     assert(rv.status_code == 400)
     assert(b'Bad data point' in rv.data)

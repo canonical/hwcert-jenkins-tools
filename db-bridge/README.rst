@@ -36,8 +36,8 @@ Usage
 
 **/influx** - Push measurements to Influx DB
 
-The accepted content is a JSON document containing a list of objects with following
-obligatory fields:
+The accepted content is a JSON document containing a name of the database to
+write to and a list of objects with following obligatory fields:
 
 - fields - data points
 - measurement - the table to write to
@@ -46,8 +46,16 @@ obligatory fields:
 
 **Example**
 
-``[{"measurement": "temperatures", "tags": {"city":"Paris"}, "time": 1544572100000000000, "fields": {"air_temp":30}}]``
-
-
-
-
+``{
+    "database": "weather",
+    "measurements": [
+        {
+            "measurement": "temperatures",
+            "tags": {"city":"Paris"},
+            "time": 1544572100000000000,
+            "fields": {
+                "air_temp":30
+            }
+        }
+    ]
+  }``

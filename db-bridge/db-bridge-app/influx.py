@@ -38,7 +38,7 @@ def create_app(config_name=None):
         else:
             app.influx_client = InfluxDBClient(
                 credentials['host'], 8086, credentials['user'],
-                credentials['pass'], credentials['dbname'])
+                credentials['pass'])
 
     @app.route('/influx', methods=['POST'])
     def influx():
@@ -47,17 +47,22 @@ def create_app(config_name=None):
         try:
             payload = json.loads(request.data.decode('utf-8'))
             pprint(payload)
-            if type(payload) is not list:
-                return ('Payload is not a list', 400)
+            if 'database' not in payload.keys():
+                return ('No database specified', 400)
+            dbname = payload['database']
+            measurements = payload['measurements']
+            if type(measurements) is not list:
+                return ('Measurments field is not a list', 400)
         except json.decoder.JSONDecodeError as exc:
             return ('JSON decode error: {}'.format(exc), 400)
         err_msgs = []
-        for point in payload:
+        for point in measurements:
             if not validate_point(point):
                 err_msgs.append('Bad data point: {}.'.format(point))
         if err_msgs:
             return (' '.join(err_msgs), 400)
-        query_res = app.influx_client.write_points(payload)
+        query_res = app.influx_client.write_points(
+            measurements, database=dbname)
         return 'OK' if query_res else ('Failed to write data point', 400)
 
     return app
