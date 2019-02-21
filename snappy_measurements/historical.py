@@ -35,7 +35,6 @@ At the end it will print bash invocations that need to be run from within the
 
 PROJECTS = [
     'cert-caracalla-gpa-core-beta',
-    'cert-caracalla-gpa-qa-core-beta',
     'cert-caracalla-media-core-beta',
     'cert-caracalla-transport-core-beta',
     'cert-cm3-core-beta',
@@ -44,7 +43,6 @@ PROJECTS = [
     'cert-rpi2-core-beta',
     'cert-rpi3-core-beta',
     'cert-stlouis-core-beta',
-    'cert-stlouis-qa-core-beta',
     'cert-stlouis-tpm2-core-beta',
     'cert-tampere-core-beta',
     'cert-tillamook-core-beta',
