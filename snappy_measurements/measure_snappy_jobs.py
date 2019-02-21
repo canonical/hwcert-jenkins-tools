@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (C) 2018 Canonical Ltd
+# Copyright (C) 2018-2019 Canonical Ltd
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -20,7 +20,6 @@ import json
 import re
 import time
 
-from influxdb import InfluxDBClient
 
 from influx_credentials import credentials
 
@@ -200,11 +199,20 @@ def parse_sysd_analyze(text):
     return res
 
 def push_to_influx(measurements):
+    from influxdb import InfluxDBClient
     client = InfluxDBClient(
         credentials['host'], 8086, credentials['user'], credentials['pass'],
         credentials['dbname'])
     client.write_points(measurements)
 
+def push_using_bridge(measurements):
+    import requests
+    reqobj = {
+        'database': 'snappy_performance',
+        'measurements': list(measurements)
+    }
+    res = requests.post('http://10.101.51.246:8000/influx', json=reqobj)
+    return res
 
 def main():
     parser = argparse.ArgumentParser()
@@ -213,6 +221,8 @@ def main():
     parser.add_argument('--timestamp', default=time.time(), type=float)
     parser.add_argument('--sql', action='store_true', help=(
         "Print out insert queries instead of pushing object to influx"))
+    parser.add_argument('--bridge', action='store_true', help=(
+        "Use bridge to push measurements"))
     args = parser.parse_args()
 
     try:
@@ -225,6 +235,8 @@ def main():
             iqw = InfluxQueryWriter(args.hw_id, content, args.timestamp)
             if args.sql:
                 print('\n'.join(iqw.generate_sql_inserts()))
+            elif args.bridge:
+                return push_using_bridge(iqw.extract_measurements())
             else:
                 push_to_influx(iqw.extract_measurements())
     except Exception as exc:

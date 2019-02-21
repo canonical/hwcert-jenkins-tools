@@ -1,9 +1,26 @@
 #!/usr/bin/env python3
+# Copyright (C) 2018-2019 Canonical Ltd
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Written by:
+#       Maciej Kisielewski <maciej.kisielewski@canonical.com>
 import json
 import os
 import re
 import subprocess
 
+from collections import defaultdict
 from datetime import datetime, timedelta
 
 """
@@ -47,12 +64,19 @@ def wget(url, filename=None):
     except subprocess.CalledProcessError:
         return None
 
+def ensure_dir(path):
+    if not os.path.exists(path):
+        os.mkdir(path)
 
 def get_latest_builds():
     url = JENKINS + 'job/{job_name}/api/json'
     builds = dict()
     for proj in PROJECTS:
         res = wget(url.format(job_name=proj))
+        if not res:
+            print('Unable to fetch "{}" jenkins project information. '
+                  'Is the project still available?'.format(proj))
+            continue
         job_desc = json.loads(res)
         try:
             builds[proj] = job_desc['lastBuild']['number']
@@ -73,9 +97,12 @@ def pull(proj, index):
 def download_artifacts(projects):
     # this is file-system stateful so it's easier to debug/reuse
     for proj in projects.keys():
-        os.mkdir(proj)
+        ensure_dir(proj)
         os.chdir(proj)
-        for index in range(1, projects[proj] + 1):
+        for index in projects[proj]:
+            if os.path.exists(str(index)):
+                print("{}/{} already exists. Skipping.".format(proj, index))
+                continue
             os.mkdir(str(index))
             os.chdir(str(index))
             pull(proj, index)
@@ -96,7 +123,7 @@ def extract_timestamp(path):
 
 def measurement_tool_invocation(projects):
     for proj in projects.keys():
-        for index in range(1, projects[proj] + 1):
+        for index in projects[proj]:
             val = extract_timestamp(os.path.join(proj, str(index)))
             if val:
                 timestamp = (val - datetime(1970, 1, 1)) / timedelta(seconds=1)
@@ -108,15 +135,52 @@ def measurement_tool_invocation(projects):
                 #      Jenkins and InfluxDB
                 print(' '.join(cmd))
 
+def push_results(projects):
+    from measure_snappy_jobs import InfluxQueryWriter, push_using_bridge
+    problems = []
+    for proj in projects.keys():
+        for index in projects[proj]:
+            val = extract_timestamp(os.path.join(proj, str(index)))
+            if val:
+                timestamp = (val - datetime(1970, 1, 1)) / timedelta(seconds=1)
+                submission_file = os.path.join(
+                    proj, str(index), 'submission.json')
+                with open(submission_file, 'rt', encoding='utf-8') as f:
+                    try:
+                        content = json.load(f)
+                    except json.JSONDecodeError:
+                        print("Failed to parse {}".format(submission_file))
+                        continue
+                    iqw = InfluxQueryWriter(proj, content, timestamp)
+                    res = push_using_bridge(iqw.extract_measurements())
+                    if not res.ok:
+                        problems.append(
+                            "Failed to push {}/{}. {} - {}".format(
+                                proj, index, res.status_code, res.text))
+    return problems
+
+
 def main():
-    projects = get_latest_builds()
+    try:
+        with open('previous_pulls.json', 'rt', encoding='utf-8') as f:
+            prev = json.loads(f.read())
+    except:
+        print("Unable to read previous_pulls.json. Downloading everything!")
+        prev = defaultdict(int)
+    last_builds = get_latest_builds()
+    projects = {
+        n: range(prev[n]+1, last_builds[n]+1) for n in last_builds.keys()}
     start_dir = os.path.abspath(os.curdir)
-    os.mkdir('data')
+    ensure_dir('data')
     os.chdir('data')
     download_artifacts(projects)
-    print('\n\n --- CUT HERE --- \n\n')
-    measurement_tool_invocation(projects)
+    problems = push_results(projects)
     os.chdir(start_dir)
+    with open('previous_pulls.json', 'wt', encoding='utf-8') as f:
+        f.write(json.dumps(last_builds, indent=4, sort_keys=True))
+    if problems:
+        print('\n'.join(problems))
+        raise SystemExit("There were problems. See logs")
 
 if __name__ == '__main__':
     main()
