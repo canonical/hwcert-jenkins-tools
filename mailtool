@@ -33,7 +33,8 @@ def get_args():
 
 def main():
     args = get_args()
-    msg = MIMEMultipart('alternative')
+    # https://stackoverflow.com/q/41639660/1154487
+    msg = MIMEMultipart('mixed')
     try:
         with open(args.messagefile) as mailfile:
             txt = mailfile.read()
