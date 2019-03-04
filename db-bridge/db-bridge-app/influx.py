@@ -9,21 +9,35 @@ from pprint import pprint
 
 def validate_point(data_point):
     """
-    Make sure that data_point is in valid format as accepted by the
+    Check if the data_point is in valid format as accepted by the
     InfluxDB Python client.
 
     :param data_point:
         a dict containing data point information
     :returns:
-        a bool indicating whether the data_point is valid.
+        a list of problems with the data point
+        (empty list on everything being ok)
     """
-    REQUIRED_KEYS = [
-        'measurement',  # table to write to
-        'tags',  # tags, duh!
-        'time',  # timestamp of measurement as int in nanosec since epoch
-        'fields',  # measurement fields
-    ]
-    return all([k in data_point.keys() for k in REQUIRED_KEYS])
+    if type(data_point) != dict:
+        return ['Data point {} is not a dict'.format(data_point)]
+    RIGHT_TYPES = {
+        'measurement': [str],
+        'tags': [dict],
+        'time': [int, str],
+        'fields': [dict],
+    }
+    errors = []
+    for name, types in RIGHT_TYPES.items():
+        if name not in data_point.keys():
+            errors.append(
+                "Problem with data point: {}. '{}' field missing".format(
+                    data_point, name))
+            continue
+        if type(data_point[name]) not in types:
+            errors.append(
+                "Problem with data point: {}. '{}' is not a type of {}".format(
+                   data_point,  name, types))
+    return errors
 
 
 def create_app(config_name=None):
@@ -51,18 +65,18 @@ def create_app(config_name=None):
                 return ('No database specified', 400)
             dbname = payload['database']
             measurements = payload['measurements']
-            if type(measurements) is not list:
-                return ('Measurments field is not a list', 400)
         except json.decoder.JSONDecodeError as exc:
             return ('JSON decode error: {}'.format(exc), 400)
         err_msgs = []
         for point in measurements:
-            if not validate_point(point):
-                err_msgs.append('Bad data point: {}.'.format(point))
+            err_msgs += validate_point(point)
         if err_msgs:
-            return (' '.join(err_msgs), 400)
-        query_res = app.influx_client.write_points(
-            measurements, database=dbname)
+            return (', '.join(err_msgs), 400)
+        try:
+            query_res = app.influx_client.write_points(
+                measurements, database=dbname)
+        except Exception as exc:
+            return ('Failed to write data point: {}'.format(exc), 400)
         return 'OK' if query_res else ('Failed to write data point', 400)
 
     return app

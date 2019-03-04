@@ -42,7 +42,11 @@ def test_bad_item(client):
         'measurements': [{}]
     })
     assert(rv.status_code == 400)
-    assert(b'Bad data point' in rv.data)
+    assert(b'Problem with data point' in rv.data)
+    assert(b"'time' field missing" in rv.data)
+    assert(b"'tags' field missing" in rv.data)
+    assert(b"'fields' field missing" in rv.data)
+    assert(b"'measurement' field missing" in rv.data)
 
 
 def test_good_item(client):
@@ -69,4 +73,8 @@ def test_good_and_bad_items(client):
         }, {}]
     })
     assert(rv.status_code == 400)
-    assert(b'Bad data point' in rv.data)
+    assert(b'Problem with data point' in rv.data)
+    assert(b"'time' field missing" in rv.data)
+    assert(b"'tags' field missing" in rv.data)
+    assert(b"'fields' field missing" in rv.data)
+    assert(b"'measurement' field missing" in rv.data)
