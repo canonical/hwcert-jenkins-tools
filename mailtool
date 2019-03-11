@@ -38,8 +38,6 @@ def main():
     try:
         with open(args.messagefile) as mailfile:
             txt = mailfile.read()
-        body = MIMEText(txt, 'plain')
-        msg.attach(body)
         txt = ('<html><body>'
                '<font face="Courier New, Courier, monospace">'
                '<pre>' + txt + '</pre>'
