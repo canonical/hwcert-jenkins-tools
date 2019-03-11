@@ -38,7 +38,8 @@ try:
 except ImportError as exc:
     raise SystemExit("Problem with reading the config: {}".format(exc))
 
-status_list = ['New', 'Confirmed', 'Triaged', 'In Progress', 'Fix Committed']
+status_list = ['New', 'Confirmed', 'Triaged', 'In Progress', 'Fix Committed',
+        'Invalid', "Won't Fix", 'Incomplete']
 ODM_COMMENT_HEADER = '[Automated ODM-sync-tool comment]\n'
 
 
@@ -87,7 +88,7 @@ class SyncTool:
                 last_updated.tzinfo) - last_updated).days > 14:
             comment = 'No activity for more than 14 days'
             logging.info("%s on bug %s", comment, bug.bug.id)
-            self.add_odm_comment(bug, comment)
+            self._add_comment(bug, comment)
             bug.status = 'Invalid'
             bug.lp_save()
         for tag in bug.bug.tags:
@@ -96,7 +97,7 @@ class SyncTool:
                 break
         else:
             comment = "Bug report isn't tagged with a platform tag"
-            self.add_odm_comment(bug, comment)
+            self._add_comment(bug, comment)
             bug.status = 'Incomplete'
             bug.lp_save()
 
@@ -111,7 +112,7 @@ class SyncTool:
         if missing:
             comment = ('Marking as Incomplete because of missing information:'
                        ' {}'.format(', '.join(missing)))
-            self.add_odm_comment(bug, comment)
+            self._add_comment(bug, comment)
             bug.status = 'Incomplete'
             bug.lp_save()
 
@@ -153,17 +154,16 @@ class SyncTool:
                     new_bug = self.file_bug(
                         self._cfg.umbrella_project, '[ODM bug] ' + bug_title,
                         bug.description, bug_task.status,
-                        bug.tags + [proj],
-                        owner)
+                        bug.tags + [proj, 'odm-bug'], owner)
                     self.add_bug_to_db(new_bug.bug_tasks[0])
                     self.bug_xref_db[bug.id] = new_bug.id
                     self.bug_xref_db[new_bug.id] = bug.id
                     message = 'Bug filed from {} see {} for details'.format(
                         proj, bug.web_link)
-                    self.add_odm_comment(new_bug.bug_tasks[0], message)
+                    self._add_comment(new_bug.bug_tasks[0], message)
                     message = 'Bug filed in {}. See {} for details'.format(
                         self._cfg.umbrella_project, new_bug.web_link)
-                    self.add_odm_comment(bug_task, message)
+                    self._add_comment(bug_task, message)
 
     def sync_all(self):
         for proj in self._cfg.odm_projects:
@@ -185,8 +185,12 @@ class SyncTool:
                     # attachments
                     try:
                         attachments = [a for a in msg.bug_attachments]
+                        content = (
+                            '[Original comment posted on {} by {}]\n{}'.format(
+                                msg.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+                                msg.owner.name, msg.content))
                         self._add_comment(
-                            umb_bug.bug_tasks[0], msg.content, attachments)
+                            umb_bug.bug_tasks[0], content, attachments)
                     except NotFound as exc:
                         logging.info('Skipping comment (Probably hidden)')
                 for msg in umb_messages:
@@ -198,8 +202,12 @@ class SyncTool:
                                  self._cfg.umbrella_project, proj)
                     try:
                         attachments = [a for a in msg.bug_attachments]
+                        content = (
+                            '[Original comment posted on {} by {}]\n{}'.format(
+                                msg.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+                                msg.owner.name, msg.content))
                         self._add_comment(
-                            odm_bug.bug_tasks[0], msg.content, attachments)
+                            odm_bug.bug_tasks[0], content, attachments)
                     except NotFound as exc:
                         logging.info('Skipping comment (Probably hidden)')
                 self._sync_meta(odm_bug, umb_bug)
@@ -259,11 +267,9 @@ class SyncTool:
         task.lp_save()
         return bug
 
-    def add_odm_comment(self, bug, message):
-        self._add_comment(bug, ODM_COMMENT_HEADER + message)
-
     def _add_comment(self, bug, message, attachments=None):
         # XXX: I think LP allows one attachment per bug message
+        message = ODM_COMMENT_HEADER + message
         if attachments:
             prohibited_chars = '/'
             new_filename = attachments[0].title
