@@ -74,7 +74,7 @@ def load_config(configfile, snapname):
     if not configfile:
         return []
     try:
-        data = yaml.load(configfile)
+        data = yaml.safe_load(configfile)
     except (yaml.parser.ParserError, yaml.scanner.ScannerError):
         print('ERROR: Error parsing', configfile.name)
         sys.exit(1)
