@@ -163,6 +163,27 @@ def main():
                     rev_list[arch] = channel_info['revision']
             except KeyError:
                 continue
+        # Try to find the right revision for the right architecture when a
+        # channel follows the next one meaning nothing was pushed to it, e.g:
+        #
+        # channels:
+        #   stable:     0.7.1  2018-12-11 (329) 387MB -
+        #   candidate:  ↑
+        #   beta:       ↑
+        if not rev_list:
+            for risk in ['edge', 'beta', 'candidate', 'stable']:
+                for channel_info in json['channel-map']:
+                    try:
+                        if channel_info['version'] != args.version:
+                            continue
+                        if channel_info["channel"]["track"] == store_track:
+                            if channel_info["channel"]["risk"] == risk:
+                                arch = channel_info["channel"]["architecture"]
+                                rev_list[arch] = channel_info['revision']
+                    except KeyError:
+                        continue
+                if rev_list:
+                    break
         for rev in rev_list.values():
             pattern = "{} - {} - \({}\).*{}".format(
                 re.escape(args.snap),
