@@ -20,7 +20,9 @@
 import argparse
 import os
 import re
+import requests
 import sys
+import yaml
 
 from launchpadlib.launchpad import Launchpad
 from trello import TrelloClient
@@ -31,13 +33,34 @@ class LPHelper:
         self.lp = Launchpad.login_with(
             sys.argv[0], 'production', credentials_file=credentials)
         self.project = self.lp.projects(project)
+        self.srubugs = []
 
-    def find_bug(self, search_text):
+    def find_sru_bug(self, snap, version):
         """Find a bug in this project with the specified search_text"""
+        if not self.srubugs:
+            try:
+                # Take the kernel sru bug status data and make a list out of it
+                # so we can use it more easily
+                url = ('https://kernel.ubuntu.com/~kernel-ppa/status'
+                       '/swm/status.yaml')
+                bugdata = yaml.load(requests.get(url).content)
+                for x in bugdata:
+                    # Add a 'bug' field that we can use later
+                    bugdata[x]['bug'] = x
+                    self.srubugs.append(bugdata[x])
+            except Exception as e:
+                print('ERROR: Importing bug data from {}'.format(url))
+
         try:
-            bug = self.project.searchTasks(search_text=search_text)[0]
-            return SruBug(bug)
-        except (TypeError, IndexError):
+            # Only match if there's a valid task for this snap name, and
+            # version is the same
+            for bug in self.srubugs:
+                if (bug.get('version') == version and
+                    bug.get('task', {}).get(
+                            'snap-certification-testing', {}).get(
+                            'target') == snap):
+                    return SruBug(self.lp.bugs(bug.get('bug')))
+        except Exception:
             raise LookupError
 
 
@@ -66,24 +89,26 @@ class SruBug:
     """Simplify operations we care about on an LP bug"""
     def __init__(self, bug):
         self.bug = bug
+        self.id = bug.id
+        self.web_link = bug.web_link
 
     def __repr__(self):
         return self.bug.title
 
     def get_task_state(self, task_name):
-        for task in self.bug.bug.bug_tasks:
+        for task in self.bug.bug_tasks:
             if task_name in str(task):
                 return task
         raise LookupError
 
     def set_task_state(self, task_name, state):
-        for task in self.bug.bug.bug_tasks:
+        for task in self.bug.bug_tasks:
             if task_name in str(task):
                 task.status = state
                 task.lp_save()
 
     def add_comment(self, comment_text):
-        self.bug.bug.newMessage(content=comment_text)
+        self.bug.newMessage(content=comment_text)
 
 
 def environ_or_required(key):
@@ -101,12 +126,12 @@ def get_checklist_value(checklist, key):
 
 
 def get_card_snap_version(card):
-    """Return the snap version for a card, if it is formatted as expected"""
+    """Return snap name and version for a card, if formatted as expected"""
     m = re.match(
         r"(?P<snap>.*?)(?:\s+\-\s+)(?P<version>.*?)(?:\s+\-\s+)"
         r"\((?P<revision>.*?)\)(?:\s+\-\s+\[(?P<track>.*?)\])?", card.name)
     if m:
-        return m.group('version')
+        return (m.group('snap'), m.group('version'))
     raise ValueError
 
 
@@ -129,7 +154,8 @@ def card_ready_for_candidate(card):
     """Return True if the signoff checkbox 'Ready for Candidate' is checked"""
     # Find the Sign-Off checklist
     try:
-        checklist = [x for x in card.fetch_checklists() if x.name == 'Sign-Off'][0]
+        checklist = [x for x in card.fetch_checklists()
+                     if x.name == 'Sign-Off'][0]
     except IndexError:
         print("WARNING: No Sign-Off checklist found!")
         return False
@@ -146,7 +172,7 @@ def main():
         # If we can't get version from title, it's not formatted how we
         # expect, so ignore it
         try:
-            version = get_card_snap_version(card)
+            snap, version = get_card_snap_version(card)
         except ValueError:
             continue
 
@@ -154,23 +180,27 @@ def main():
             continue
 
         try:
-            bug = lp.find_bug(version)
+            bug = lp.find_sru_bug(snap, version)
         except LookupError:
             print(
                 'No bug found for {} or bug is already closed'.format(version))
             continue
+        print('- LP:{}'.format(bug.id))
+        desc = "[[{}]({})] - {}".format(bug.id, bug.web_link, bug)
+        card.set_description(desc)
         # If the bug is already fix-released, there's nothing more to do
         TARGET_TASK = 'snap-certification-testing'
         try:
             if bug.get_task_state(TARGET_TASK).status == 'Fix Released':
+                print('- {} task already completed.'.format(TARGET_TASK))
                 continue
         except LookupError:
-            print('No task called "{}" found!'.format(TARGET_TASK))
+            print('ERROR: No task called "{}" found!'.format(TARGET_TASK))
             continue
 
         # This is the bug for the card we found, mark the task complete and
         # add a comment
-        print(bug)
+        print('- Marking {} task complete.'.format(TARGET_TASK))
         bug.set_task_state(TARGET_TASK, 'Fix Released')
         comment = ("Snap beta testing complete, no regressions found. Ready "
                    "for promotion. Results here: {}".format(card.url))
