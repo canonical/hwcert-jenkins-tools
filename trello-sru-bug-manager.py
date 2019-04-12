@@ -60,6 +60,8 @@ class LPHelper:
                             'snap-certification-testing', {}).get(
                             'target') == snap):
                     return SruBug(self.lp.bugs(bug.get('bug')))
+            # If we get this far, no bug was found
+            raise LookupError
         except Exception:
             raise LookupError
 
