@@ -109,6 +109,11 @@ def main():
                         type=argparse.FileType())
     parser.add_argument('-a', '--arch', help="deb architecture",
                         required=True)
+    parser.add_argument('-t', '--sru-type',
+                        help="SRU type, stock or oem etc.", required=True)
+    parser.add_argument('-s', '--series',
+                        help="series code name, e.g. xenial etc.",
+                        required=True)
     parser.add_argument('-n', '--name', help="SUT name", required=True)
     parser.add_argument('-k', '--kernel', help="kernel type", required=True)
     parser.add_argument('summary', help="test results summary",
@@ -147,6 +152,8 @@ def main():
     config = load_config(args.config)
     expected_tests = config.get(kernel_stack, {}).get('expected_tests', [])
 
+    print('SRU type: {}'.format(args.sru_type))
+    print('series: {}'.format(args.series))
     print("kernel_stack: {}".format(kernel_stack))
     print("deb_kernel_image: {}".format(deb_kernel_image))
     print("deb_version: {}".format(deb_version))
