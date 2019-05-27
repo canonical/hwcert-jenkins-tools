@@ -145,11 +145,12 @@ def main():
         deb_version)
     card = search_card(board, pattern)
     config = load_config(args.config)
-    expected_tests = config.get(args.kernel, {}).get('expected_tests', [])
+    expected_tests = config.get(kernel_stack, {}).get('expected_tests', [])
 
     print("kernel_stack: {}".format(kernel_stack))
     print("deb_kernel_image: {}".format(deb_kernel_image))
     print("deb_version: {}".format(deb_version))
+    print("expected_tests and SUTs: {}".format(expected_tests))
 
     lanes = ['Proposed', 'Updates']
 
