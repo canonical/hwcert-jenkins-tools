@@ -31,7 +31,7 @@ def archive_card(card):
     card.set_closed(True)
 
 
-def find_or_create_checklist(card, checklist_name, items=[]):
+def find_or_create_checklist(card, checklist_name, items=None):
     existing_checklists = card.fetch_checklists()
     checklist = None
     for c in existing_checklists:
@@ -40,8 +40,9 @@ def find_or_create_checklist(card, checklist_name, items=[]):
             break
     if not checklist:
         checklist = card.add_checklist(checklist_name, [])
-        for item in items:
-            checklist.add_checklist_item(item + ' (NO RESULTS)')
+        if items:
+            for item in items:
+                checklist.add_checklist_item(item + ' (NO RESULTS)')
     return checklist
 
 
