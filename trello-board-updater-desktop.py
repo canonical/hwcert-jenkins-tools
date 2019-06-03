@@ -204,8 +204,8 @@ def main():
 
     if not [c for c in card.fetch_checklists() if c.name == 'Sign-Off']:
         checklist = find_or_create_checklist(card, 'Sign-Off')
-        checklist.add_checklist_item(lanes[0], True)
-        checklist.add_checklist_item(lanes[1])
+        checklist.add_checklist_item('Ready for ' + lanes[0], True)
+        checklist.add_checklist_item('Ready for ' + lanes[1])
         checklist.add_checklist_item('Can be Archived')
     checklist = find_or_create_checklist(card, 'Revisions')
     rev = '{} ({})'.format(deb_version, args.arch)
