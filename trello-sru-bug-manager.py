@@ -35,7 +35,7 @@ class LPHelper:
         self.project = self.lp.projects(project)
         self.srubugs = []
 
-    def find_sru_bug(self, snap, version):
+    def _build_sru_bugs(self):
         """Find a bug in this project with the specified search_text"""
         if not self.srubugs:
             try:
@@ -51,6 +51,15 @@ class LPHelper:
             except Exception as e:
                 print('ERROR: Importing bug data from {}'.format(url))
 
+    def find_sru_bug(self, target, version, target_type="snap"):
+        self._build_sru_bugs()
+
+        if target_type == "snap":
+            return self.find_sru_bug_snap(target, version)
+        else:
+            return self.find_sru_bug_deb(target, version)
+
+    def find_sru_bug_snap(self, snap, version):
         try:
             # Only match if there's a valid task for this snap name, and
             # version is the same
@@ -59,6 +68,25 @@ class LPHelper:
                     bug.get('task', {}).get(
                             'snap-certification-testing', {}).get(
                             'target') == snap):
+                    return SruBug(self.lp.bugs(bug.get('bug')))
+            # If we get this far, no bug was found
+            raise LookupError
+        except Exception:
+            raise LookupError
+
+    def find_sru_bug_deb(self, stack, version):
+        series = stack.split('-')[0]
+        package = 'linux'
+        if 'hwe' in stack:
+            package = package + '-hwe'
+
+        try:
+            # Only match if there's a valid tarsk for this stack name, and
+            # version is the same
+            for bug in self.srubugs:
+                if (bug.get('version') == version and
+                    bug.get('package') == package and
+                    bug.get('series') == series):
                     return SruBug(self.lp.bugs(bug.get('bug')))
             # If we get this far, no bug was found
             raise LookupError
@@ -137,6 +165,16 @@ def get_card_snap_version(card):
     raise ValueError
 
 
+def get_card_deb_version(card):
+    """Return snap name and version for a card, if formatted as expected"""
+    m = re.match(
+        r"(?P<stack>.*?)(?:\s+\-\s+)(?P<package>.*?)(?:\s+\-\s+)"
+        r"\((?P<version>.*?)\)", card.name)
+    if m:
+        return (m.group('stack'), m.group('version'))
+    raise ValueError
+
+
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--project', help="Launchpad project to search",
@@ -149,6 +187,8 @@ def get_args():
                         **environ_or_required('TRELLO_TOKEN'))
     parser.add_argument('--board', help="Trello board identifier",
                         **environ_or_required('TRELLO_BOARD'))
+    parser.add_argument('--deb', action='store_true',
+                        help='Work on deb instead of snap')
     return parser.parse_args()
 
 
@@ -164,10 +204,19 @@ def card_ready_for_candidate(card):
     return get_checklist_value(checklist, 'Ready for Candidate')
 
 
-def main():
-    args = get_args()
-    lp = LPHelper(args.credentials, args.project)
-    trello = TrelloHelper(args.key, args.token, args.board)
+def card_ready_for_updates(card):
+    """Return True if the signoff checkbox 'Ready for Updates' is checked"""
+    # Find the Sign-Off checklist
+    try:
+        checklist = [x for x in card.fetch_checklists()
+                     if x.name == 'Sign-Off'][0]
+    except IndexError:
+        print("WARNING: No Sign-Off checklist found!")
+        return False
+    return get_checklist_value(checklist, 'Ready for Updates')
+
+
+def process_snaps(lp, trello):
     print("Processing SRU snaps ready for promotion...")
     for card in trello.search_cards_in_lane('beta', '-kernel'):
         print('{} ({})'.format(card.name, card.short_url))
@@ -187,26 +236,66 @@ def main():
             print(
                 'No bug found for {} or bug is already closed'.format(version))
             continue
-        print('- LP:{}'.format(bug.id))
-        desc = "[[{}]({})] - {}".format(bug.id, bug.web_link, bug)
-        card.set_description(desc)
-        # If the bug is already fix-released, there's nothing more to do
-        TARGET_TASK = 'snap-certification-testing'
+
+        update_lp(bug, 'snap-certification-testing', card)
+
+
+def process_debs(lp, trello):
+    print("Processing SRU kernel debs ready for Updates repository...")
+    for card in trello.search_cards_in_lane('proposed', 'linux-image'):
+        print('{} ({})'.format(card.name, card.short_url))
+        # If we can't get version from title, it's not formatted how we
+        # expect, so ignore it
         try:
-            if bug.get_task_state(TARGET_TASK).status == 'Fix Released':
-                print('- {} task already completed.'.format(TARGET_TASK))
-                continue
-        except LookupError:
-            print('ERROR: No task called "{}" found!'.format(TARGET_TASK))
+            stack, version = get_card_deb_version(card)
+        except ValueError:
             continue
 
-        # This is the bug for the card we found, mark the task complete and
-        # add a comment
-        print('- Marking {} task complete.'.format(TARGET_TASK))
-        bug.set_task_state(TARGET_TASK, 'Fix Released')
-        comment = ("Snap beta testing complete, no regressions found. Ready "
-                   "for promotion. Results here: {}".format(card.url))
-        bug.add_comment(comment)
+        if not card_ready_for_updates(card):
+            continue
+
+        try:
+            bug = lp.find_sru_bug(stack, version, 'deb')
+        except LookupError:
+            print(
+                'No bug found for {} or bug is already closed'.format(version))
+            continue
+
+        update_lp(bug, 'certification-testing', card)
+
+
+def update_lp(bug, target_task, card):
+    print('- LP:{}'.format(bug.id))
+    desc = "[[{}]({})] - {}".format(bug.id, bug.web_link, bug)
+    card.set_description(desc)
+    # If the bug is already fix-released, there's nothing more to do
+    TARGET_TASK = target_task
+    try:
+        if bug.get_task_state(TARGET_TASK).status == 'Fix Released':
+            print('- {} task already completed.'.format(TARGET_TASK))
+            return
+    except LookupError:
+        print('ERROR: No task called "{}" found!'.format(TARGET_TASK))
+        return
+
+    # This is the bug for the card we found, mark the task complete and
+    # add a comment
+    print('- Marking {} task complete.'.format(TARGET_TASK))
+    bug.set_task_state(TARGET_TASK, 'Fix Released')
+    comment = ("Kernel deb testing completes, no regressions found. Ready "
+               "for Updates. Results here: {}".format(card.url))
+    bug.add_comment(comment)
+
+
+def main():
+    args = get_args()
+    lp = LPHelper(args.credentials, args.project)
+    trello = TrelloHelper(args.key, args.token, args.board)
+
+    if args.deb:
+        process_debs(lp, trello)
+    else:
+        process_snaps(lp, trello)
 
 
 if __name__ == "__main__":
