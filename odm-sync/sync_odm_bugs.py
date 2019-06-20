@@ -28,6 +28,8 @@ import re
 import logging
 import sys
 
+from fnmatch import fnmatch
+
 """
 This programs keeps ODM projects' bugs in sync with the Somerville project.
 
@@ -106,6 +108,16 @@ class SyncTool:
             self._add_comment(bug, comment)
             bug.status = 'Incomplete'
             bug.lp_save()
+        for msg in bug.bug.messages:
+            atts = [a for a in msg.bug_attachments]
+            if any([fnmatch(a.title, 'sosreport*.tar.xz') for a in atts]):
+                break
+        else:
+            comment = 'Missing sosreport attachment'
+            self._add_comment(bug, comment)
+            bug.status = 'Incomplete'
+            bug.lp_save()
+
 
         mandatory_items = [
             'expected result', 'actual result', 'sku', 'bios version',
