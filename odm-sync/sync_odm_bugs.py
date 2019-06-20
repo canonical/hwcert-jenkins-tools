@@ -193,7 +193,19 @@ class SyncTool:
                 umb_comments = [msg.content for msg in umb_messages]
 
                 for msg in odm_messages:
-                    if msg.content in umb_comments:
+                    trimmed_umb_comments = []
+                    for comment in umb_comments:
+                        if comment.startswith(ODM_COMMENT_HEADER):
+                            trimmed_lines = []
+                            for l in comment.splitlines():
+                                if l.startswith('[') and l.endswith(']'):
+                                    continue
+                                trimmed_lines.append(l)
+                            trimmed_umb_comments.append(
+                                '\n'.join(trimmed_lines))
+                        else:
+                            trimmed_umb_comments.append(comment)
+                    if msg.content in trimmed_umb_comments:
                         continue
                     if msg.content.startswith(ODM_COMMENT_HEADER):
                         continue
