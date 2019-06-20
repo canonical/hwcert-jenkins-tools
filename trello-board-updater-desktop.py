@@ -189,6 +189,13 @@ def main():
     checklist = find_or_create_checklist(card, 'Testflinger', expected_tests)
     job_name = args.name.split('-')
     cid = job_name[-2] + '-' + job_name[-1]
+
+    # speicial case for xenial stack because oem xenial image uses stock xenial kernel
+    # to tell which cid is oem SUT easier, we add a suffix -oem.
+    if kernel_stack == 'xenial' and str(args.sru_type) == 'oem':
+        cid = cid + '-oem'
+        print('Detected oem xenial run SUT: {}'.format(cid))
+
     item_name = "{} ({})".format(cid, datetime.utcnow().isoformat())
     if jenkins_link:
         item_name += " [[JENKINS]({})]".format(jenkins_link)
@@ -198,6 +205,9 @@ def main():
         # If there was no c3_link, it's because the submission failed
         attach_labels(board, card, ['TESTFLINGER CRASH'])
 
+    # debug message
+    print('checklist: {}'.format(checklist))
+    print('item_name: {}'.format(item_name))
     change_checklist_item(checklist, item_name,
                           checked=no_new_fails_or_skips(summary_data))
 
