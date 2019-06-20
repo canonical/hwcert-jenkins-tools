@@ -91,6 +91,12 @@ class SyncTool:
             self._add_comment(bug, comment)
             bug.status = 'Invalid'
             bug.lp_save()
+        if bug.status == 'Incomplete':
+            return False
+        if 'checkbox' not in bug.bug.tags:
+            return False
+        if 'cpm-reviewed' not in bug.bug.tags:
+            return False
         for tag in bug.bug.tags:
             if tag in self._owners_spreadsheet.owners.keys():
                 self.platform_map[bug.bug.id] = tag
