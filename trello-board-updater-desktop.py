@@ -48,7 +48,7 @@ def find_or_create_checklist(card, checklist_name, items=[]):
 
 def change_checklist_item(checklist, name, checked=False):
     # keep the trailing space so that we don't match the wrong thing later
-    r = re.match('\[*(.* )\(', name)
+    r = re.match('\[*(.*? )\(', name)
     if r:
         debname = r.group(1)
         for item in checklist.items:
