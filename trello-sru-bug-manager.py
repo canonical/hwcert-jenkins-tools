@@ -242,7 +242,7 @@ def process_snaps(lp, trello):
 
 def process_debs(lp, trello):
     print("Processing SRU kernel debs ready for Updates repository...")
-    for card in trello.search_cards_in_lane('Proposed', 'linux-image'):
+    for card in trello.search_cards_in_lane('proposed', 'linux-image'):
         print('{} ({})'.format(card.name, card.short_url))
         # If we can't get version from title, it's not formatted how we
         # expect, so ignore it
