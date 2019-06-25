@@ -100,9 +100,14 @@ class SyncTool:
             bug.lp_save()
         if bug.status == 'Incomplete':
             return False
-        if 'checkbox' not in bug.bug.tags:
-            return False
-        if 'cpm-reviewed' not in bug.bug.tags:
+        if ('checkbox' not in bug.bug.tags and
+                'cpm-reviewed' not in bug.bug.tags):
+            comment = (
+                "Bug report isn't tagged with either 'checkbox' or"
+                " 'cpm-reviewed'. Marking as incomplete.")
+            self._add_comment(bug, comment)
+            bug.status = 'Incomplete'
+            bug.lp_save()
             return False
         for tag in bug.bug.tags:
             if tag in self._owners_spreadsheet.owners.keys():
