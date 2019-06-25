@@ -186,11 +186,13 @@ class SyncTool:
                     self.add_bug_to_db(new_bug.bug_tasks[0])
                     self.bug_xref_db[bug.id] = new_bug.id
                     self.bug_xref_db[new_bug.id] = bug.id
-                    message = 'Bug filed from {} see {} for details'.format(
-                        proj, bug.web_link)
+                    message = ('This bug is from [{}] Launchpad project.'
+                               '\nPlease refer to Bug #{}'.format(proj, bug.id))
                     self._add_comment(new_bug.bug_tasks[0], message)
-                    message = 'Bug filed in {}. See {} for details'.format(
-                        self._cfg.umbrella_project, new_bug.web_link)
+                    message = ('This bug has been synced to {} Launchpad'
+                               ' project successfully.\nPlease refer to Bug'
+                               ' #{}'.format(
+                                   self._cfg.umbrella_project, new_bug.id))
                     self._add_comment(bug_task, message)
 
     def sync_all(self):
