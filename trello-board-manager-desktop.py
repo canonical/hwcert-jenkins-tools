@@ -104,7 +104,7 @@ def move_card(config, lane_name, card):
 
             deb_version = pkg_data[deb_kernel_image]
 
-            ori = next_repo = repository_promotion_map[lane_name]
+            ori = next_repo = repository_promotion_map.get(lane_name)
 
             logger.debug('deb_version: {}'.format(deb_version))
             logger.debug('next_repo: {}'.format(next_repo))
@@ -163,7 +163,7 @@ def main():
 
     for lane in board.list_lists():
         lane_name = lane.name.lower()
-        if lane_name in repository_promotion_map.keys():
+        if lane_name in repositories:
             for card in lane.list_cards():
                 try:
                     move_card(config, lane_name, card)
