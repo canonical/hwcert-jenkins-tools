@@ -12,8 +12,12 @@ lp_names = {
     'Cyrus': 'cyruslien',
     'Fourdollars': 'fourdollars',
     'Leon': 'lihow731',
-    'Kai-Heng': 'kaihengfeng'
+    'Kai-Heng': 'kaihengfeng',
+    'Maciej': 'kissiel',
 }
 
 # Google Sheet ID with the project tracking information
 tracking_doc_id = ''
+
+# sync_odm will work on bugs filed filed after or on this date:
+start_date = '2019-07-02'

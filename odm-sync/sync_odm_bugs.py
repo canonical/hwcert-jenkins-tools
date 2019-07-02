@@ -326,16 +326,21 @@ class SyncTool:
             bug.bug.newMessage(content=message)
 
     def main(self):
+        start_date = datetime.datetime.strptime(
+            self._cfg.start_date, '%Y-%m-%d')
         for p in self._cfg.odm_projects:
             project = self.lp.projects[p]
             bug_tasks = project.searchTasks(
-                status=status_list, tags=["dm-reviewed"])
+                status=status_list, tags=["dm-reviewed"],
+                created_since=start_date)
             for bug in bug_tasks:
                 if self.verify_bug(bug):
                     self.add_bug_to_db(bug)
         project = self.lp.projects[self._cfg.umbrella_project]
-        for bug in project.searchTasks(
-                status=status_list, tags=self._cfg.odm_projects):
+        bug_tasks = project.searchTasks(
+                status=status_list, tags=self._cfg.odm_projects,
+                created_since=start_date)
+        for bug in bug_tasks:
             self.add_bug_to_db(bug)
         self.build_bug_db()
         self.sync_all()
