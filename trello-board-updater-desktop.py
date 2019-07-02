@@ -129,6 +129,12 @@ def main():
     if args.name.split('-')[1] == 'hwe':
         kernel_stack = codename + '-hwe'
 
+    # The current oem stack
+    # For now it is bionic with linux-oem kernel
+    # TODO: update the if statement when oem-osp1 is delivered
+    if kernel_stack == 'bionic' and args.sru_type == 'oem':
+        kernel_stack = 'oem'
+
     uri = urlparse(jenkins_link)
     jenkins_host = '{uri.scheme}://{uri.netloc}/'.format(uri=uri)
     package_json_url = '{}/job/cert-package-data/lastSuccessfulBuild/'\
@@ -142,7 +148,18 @@ def main():
     # e.g. linux-generic-hwe-16.04 which version is 4.15.0.50.71
     dlv = package_data[args.kernel].split('.')
     dlv_short = dlv[0] + '_' + dlv[1] + '_' + dlv[2] + '-' + dlv[3]
-    deb_kernel_image = 'linux-image-' + dlv_short + '-generic'
+    kernel_suffix = args.sru_type
+    if args.sru_type == 'stock':
+        kernel_suffix = 'generic'
+    elif args.sru_type == 'oem' and args.series == 'xenial':
+        # very special case
+        # some oem images are delivered as xenial + oem-4.13
+        # when time goes by, it is updated to be xenial + generic xenial hwe
+        # TODO: we may need to add more conditions when more oem images
+        # is updated to use generic kernel
+        kernel_suffix = 'generic'
+
+    deb_kernel_image = 'linux-image-' + dlv_short + '-' + kernel_suffix
     deb_version = package_data[deb_kernel_image]
     pattern = "{} - {} - \({}\)".format(
         re.escape(kernel_stack),
@@ -190,9 +207,13 @@ def main():
     job_name = args.name.split('-')
     cid = job_name[-2] + '-' + job_name[-1]
 
-    # speicial case for xenial stack because oem xenial image uses stock xenial kernel
+    # speicial case for xenial stack because oem xenial image uses
+    # stock xenial kernel
     # to tell which cid is oem SUT easier, we add a suffix -oem.
-    if kernel_stack == 'xenial' and str(args.sru_type) == 'oem':
+    # TODO: we may need to update this condition when new oem GM update
+    # delivered
+    if kernel_stack == 'xenial' or kernel_stack == 'xenial-hwe'\
+       and str(args.sru_type) == 'oem':
         cid = cid + '-oem'
         print('Detected oem xenial run SUT: {}'.format(cid))
 
