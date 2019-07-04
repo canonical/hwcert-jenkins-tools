@@ -212,7 +212,7 @@ def main():
     # to tell which cid is oem SUT easier, we add a suffix -oem.
     # TODO: we may need to update this condition when new oem GM update
     # delivered
-    if kernel_stack == 'xenial' or kernel_stack == 'xenial-hwe'\
+    if (kernel_stack == 'xenial' or kernel_stack == 'xenial-hwe')\
        and str(args.sru_type) == 'oem':
         cid = cid + '-oem'
         print('Detected oem xenial run SUT: {}'.format(cid))
