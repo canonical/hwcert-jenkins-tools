@@ -118,6 +118,8 @@ def main():
     parser.add_argument('-t', '--track', help="snap track", required=True)
     parser.add_argument('summary', help="test results summary",
                         type=argparse.FileType())
+    parser.add_argument("--cardonly", help="Only create an empty card",
+                        action="store_true")
     args = parser.parse_args()
     client = TrelloClient(api_key=args.key, token=args.token)
     board = client.get_board(args.board)
@@ -223,22 +225,28 @@ def main():
             else:
                 card = lane.add_card('{} - {} - ({})'.format(
                     args.snap, args.version, default_rev))
-    summary = '**[TESTFLINGER] {} {} {} ({}) {}**\n---\n\n'.format(
-        args.name, args.snap, args.version, args.revision, args.channel)
-    summary += '- Jenkins build details: {}\n'.format(jenkins_link)
-    summary += '- Full results at: {}\n\n```\n'.format(c3_link)
-    summary_data = args.summary.read()
-    summary += summary_data
-    summary += '\n```\n'
-    card.comment(summary)
+    if not args.cardonly:
+        summary = '**[TESTFLINGER] {} {} {} ({}) {}**\n---\n\n'.format(
+            args.name, args.snap, args.version, args.revision, args.channel)
+        summary += '- Jenkins build details: {}\n'.format(jenkins_link)
+        summary += '- Full results at: {}\n\n```\n'.format(c3_link)
+        summary_data = args.summary.read()
+        summary += summary_data
+        summary += '\n```\n'
+        card.comment(summary)
+    else:
+        summary_data = ""
     attach_labels(board, card, snap_labels)
     checklist = find_or_create_checklist(card, 'Testflinger', expected_tests)
-    item_name = "{} ({})".format(args.name, datetime.utcnow().isoformat())
+    if args.cardonly:
+        item_name = "{} ({})".format(args.name, 'In progress')
+    else:
+        item_name = "{} ({})".format(args.name, datetime.utcnow().isoformat())
     if jenkins_link:
         item_name += " [[JENKINS]({})]".format(jenkins_link)
     if c3_link:
         item_name += " [[C3]({})]".format(c3_link)
-    else:
+    elif not args.cardonly:
         # If there was no c3_link, it's because the submission failed
         attach_labels(board, card, ['TESTFLINGER CRASH'])
 
