@@ -201,25 +201,37 @@ class SyncTool:
                 umb_bug = self.lp.bugs[self.bug_xref_db[odm_bug.id]]
                 odm_messages = [msg for msg in odm_bug.messages][1:]
                 umb_messages = [msg for msg in umb_bug.messages][1:]
-                odm_comments = [msg.content for msg in odm_messages]
-                umb_comments = [msg.content for msg in umb_messages]
+                odm_comments = []
+                def fake_content(msg):
+                    """Create a fake content out of attachment titles."""
+                    new_content = '__Empty_comment__attachments: '
+                    new_content += ', '.join(
+                        [a.title for a in msg.bug_attachments])
+                    return new_content
 
                 for msg in odm_messages:
+                    odm_comments.append(msg.content or fake_content(msg))
+                for msg in odm_messages:
                     trimmed_umb_comments = []
-                    for comment in umb_comments:
-                        if comment.startswith(ODM_COMMENT_HEADER):
+                    for umb_msg in umb_messages:
+                        if umb_msg.content.startswith(ODM_COMMENT_HEADER):
                             trimmed_lines = []
-                            for l in comment.splitlines():
+                            for l in umb_msg.content.splitlines():
                                 if l.startswith('[') and l.endswith(']'):
                                     continue
                                 trimmed_lines.append(l)
-                            trimmed_umb_comments.append(
-                                '\n'.join(trimmed_lines))
+                            new_comment = '\n'.join(trimmed_lines)
+                            if not new_comment:
+                                new_comment = fake_content(umb_msg)
+                            trimmed_umb_comments.append(new_comment)
                         else:
-                            trimmed_umb_comments.append(comment)
+                            trimmed_umb_comments.append(umb_msg.content)
                     if msg.content in trimmed_umb_comments:
                         continue
                     if msg.content.startswith(ODM_COMMENT_HEADER):
+                        continue
+                    if not msg.content and (
+                            fake_content(msg) in trimmed_umb_comments):
                         continue
                     logging.info('Adding missing comment from %s to %s',
                                  proj, self._cfg.umbrella_project)
@@ -237,6 +249,8 @@ class SyncTool:
                         logging.info('Skipping comment (Probably hidden)')
                 for msg in umb_messages:
                     if msg.content in odm_comments:
+                        continue
+                    if not msg.content and fake_content(msg) in odm_comments:
                         continue
                     if msg.content.startswith(ODM_COMMENT_HEADER):
                         continue
