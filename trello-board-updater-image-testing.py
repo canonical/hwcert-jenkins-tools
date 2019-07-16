@@ -82,6 +82,7 @@ def main():
                         **environ_or_required('TRELLO_BOARD'))
     parser.add_argument('-n', '--name', help="SUT device name", required=True)
     parser.add_argument('-i', '--image', help="image name", required=True)
+    parser.add_argument('-c', '--channel', help="image name", default="stable")
     parser.add_argument('-v', '--version', help="snap version", required=True)
     parser.add_argument('summary', help="test results summary",
                         type=argparse.FileType())
@@ -90,15 +91,16 @@ def main():
     board = client.get_board(args.board)
     c3_link = os.environ.get('C3LINK', '')
     jenkins_link = os.environ.get('BUILD_URL', '')
-    pattern = "{} - {}".format(
+    pattern = "{} - {} - {}".format(
         re.escape(args.image),
+        re.escape(args.channel),
         re.escape(args.version))
     # First, see if this exact card already exists
     card = search_card(board, pattern)
 
     # If not, see if there's an older one for this image
     if not card:
-        pattern = "{} - .*".format(re.escape(args.image))
+        pattern = "{} - {} - .*".format(re.escape(args.image), args.channel)
         card = search_card(board, pattern)
         if card:
             archive_card(card)
@@ -106,13 +108,13 @@ def main():
         # it didn't exist. We need to create it either way
         lane = None
         for l in board.open_lists():
-            if l.name == "Images":
+            if l.name == args.channel:
                 lane = l
                 break
         if not lane:
-            lane = board.add_list("Images")
-        card = lane.add_card('{} - {}'.format(
-            args.image, args.version))
+            lane = board.add_list(args.channel)
+        card = lane.add_card('{} - {} - {}'.format(
+            args.image, args.channel, args.version))
     summary = '**[TESTFLINGER] {} {} {}**\n---\n\n'.format(
         args.name, args.image, args.version)
     summary += '- Jenkins build details: {}\n'.format(jenkins_link)
