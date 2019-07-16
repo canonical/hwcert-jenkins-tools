@@ -23,6 +23,7 @@ import argparse
 from launchpadlib.launchpad import Launchpad
 from lazr.restfulclient.errors import NotFound
 import datetime
+import hashlib
 import pygsheets
 import re
 import logging
@@ -205,28 +206,39 @@ class SyncTool:
                 def fake_content(msg):
                     """Create a fake content out of attachment titles."""
                     new_content = '__Empty_comment__attachments: '
+                    def att_hash(att):
+                        hash_cache = {}
+                        if att.self_link not in hash_cache.keys():
+                            hash_cache[att.self_link] = '{}-{}'.format(
+                                    att.title, hashlib.sha1(
+                                att.data.open().read()).hexdigest())
+                        return hash_cache[att.self_link]
                     new_content += ', '.join(
-                        [a.title for a in msg.bug_attachments])
+                        [att_hash(a) for a in msg.bug_attachments])
                     return new_content
+                def trim_messages(messages):
+                    """Remove automatically added headers from the comments."""
+                    trimmed_comments = []
+                    for msg in messages:
+                        if msg.content.startswith(ODM_COMMENT_HEADER):
+                            trimmed_lines = []
+                            for line in msg.content.splitlines():
+                                if line.startswith('[') and line.endswith(']'):
+                                    continue
+                                trimmed_lines.append(line)
+                            new_comment = '\n'.join(trimmed_lines)
+                            if not new_comment:
+                                new_comment = fake_content(msg)
+                            trimmed_comments.append(new_comment)
+                        else:
+                            trimmed_comments.append(msg.content)
+                    return trimmed_comments
 
                 for msg in odm_messages:
                     odm_comments.append(msg.content or fake_content(msg))
                 for msg in odm_messages:
-                    trimmed_umb_comments = []
-                    for umb_msg in umb_messages:
-                        if umb_msg.content.startswith(ODM_COMMENT_HEADER):
-                            trimmed_lines = []
-                            for l in umb_msg.content.splitlines():
-                                if l.startswith('[') and l.endswith(']'):
-                                    continue
-                                trimmed_lines.append(l)
-                            new_comment = '\n'.join(trimmed_lines)
-                            if not new_comment:
-                                new_comment = fake_content(umb_msg)
-                            trimmed_umb_comments.append(new_comment)
-                        else:
-                            trimmed_umb_comments.append(umb_msg.content)
-                    if msg.content in trimmed_umb_comments:
+                    trimmed_umb_comments = trim_messages(umb_messages)
+                    if msg.content and msg.content in trimmed_umb_comments:
                         continue
                     if msg.content.startswith(ODM_COMMENT_HEADER):
                         continue
@@ -248,11 +260,13 @@ class SyncTool:
                     except NotFound as exc:
                         logging.info('Skipping comment (Probably hidden)')
                 for msg in umb_messages:
-                    if msg.content in odm_comments:
-                        continue
-                    if not msg.content and fake_content(msg) in odm_comments:
+                    trimmed_odm_comments = trim_messages(odm_messages)
+                    if msg.content and msg.content in trimmed_odm_comments:
                         continue
                     if msg.content.startswith(ODM_COMMENT_HEADER):
+                        continue
+                    if not msg.content and (
+                            fake_content(msg) in trimmed_odm_comments):
                         continue
                     logging.info('Adding missing comment from %s to %s',
                                  self._cfg.umbrella_project, proj)
