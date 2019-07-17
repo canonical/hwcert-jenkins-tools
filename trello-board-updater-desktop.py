@@ -12,11 +12,16 @@ import re
 import requests
 import sys
 import yaml
+import logging
 
 from urllib.parse import urlparse
 from datetime import datetime
 from trello import TrelloClient
 from trello.exceptions import ResourceUnavailable
+
+
+format_str = "[ %(funcName)s() ] %(message)s"
+logging.basicConfig(level=logging.DEBUG, format=format_str)
 
 
 def environ_or_required(key):
@@ -148,6 +153,8 @@ def main():
     # e.g. linux-generic-hwe-16.04 which version is 4.15.0.50.71
     dlv = package_data[args.kernel].split('.')
     dlv_short = dlv[0] + '_' + dlv[1] + '_' + dlv[2] + '-' + dlv[3]
+    logging.debug("linux deb version: {}".format(dlv))
+    logging.debug("linux deb version (underscores): {}".format(dlv_short))
     kernel_suffix = args.sru_type
     if args.sru_type == 'stock':
         kernel_suffix = 'generic'
@@ -158,6 +165,7 @@ def main():
         # TODO: we may need to add more conditions when more oem images
         # is updated to use generic kernel
         kernel_suffix = 'generic'
+    logging.debug("kernel_suffix: {}".format(kernel_suffix))
 
     deb_kernel_image = 'linux-image-' + dlv_short + '-' + kernel_suffix
     deb_version = package_data[deb_kernel_image]
