@@ -21,7 +21,7 @@ from trello.exceptions import ResourceUnavailable
 
 
 format_str = "[ %(funcName)s() ] %(message)s"
-logging.basicConfig(level=logging.DEBUG, format=format_str)
+logging.basicConfig(level=logging.INFO, format=format_str)
 
 
 def environ_or_required(key):
@@ -156,12 +156,23 @@ def main():
     logging.debug("linux deb version: {}".format(dlv))
     logging.debug("linux deb version (underscores): {}".format(dlv_short))
     kernel_suffix = args.sru_type
-    if args.sru_type == 'stock':
+    if args.sru_type == 'stock' or args.sru_type == 'stock-hwe':
+        # for stock images, it always uses generic kernels
+        #
+        # GA example:
+        #     linux-generic -->
+        #         linux-image-4_15_0-55-generic (4.15.0.55.57)
+        #
+        # hwe stack example:
+        #     linux-generic-hwe-18_04 -->
+        #         linux-image-5_0_0-21-generic (5.0.0-21.22~18.04.1)
         kernel_suffix = 'generic'
     elif args.sru_type == 'oem' and args.series == 'xenial':
-        # very special case
+        # very special case: oem xenial images
+        # oem xenial 4.4 kernel is using generic kernel, besides,
         # some oem images are delivered as xenial + oem-4.13
         # when time goes by, it is updated to be xenial + generic xenial hwe
+        #
         # TODO: we may need to add more conditions when more oem images
         # is updated to use generic kernel
         kernel_suffix = 'generic'
@@ -235,8 +246,8 @@ def main():
         attach_labels(board, card, ['TESTFLINGER CRASH'])
 
     # debug message
-    print('checklist: {}'.format(checklist))
-    print('item_name: {}'.format(item_name))
+    logging.info('checklist: {}'.format(checklist))
+    logging.info('item_name: {}'.format(item_name))
     change_checklist_item(checklist, item_name,
                           checked=no_new_fails_or_skips(summary_data))
 
