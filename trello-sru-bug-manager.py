@@ -26,6 +26,7 @@ import yaml
 
 from launchpadlib.launchpad import Launchpad
 from trello import TrelloClient
+from trello.exceptions import ResourceUnavailable
 
 
 class LPHelper:
@@ -149,6 +150,20 @@ def environ_or_required(key):
         return {'required': True}
 
 
+def attach_labels(board, card, label_list):
+    for labelstr in label_list:
+        for label in board.get_labels():
+            if label.name == labelstr:
+                labels = card.list_labels or []
+                if label not in labels:
+                    # Avoid crash if checking labels fails to find it
+                    try:
+                        card.add_label(label)
+                    except ResourceUnavailable:
+                        pass
+                break
+
+
 def get_checklist_value(checklist, key):
     """Return the value of an item in a Trello checklist"""
     index = checklist._get_item_index(key)
@@ -251,7 +266,9 @@ def process_debs(lp, trello):
         except ValueError:
             continue
 
-        if not card_ready_for_updates(card):
+        if card_ready_for_updates(card):
+            attach_labels(trello.board, card, ['READY FOR UPDATES'])
+        else:
             continue
 
         try:
