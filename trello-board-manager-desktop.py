@@ -68,6 +68,11 @@ def move_card(config, lane_name, card):
         stack = m.group("stack")
         codename = m.group("stack").split('-')[0]
 
+        # TODO: you may need to update this mapping in the future when
+        # the oem image is based on the other distro
+        if codename == 'oem':
+            codename = 'bionic'
+
         logger.debug('arch: {}'.format(arch))
         logger.debug('stack: {}'.format(stack))
         logger.debug('codename: {}'.format(codename))
