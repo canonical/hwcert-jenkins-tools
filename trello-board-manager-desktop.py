@@ -16,6 +16,11 @@
 #
 # Written by:
 #        Taihsiang Ho <taihsiang.ho@canonical.com>
+#
+#
+# The script uses py-trello package 0.9.0. You may want to fetch it from
+# source.
+#
 
 import sys
 import argparse

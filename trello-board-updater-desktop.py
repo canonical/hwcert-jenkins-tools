@@ -6,6 +6,11 @@
 #
 # Written by:
 #        Taihsiang Ho <taihsiang.ho@canonical.com>
+#
+#
+# The script uses py-trello package 0.9.0. You may want to fetch it from
+# source.
+#
 import argparse
 import os
 import re
@@ -188,12 +193,12 @@ def main():
     config = load_config(args.config)
     expected_tests = config.get(kernel_stack, {}).get('expected_tests', [])
 
-    print('SRU type: {}'.format(args.sru_type))
-    print('series: {}'.format(args.series))
-    print("kernel_stack: {}".format(kernel_stack))
-    print("deb_kernel_image: {}".format(deb_kernel_image))
-    print("deb_version: {}".format(deb_version))
-    print("expected_tests and SUTs: {}".format(expected_tests))
+    logging.info('SRU type: {}'.format(args.sru_type))
+    logging.info('series: {}'.format(args.series))
+    logging.info("kernel_stack: {}".format(kernel_stack))
+    logging.info("deb_kernel_image: {}".format(deb_kernel_image))
+    logging.info("deb_version: {}".format(deb_version))
+    logging.info("expected_tests and SUTs: {}".format(expected_tests))
 
     lanes = ['Proposed', 'Updates']
 

@@ -80,6 +80,10 @@ class LPHelper:
         package = 'linux'
         if 'hwe' in stack:
             package = package + '-hwe'
+        elif 'oem' in stack:
+            # TODO: this will evolve when time goes by
+            series = 'bionic'
+            package = package + '-oem'
 
         try:
             # Only match if there's a valid tarsk for this stack name, and
