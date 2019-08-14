@@ -98,14 +98,21 @@ def move_card(config, lane_name, card):
             pkg_data = response.json()
 
             # stack_version_full, svf, for example 4.4.0.150.158
-            svf = pkg_data['linux-generic']
+            if 'oem' in stack:
+                svf = pkg_data['linux-oem']
+            else:
+                svf = pkg_data['linux-generic']
+
             if 'hwe' in stack:
                 svf = pkg_data['linux-generic-hwe-' +
                                codename_map[codename].replace('.', '_')]
             # I only want 4_4_0-150
             sv = svf[:svf.rfind('.')].replace('.', '-')
             stack_version = sv.replace('-', '_', 2)
-            deb_kernel_image = 'linux-image-' + stack_version + '-generic'
+            if 'oem' in stack:
+                deb_kernel_image = 'linux-image-' + stack_version + '-oem'
+            else:
+                deb_kernel_image = 'linux-image-' + stack_version + '-generic'
 
             logger.debug('stack_version: {}'.format(stack_version))
             logger.debug('deb_kernel_image: {}'.format(deb_kernel_image))
