@@ -86,12 +86,14 @@ class LPHelper:
             package = package + '-oem'
 
         try:
-            # Only match if there's a valid tarsk for this stack name, and
+            # Only match if there's a valid task for this stack name, and
             # version is the same
             for bug in self.srubugs:
                 if (bug.get('version') == version and
                     bug.get('package') == package and
-                    bug.get('series') == series):
+                    bug.get('series') == series and
+                    bug.get('variant') == 'debs' and
+                    bug.get('master-bug') is None):
                     return SruBug(self.lp.bugs(bug.get('bug')))
             # If we get this far, no bug was found
             raise LookupError
