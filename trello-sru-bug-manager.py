@@ -92,8 +92,7 @@ class LPHelper:
                 if (bug.get('version') == version and
                     bug.get('package') == package and
                     bug.get('series') == series and
-                    bug.get('variant') == 'debs' and
-                    bug.get('master-bug') is None):
+                    bug.get('variant') == 'debs'):
                     return SruBug(self.lp.bugs(bug.get('bug')))
             # If we get this far, no bug was found
             raise LookupError
