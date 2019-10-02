@@ -159,8 +159,9 @@ def get_projects(sheet_id):
                 print('Could not parse row number {}'.format(row_num))
     return projects
 
-def main():
-    """Get projects and post measurements."""
+def compute_kpis():
+    """Get projects and compute their stats"""
+
     projects = get_projects('11cbEwUsOCuv5Hs5RRh1VZZccZ-PDwA8rDdzbiyRkmUw')
     all_lobs = list(set([p.lob.lower() for p in projects]))
     kpis = dict()
@@ -203,7 +204,12 @@ def main():
             [p.status for p in projects if p.lob.lower() == lob])
         kpis['{}_active_projects'.format(lob)] = statuses['In-progress']
         kpis['{}_delivered_projects'.format(lob)] = statuses['Delivered']
+    return kpis
 
+
+def main():
+    """Get stats and post measurements."""
+    kpis = compute_kpis()
     print('Posting measuremens:')
     pprint(kpis)
 
