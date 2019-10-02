@@ -29,6 +29,7 @@ from pprint import pprint
 import pygsheets
 import requests
 
+
 def optional_int(string):
     """
     Try "extracting" integer from a string.
@@ -47,6 +48,7 @@ def optional_int(string):
         return int(string)
     except ValueError:
         return None
+
 
 def optional_percent(string):
     """
@@ -70,6 +72,7 @@ def optional_percent(string):
         return float(string[:-1]) / 100.0
     except (ValueError, IndexError):
         return None
+
 
 def currency(string):
     """
@@ -100,6 +103,7 @@ def currency(string):
     except (ValueError, IndexError):
         return None
 
+
 def get_prebaked_kpis():
     sheet_id = '11cbEwUsOCuv5Hs5RRh1VZZccZ-PDwA8rDdzbiyRkmUw'
     gcli = pygsheets.authorize()
@@ -108,7 +112,7 @@ def get_prebaked_kpis():
     all_vals = wsheet.get_all_values()
     kpis = dict()
     for row_num, row in enumerate(all_vals, start=1):
-        if row[0].lower() in [ 'iot overall', 'store overall', 'pc overall']:
+        if row[0].lower() in ['iot overall', 'store overall', 'pc overall']:
             lob = row[0].split(' ')[0].lower()
             kpis['avg_{}_time_to_market'.format(lob)] = (
                     optional_int(row[1]) or 0)
@@ -131,7 +135,7 @@ def main():
 
     reqobj = {'database': 'certsandbox', 'measurements': [{
         'measurement': 'project_kpis',
-        'time': int(time.time() * 10 ** 9), # sec to nsec
+        'time': int(time.time() * 10 ** 9),  # sec to nsec
         'tags': {},
         'fields': kpis,
     }]}
@@ -139,6 +143,7 @@ def main():
     if not response.ok:
         raise SystemExit('Failed to post measurements:\n{}'.format(
             response.text))
+
 
 if __name__ == '__main__':
     main()
