@@ -141,6 +141,29 @@ class Project(namedtuple('Project', FIELD_NAMES)):
             return tuple(self)[key]
         return getattr(self, key)
 
+def get_prebaked_kpis():
+    sheet_id = '11cbEwUsOCuv5Hs5RRh1VZZccZ-PDwA8rDdzbiyRkmUw'
+    gcli = pygsheets.authorize()
+    sheet = gcli.open_by_key(sheet_id)
+    wsheet = sheet.worksheet_by_title('KPIs')
+    all_vals = wsheet.get_all_values()
+    kpis = dict()
+    for row_num, row in enumerate(all_vals, start=1):
+        if row[0].lower() in [ 'iot overall', 'store overall', 'pc overall']:
+            lob = row[0].split(' ')[0].lower()
+            kpis['avg_{}_time_to_market'.format(lob)] = (
+                    optional_int(row[1]) or 0)
+            kpis['avg_{}_budget_variance'.format(lob)] = (
+                    optional_percent(row[2]) or 0)
+            kpis['avg_{}_scope_creep'.format(lob)] = (
+                    optional_int(row[3]) or 0)
+            kpis['avg_{}_nps'.format(lob)] = (
+                    optional_int(row[4]) or 0)
+            kpis['avg_{}_roi'.format(lob)] = (
+                    optional_percent(row[5]) or 0)
+    return kpis
+
+
 def get_projects(sheet_id):
     """Harvest a list of projects from the sheet."""
     gcli = pygsheets.authorize()
@@ -209,7 +232,7 @@ def compute_kpis():
 
 def main():
     """Get stats and post measurements."""
-    kpis = compute_kpis()
+    kpis = get_prebaked_kpis()
     print('Posting measuremens:')
     pprint(kpis)
 
