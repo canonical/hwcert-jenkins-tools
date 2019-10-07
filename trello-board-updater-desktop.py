@@ -142,15 +142,28 @@ def main():
     # The current oem stack
     # For now it is bionic with linux-oem kernel
     # TODO: update the if statement when oem-osp1 is delivered
-    if kernel_stack == 'bionic' and args.sru_type == 'oem':
-        kernel_stack = 'oem'
+    if kernel_stack == 'bionic' and 'oem' in args.kernel:
+        if 'osp1' in args.kernel:
+            kernel_stack = 'oem-osp1'
+        else:
+            kernel_stack = 'oem'
 
     uri = urlparse(jenkins_link)
     jenkins_host = '{uri.scheme}://{uri.netloc}/'.format(uri=uri)
-    package_json_url = '{}/job/cert-package-data/lastSuccessfulBuild/'\
-                       'artifact/{}-main-{}.json'.format(jenkins_host,
-                                                         codename,
-                                                         args.arch)
+
+    # linux-oem is in universe rather than main
+    if 'oem' in args.sru_type  and not codename == 'xenial':
+        package_json_name_template = '{}-universe-{}-proposed.json'
+    else:
+        package_json_name_template = '{}-main-{}-proposed.json'
+
+    package_json_url_template = '{}/job/cert-package-data/'\
+                                'lastSuccessfulBuild/artifact/' + \
+                                package_json_name_template
+
+    package_json_url = package_json_url_template.format(jenkins_host,
+                                                        codename,
+                                                        args.arch)
     response = requests.get(url=package_json_url)
     package_data = response.json()
 
@@ -160,7 +173,7 @@ def main():
     dlv_short = dlv[0] + '_' + dlv[1] + '_' + dlv[2] + '-' + dlv[3]
     logging.debug("linux deb version: {}".format(dlv))
     logging.debug("linux deb version (underscores): {}".format(dlv_short))
-    kernel_suffix = args.sru_type
+    kernel_suffix = kernel_stack
     if args.sru_type == 'stock' or args.sru_type == 'stock-hwe':
         # for stock images, it always uses generic kernels
         #
