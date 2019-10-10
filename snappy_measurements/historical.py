@@ -41,7 +41,7 @@ PROJECTS = [
     'cert-dragonboard-core-beta',
     'cert-havasu-core-beta',
     'cert-rpi2-core-beta',
-    'cert-rpi3-core-beta',
+    'cert-rpi3-armhf-core-beta',
     'cert-stlouis-core-beta',
     'cert-stlouis-tpm2-core-beta',
     'cert-tampere-core-beta',
