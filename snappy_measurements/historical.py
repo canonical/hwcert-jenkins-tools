@@ -164,7 +164,8 @@ def main():
             prev = json.loads(f.read())
     except:
         print("Unable to read previous_pulls.json. Downloading everything!")
-        prev = defaultdict(int)
+        prev = dict()
+    prev = defaultdict(int, prev)
     last_builds = get_latest_builds()
     projects = {
         n: range(prev[n]+1, last_builds[n]+1) for n in last_builds.keys()}
