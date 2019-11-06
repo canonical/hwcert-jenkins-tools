@@ -65,10 +65,6 @@ def wget(url, filename=None):
     except subprocess.CalledProcessError:
         raise WgetError
 
-def ensure_dir(path):
-    if not os.path.exists(path):
-        os.mkdir(path)
-
 def get_latest_builds():
     url = JENKINS + 'job/{job_name}/api/json'
     builds = dict()
@@ -105,7 +101,7 @@ def download_artifacts(projects):
     # this is file-system stateful so it's easier to debug/reuse
     latest_good = dict()
     for proj in projects.keys():
-        ensure_dir(proj)
+        os.makedirs('proj', exist_ok=True)
         os.chdir(proj)
         # let's create a copy so we can modify original while iterating
         builds = projects[proj][:]
@@ -189,7 +185,7 @@ def main():
         n: list(range(prev[n]+1, last_builds[n]+1)) for n in last_builds.keys()
     }
     start_dir = os.path.abspath(os.curdir)
-    ensure_dir('data')
+    os.makedirs('data', exist_ok=True)
     os.chdir('data')
     download_artifacts(projects)
     problems = push_results(projects)
