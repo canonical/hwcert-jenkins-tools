@@ -52,6 +52,9 @@ PROJECTS = [
 
 JENKINS = 'http://10.101.50.238:8080/'
 
+class WgetError(Exception):
+    pass
+
 def wget(url, filename=None):
     # this is needed as no python-wget or requests on yantok
     # if filename is None return the wgotten file as string
@@ -60,7 +63,7 @@ def wget(url, filename=None):
         out = subprocess.check_output(cmd)
         return out.decode('utf-8')
     except subprocess.CalledProcessError:
-        return None
+        raise WgetError
 
 def ensure_dir(path):
     if not os.path.exists(path):
@@ -70,8 +73,9 @@ def get_latest_builds():
     url = JENKINS + 'job/{job_name}/api/json'
     builds = dict()
     for proj in PROJECTS:
-        res = wget(url.format(job_name=proj))
-        if not res:
+        try:
+            res = wget(url.format(job_name=proj))
+        except WgetError:
             print('Unable to fetch "{}" jenkins project information. '
                   'Is the project still available?'.format(proj))
             continue
@@ -88,23 +92,37 @@ def pull(proj, index):
     snap_url = base_url + 'artifact/artifacts/snaplist.txt/*view*/'
     console_url = base_url + 'consoleText'
     submission_url = base_url + 'artifact/artifacts/submission.json/*view*/'
-    wget(console_url, 'meta')
-    wget(submission_url, 'submission.json')
-    wget(snap_url, 'snaplist')
+    try:
+        wget(console_url, 'meta')
+        wget(submission_url, 'submission.json')
+        wget(snap_url, 'snaplist')
+    except WgetError:
+        return False
+    return True
+
 
 def download_artifacts(projects):
     # this is file-system stateful so it's easier to debug/reuse
+    latest_good = dict()
     for proj in projects.keys():
         ensure_dir(proj)
         os.chdir(proj)
-        for index in projects[proj]:
+        # let's create a copy so we can modify original while iterating
+        builds = projects[proj][:]
+        for index in builds:
             if os.path.exists(str(index)):
                 print("{}/{} already exists. Skipping.".format(proj, index))
                 continue
             os.mkdir(str(index))
             os.chdir(str(index))
-            pull(proj, index)
-            os.chdir('..')
+            try:
+                pull(proj, index)
+                os.chdir('..')
+            except WgetError:
+                os.chdir('..')
+                shutil.rmtree(str(index), ignore_errors=True)
+                proj.remove(index)
+                shutil.rmtree(str(index), ignore_errors=True)
         os.chdir('..')
 
 def extract_timestamp(path):
@@ -168,12 +186,16 @@ def main():
     prev = defaultdict(int, prev)
     last_builds = get_latest_builds()
     projects = {
-        n: range(prev[n]+1, last_builds[n]+1) for n in last_builds.keys()}
+        n: list(range(prev[n]+1, last_builds[n]+1)) for n in last_builds.keys()
+    }
     start_dir = os.path.abspath(os.curdir)
     ensure_dir('data')
     os.chdir('data')
     download_artifacts(projects)
     problems = push_results(projects)
+    for proj, builds in projects.items():
+        if builds:
+            last_builds[proj] = builds[-1]
     os.chdir(start_dir)
     with open('previous_pulls.json', 'wt', encoding='utf-8') as f:
         f.write(json.dumps(last_builds, indent=4, sort_keys=True))
