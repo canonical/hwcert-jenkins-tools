@@ -152,7 +152,7 @@ def main():
     jenkins_host = '{uri.scheme}://{uri.netloc}/'.format(uri=uri)
 
     # linux-oem is in universe rather than main
-    if 'oem' in args.sru_type  and not codename == 'xenial':
+    if 'oem-osp1' in args.kernel  and not codename == 'xenial':
         package_json_name_template = '{}-universe-{}-proposed.json'
     else:
         package_json_name_template = '{}-main-{}-proposed.json'
