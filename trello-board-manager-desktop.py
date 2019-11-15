@@ -21,6 +21,7 @@
 # The script uses py-trello package 0.9.0. You may want to fetch it from
 # source.
 #
+# This script will move cards between different lanes (-updates and -proposed)
 
 import sys
 import argparse
