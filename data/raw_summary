@@ -1,0 +1,26 @@
+
+
+Full results at: https://certification.canonical.com/submissions/status/7c450cff-59fd-4030-b6d3-4a2bdfab235f
+
+Summary
+-------
+pass:	54
+fail:	1
+skip:	3
+total:	58
+
+
+Failed tests:
+camera/multiple-resolution-images_video1
+
+
+New failed tests:
+None
+
+
+New passing tests:
+miscellanea/dkms_build_validation
+
+
+New skipped tests:
+None
