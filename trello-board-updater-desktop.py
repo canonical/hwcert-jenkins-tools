@@ -21,6 +21,7 @@ import requests
 import sys
 import yaml
 import logging
+import collections
 
 import unittest
 import json
@@ -35,20 +36,6 @@ from unittest.mock import MagicMock
 
 format_str = "[ %(funcName)s() ] %(message)s"
 logging.basicConfig(level=logging.INFO, format=format_str)
-
-
-class KernelDeb(object):
-
-    def __init__(self, **kwargs):
-        self.kernel_stack = ""
-        self.deb_kernel_image = ""
-        self.deb_version = ""
-        self.expected_tests = []
-
-        # system under test
-        self.sut = ""
-
-        self.__dict__.update(kwargs)
 
 
 def environ_or_required(key):
@@ -294,7 +281,11 @@ def run(args, board, c3_link, jenkins_link):
         checklist.add_checklist_item(rev)
 
     # a read trello card object, useful for testing
-    k_deb_card = KernelDeb()
+    k_deb_card = collections.namedtuple("KernelDeb", ["kernel_stack",
+                                                      "deb_kernel_image",
+                                                      "deb_version",
+                                                      "expected_tests",
+                                                      "sut"])
     # card title
     k_deb_card.kernel_stack = kernel_stack
     k_deb_card.deb_kernel_image = deb_kernel_image
