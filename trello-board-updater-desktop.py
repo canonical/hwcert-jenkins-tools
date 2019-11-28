@@ -136,7 +136,7 @@ def run(args, board, c3_link, jenkins_link):
     uri = urlparse(jenkins_link)
     jenkins_host = '{uri.scheme}://{uri.netloc}/'.format(uri=uri)
 
-    # TODOL we could merge main and universe repositories from the source
+    # TODO: we could merge main and universe repositories from the source
     # jenkins jobs
     # linux-oem is in universe rather than main
     if 'oem-osp1' in args.kernel and not codename == 'xenial':

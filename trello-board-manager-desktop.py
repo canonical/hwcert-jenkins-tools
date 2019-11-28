@@ -91,8 +91,20 @@ def move_card(config, lane_name, card):
             jenkins_host = '{uri.scheme}://{uri.netloc}/'.format(uri=uri)
             logger.debug('jenkins_link: {}'.format(jenkins_link))
             logger.debug('jenkins_host: {}'.format(jenkins_host))
-            text_template = '{}/job/cert-package-data/lastSuccessfulBuild/' + \
-                            'artifact/{}-main-{}-{}.json'
+            # TODO: we could merge main and universe repositories from the source
+            # jenkins jobs
+            # linux-oem is in universe rather than main
+            if 'oem-osp1' in stack and not codename == 'xenial':
+                text_template = '{}/job/cert-package-data/lastSuccessfulBuild/artifact/{}-universe-{}-{}.json'
+            else:
+                # packages of generic kernels
+                # projects using these kernels:
+                #     stock images
+                #     oem image  - xenial
+                #     oem images - shipped with oem-4.13
+                #     argos dgx-1/dgx-station images
+                text_template = '{}/job/cert-package-data/lastSuccessfulBuild/artifact/{}-main-{}-{}.json'
+
             package_json_url = text_template.format(jenkins_host,
                                                     codename, arch, repo)
             response = requests.get(url=package_json_url)
