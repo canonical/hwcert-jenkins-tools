@@ -80,8 +80,11 @@ class LPHelper:
         package = 'linux'
         if 'hwe' in stack:
             package = package + '-hwe'
+        # TODO: this will evolve when time goes by
+        elif "oem-osp1" in stack:
+            series = "bionic"
+            package = package + "-oem-osp1"
         elif 'oem' in stack:
-            # TODO: this will evolve when time goes by
             series = 'bionic'
             package = package + '-oem'
 

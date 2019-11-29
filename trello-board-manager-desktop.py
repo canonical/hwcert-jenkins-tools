@@ -111,7 +111,9 @@ def move_card(config, lane_name, card):
             pkg_data = response.json()
 
             # stack_version_full, svf, for example 4.4.0.150.158
-            if 'oem' in stack:
+            if 'oem-osp1' in stack:
+                svf = pkg_data['linux-oem-osp1']
+            elif 'oem' in stack:
                 svf = pkg_data['linux-oem']
             else:
                 svf = pkg_data['linux-generic']
@@ -122,7 +124,9 @@ def move_card(config, lane_name, card):
             # I only want 4_4_0-150
             sv = svf[:svf.rfind('.')].replace('.', '-')
             stack_version = sv.replace('-', '_', 2)
-            if 'oem' in stack:
+            if 'oem-osp1' in stack:
+                deb_kernel_image = 'linux-image-' + stack_version + '-oem-osp1'
+            elif "oem" in stack:
                 deb_kernel_image = 'linux-image-' + stack_version + '-oem'
             else:
                 deb_kernel_image = 'linux-image-' + stack_version + '-generic'
