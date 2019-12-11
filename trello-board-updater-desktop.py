@@ -227,14 +227,17 @@ def run(args, board, c3_link, jenkins_link):
             print('No target card and lane was found. Give up to create an '
                   'new card.')
             sys.exit(1)
-    summary = '**[TESTFLINGER] {} {} {} ({})**\n---\n\n'.format(
-        args.name, args.kernel, deb_kernel_image, deb_version)
-    summary += '- Jenkins build details: {}\n'.format(jenkins_link)
-    summary += '- Full results at: {}\n\n```\n'.format(c3_link)
-    summary_data = args.summary.read()
-    summary += summary_data
-    summary += '\n```\n'
-    card.comment(summary)
+    if not args.cardonly:
+        summary = '**[TESTFLINGER] {} {} {} ({})**\n---\n\n'.format(
+            args.name, args.kernel, deb_kernel_image, deb_version)
+        summary += '- Jenkins build details: {}\n'.format(jenkins_link)
+        summary += '- Full results at: {}\n\n```\n'.format(c3_link)
+        summary_data = args.summary.read()
+        summary += summary_data
+        summary += '\n```\n'
+        card.comment(summary)
+    else:
+        summary_data = ""
     checklist = find_or_create_checklist(card, 'Testflinger', expected_tests)
     job_name = args.name.split('-')
     cid = job_name[-2] + '-' + job_name[-1]
@@ -255,12 +258,15 @@ def run(args, board, c3_link, jenkins_link):
             sut = cid + '-dgx-1'
     print('Detected oem xenial run SUT: {}'.format(sut))
 
-    item_name = "{} ({})".format(sut, datetime.utcnow().isoformat())
+    if args.cardonly:
+        item_name = "{} ({})".format(sut, 'In progress')
+    else:
+        item_name = "{} ({})".format(sut, datetime.utcnow().isoformat())
     if jenkins_link:
         item_name += " [[JENKINS]({})]".format(jenkins_link)
     if c3_link:
         item_name += " [[C3]({})]".format(c3_link)
-    else:
+    elif not args.cardonly:
         # If there was no c3_link, it's because the submission failed
         attach_labels(board, card, ['TESTFLINGER CRASH'])
 
@@ -322,6 +328,8 @@ def main():
     parser.add_argument('-q', '--queue', help="kernel type", default="")
     parser.add_argument('summary', help="test results summary",
                         type=argparse.FileType())
+    parser.add_argument("--cardonly", help="Only create an empty card",
+                        action="store_true")
     args = parser.parse_args()
     client = TrelloClient(api_key=args.key, token=args.token)
     board = client.get_board(args.board)
