@@ -273,8 +273,9 @@ def run(args, board, c3_link, jenkins_link):
     # debug message
     logging.info('checklist: {}'.format(checklist))
     logging.info('item_name: {}'.format(item_name))
-    change_checklist_item(checklist, item_name,
-                          checked=no_new_fails_or_skips(summary_data))
+    if not change_checklist_item(
+            checklist, item_name, checked=no_new_fails_or_skips(summary_data)):
+        checklist.add_checklist_item(item_name)
 
     if not [c for c in card.fetch_checklists() if c.name == 'Sign-Off']:
         checklist = find_or_create_checklist(card, 'Sign-Off')
