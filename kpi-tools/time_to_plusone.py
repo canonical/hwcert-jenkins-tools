@@ -81,14 +81,14 @@ def main():
     print("Initialize influx")
     init_influx()
     print("Influx initialized")
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--key', help="Trello API key",
+    aparser = argparse.ArgumentParser()
+    aparser.add_argument('--key', help="Trello API key",
                         **environ_or_required('TRELLO_API_KEY'))
-    parser.add_argument('--token', help="Trello OAuth token",
+    aparser.add_argument('--token', help="Trello OAuth token",
                         **environ_or_required('TRELLO_TOKEN'))
-    parser.add_argument('--board', help="Trello board identifier",
+    aparser.add_argument('--board', help="Trello board identifier",
                         **environ_or_required('TRELLO_BOARD'))
-    args = parser.parse_args()
+    args = aparser.parse_args()
     client = TrelloClient(api_key=args.key, token=args.token)
     board = client.get_board(args.board)
     all_cards = board.get_cards(card_filter="open")
