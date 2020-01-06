@@ -86,6 +86,7 @@ def main():
                         **environ_or_required('TRELLO_TOKEN'))
     parser.add_argument('--board', help="Trello board identifier",
                         **environ_or_required('TRELLO_BOARD'))
+    args = parser.parse_args()
     client = TrelloClient(api_key=args.key, token=args.token)
     board = client.get_board(args.board)
     all_cards = board.get_cards(card_filter="open")
