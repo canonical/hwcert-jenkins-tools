@@ -17,7 +17,7 @@
 # Written by:
 #        Chris Wayne <cwayne@ubuntu.com>
 
-import argeparse
+import argparse
 import datetime
 import re
 import requests
