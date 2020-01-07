@@ -27,9 +27,8 @@ import os
 from influxdb import InfluxDBClient
 from trello import TrelloClient
 
-#TIME UNTIL CANDIDATE
+INFLUX_HOST = "10.50.124.12"
 
-INFLUX_HOST="10.50.124.12"
 
 def environ_or_required(key):
     """Mapping for argparse to supply required or default from $ENV."""
@@ -42,17 +41,20 @@ def environ_or_required(key):
 def init_influx():
     '''Init influxdb with policy'''
     dbname = "candidatesnaps"
-    client = InfluxDBClient(INFLUX_HOST, 8086, "ce", os.environ.get("INFLUX_PASS"), dbname)
+    client = InfluxDBClient(INFLUX_HOST, 8086,
+                            "ce", os.environ.get("INFLUX_PASS"), dbname)
     dbs = client.get_list_database()
     if {u"name": dbname} not in dbs:
         client.create_database(dbname)
-        client.create_retention_policy("default_policy", "350w", 1, default=True)
+        client.create_retention_policy("default_policy",
+                                       "350w", 1, default=True)
+
 
 def push_influx_generic(measurement, tags, time, fields):
     '''Generic influx measurement pusher'''
     dbname = "candidatesnaps"
-    client = InfluxDBClient(INFLUX_HOST, 8086, "ce", os.environ.get("INFLUX_PASS"), dbname)
-
+    client = InfluxDBClient(INFLUX_HOST, 8086,
+                            "ce", os.environ.get("INFLUX_PASS"), dbname)
     body = [
         {
             "measurement": measurement,
@@ -72,8 +74,9 @@ def bork(age, snap, whenmoved, revno, version):
     tags['revision'] = revno
     tags['version'] = version
     fields['time-to-candidate'] = age
-    measure='time-to-candidate'
-    push_influx_generic(measure,tags,whenmoved,fields)
+    measure = 'time-to-candidate'
+    push_influx_generic(measure, tags, whenmoved, fields)
+
 
 def main():
     print('init influx')
@@ -97,17 +100,19 @@ def main():
             r"(?P<snap>.*?)(?:\s+\-\s+)(?P<version>.*?)(?:\s+\-\s+)"
             r"\((?P<revision>.*?)\)(?:\s+\-\s+\[(?P<track>.*?)\])?", c.name)
         for move in c.list_movements():
-            if move['destination']['name'] == "Candidate" and move['source']['name'] == 'Beta':
-                print(move['datetime'])
-                print(c.card_created_date)
-                diff = move['datetime'].replace(tzinfo=None) - c.card_created_date
+            if(move['destination']['name'] == "Candidate"
+               and move['source']['name'] == 'Beta'):
+                notz = move['datetime'].replace(tzinfo=None)
+                diff = notz - c.card_created_date
                 diff.total_seconds()
                 print(diff.total_seconds)
-                ns = move['datetime'].replace(tzinfo=None).timestamp() * 10 ** 9
+                ns = notz.timestamp() * 10 ** 9
                 try:
-                    bork(diff.total_seconds(), c.name.split(' ')[0], int(ns), m.group("revision"), m.group("version"))
+                    bork(diff.total_seconds(), c.name.split(' ')[0], int(ns),
+                         m.group("revision"), m.group("version"))
                 except AttributeError:
                     print("cards with no revision arent helpful")
+
 
 if __name__ == "__main__":
     main()
