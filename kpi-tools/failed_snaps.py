@@ -27,9 +27,8 @@ from dateutil import parser
 from influxdb import InfluxDBClient
 from trello import TrelloClient
 
-#TIME UNTIL READY FOR CANDIDATE
+INFLUX_HOST = "10.50.124.12"
 
-INFLUX_HOST="10.50.124.12"
 
 def environ_or_required(key):
     """Mapping for argparse to supply required or default from $ENV."""
@@ -42,17 +41,20 @@ def environ_or_required(key):
 def init_influx():
     '''Init influxdb with policy'''
     dbname = "candidatesnapsfail"
-    client = InfluxDBClient(INFLUX_HOST, 8086, "ce", os.environ.get("INFLUX_PASS"), dbname)
+    client = InfluxDBClient(INFLUX_HOST, 8086,
+                            "ce", os.environ.get("INFLUX_PASS"), dbname)
     dbs = client.get_list_database()
     if {u"name": dbname} not in dbs:
         client.create_database(dbname)
-        client.create_retention_policy("default_policy", "350w", 1, default=True)
+        client.create_retention_policy("default_policy",
+                                       "350w", 1, default=True)
+
 
 def push_influx_generic(measurement, tags, time, fields):
     '''Generic influx measurement pusher'''
     dbname = "candidatesnapsfail"
-    client = InfluxDBClient(INFLUX_HOST, 8086, "ce", os.environ.get("INFLUX_PASS"), dbname)
-
+    client = InfluxDBClient(INFLUX_HOST, 8086,
+                            "ce", os.environ.get("INFLUX_PASS"), dbname)
     body = [
         {
             "measurement": measurement,
@@ -72,9 +74,10 @@ def bork(snap, whenmoved, revno, version):
     tags['revision'] = revno
     tags['version'] = version
     fields['FAILED'] = 1
-    measure='minusone'
+    measure = 'minusone'
     print(version)
-    push_influx_generic(measure,tags,whenmoved,fields)
+    push_influx_generic(measure, tags, whenmoved, fields)
+
 
 def main():
     print("Initialize influx")
@@ -96,8 +99,11 @@ def main():
             r"(?P<snap>.*?)(?:\s+\-\s+)(?P<version>.*?)(?:\s+\-\s+)"
             r"\((?P<revision>.*?)\)(?:\s+\-\s+\[(?P<track>.*?)\])?", c.name)
         for label in c.labels:
-        	if label.name == "FAILED":
-        		d = c.dateLastActivity.timestamp() * 10 ** 9
-        		bork(c.name.split(' ')[0], int(d),m.group('revision'),m.group('version'))
+            if label.name == "FAILED":
+                d = c.dateLastActivity.timestamp() * 10 ** 9
+                bork(c.name.split(' ')[0], int(d),
+                     m.group('revision'), m.group('version'))
+
+
 if __name__ == "__main__":
     main()
