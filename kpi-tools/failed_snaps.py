@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (C) 2017 Canonical Ltd
+# Copyright (C) 2020 Canonical Ltd
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -68,7 +68,7 @@ def push_influx_generic(measurement, tags, time, fields):
     print("measurement: %s at: %s pushed to influx", measurement, str(time))
 
 
-def bork(snap, whenmoved, revno, version):
+def influx_push(snap, whenmoved, revno, version):
     tags = dict()
     fields = dict()
     tags['snap'] = snap
@@ -102,7 +102,7 @@ def main():
         for label in c.labels:
             if label.name == "FAILED":
                 d = c.dateLastActivity.timestamp() * 10 ** 9
-                bork(c.name.split(' ')[0], int(d),
+                influx_push(c.name.split(' ')[0], int(d),
                      m.group('revision'), m.group('version'))
 
 

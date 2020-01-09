@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (C) 2017 Canonical Ltd
+# Copyright (C) 2020 Canonical Ltd
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -68,7 +68,7 @@ def push_influx_generic(measurement, tags, time, fields):
     print("measurement: %s at: %s pushed to influx", measurement, str(time))
 
 
-def bork(age, snap, whenmoved, revno, version):
+def influx_push(age, snap, whenmoved, revno, version):
     tags = dict()
     fields = dict()
     tags['snap'] = snap
@@ -111,10 +111,10 @@ def main():
                 ns = when.timestamp() * 10 ** 9
                 print(ns)
                 try:
-                    bork(diff.total_seconds(), c.name.split(' ')[0],
+                    influx_push(diff.total_seconds(), c.name.split(' ')[0],
                          int(ns), m.group("revision"), m.group("version"))
                 except AttributeError:
-                    print("cards with no revision arent helpful")
+                    print("cards with no revision aren't helpful")
 
 
 if __name__ == "__main__":
