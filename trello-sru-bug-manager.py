@@ -49,7 +49,7 @@ class LPHelper:
                     # Add a 'bug' field that we can use later
                     bugdata[x]['bug'] = x
                     self.srubugs.append(bugdata[x])
-            except Exception as e:
+            except Exception:
                 print('ERROR: Importing bug data from {}'.format(url))
 
     def find_sru_bug(self, target, version, target_type="snap"):
@@ -92,10 +92,12 @@ class LPHelper:
             # Only match if there's a valid task for this stack name, and
             # version is the same
             for bug in self.srubugs:
-                if (bug.get('version') == version and
+                if (
+                    bug.get('version') == version and
                     bug.get('package') == package and
                     bug.get('series') == series and
-                    bug.get('variant') == 'debs'):
+                    bug.get('variant') == 'debs'
+                   ):
                     return SruBug(self.lp.bugs(bug.get('bug')))
             # If we get this far, no bug was found
             raise LookupError
@@ -250,14 +252,19 @@ def process_snaps(lp, trello):
         except ValueError:
             continue
 
-        if not card_ready_for_candidate(card):
-            continue
-
         try:
             bug = lp.find_sru_bug(snap, version)
         except LookupError:
             print(
                 'No bug found for {} or bug is already closed'.format(version))
+            continue
+
+        # Automatically mark our task "In Progress" if it's still "New"
+        TARGET_TASK = 'snap-certification-testing'
+        if bug.get_task_state(TARGET_TASK).status == 'New':
+            bug.set_task_state(TARGET_TASK, 'In Progress')
+
+        if not card_ready_for_candidate(card):
             continue
 
         update_lp(bug, 'snap-certification-testing', card)
@@ -274,16 +281,21 @@ def process_debs(lp, trello):
         except ValueError:
             continue
 
-        if card_ready_for_updates(card):
-            attach_labels(trello.board, card, ['READY FOR UPDATES'])
-        else:
-            continue
-
         try:
             bug = lp.find_sru_bug(stack, version, 'deb')
         except LookupError:
             print(
                 'No bug found for {} or bug is already closed'.format(version))
+            continue
+
+        # Automatically mark our task "In Progress" if it's still "New"
+        TARGET_TASK = 'certification-testing'
+        if bug.get_task_state(TARGET_TASK).status == 'New':
+            bug.set_task_state(TARGET_TASK, 'In Progress')
+
+        if card_ready_for_updates(card):
+            attach_labels(trello.board, card, ['READY FOR UPDATES'])
+        else:
             continue
 
         update_lp(bug, 'certification-testing', card)
