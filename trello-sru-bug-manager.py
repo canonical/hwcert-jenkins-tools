@@ -259,9 +259,9 @@ def process_snaps(lp, trello):
                 'No bug found for {} or bug is already closed'.format(version))
             continue
 
-        # Automatically mark our task "In Progress" if it's still "New"
+        # Automatically mark our task "In Progress" if it's "Confirmed"
         TARGET_TASK = 'snap-certification-testing'
-        if bug.get_task_state(TARGET_TASK).status == 'New':
+        if bug.get_task_state(TARGET_TASK).status == 'Confirmed':
             bug.set_task_state(TARGET_TASK, 'In Progress')
 
         if not card_ready_for_candidate(card):
