@@ -44,7 +44,7 @@ class LPHelper:
                 # so we can use it more easily
                 url = ('https://kernel.ubuntu.com/~kernel-ppa/status'
                        '/swm/status.yaml')
-                bugdata = yaml.load(requests.get(url).content)
+                bugdata = yaml.safe_load(requests.get(url).content)
                 for x in bugdata:
                     # Add a 'bug' field that we can use later
                     bugdata[x]['bug'] = x
@@ -288,9 +288,9 @@ def process_debs(lp, trello):
                 'No bug found for {} or bug is already closed'.format(version))
             continue
 
-        # Automatically mark our task "In Progress" if it's still "New"
+        # Automatically mark our task "In Progress" if it's still "Confirmed"
         TARGET_TASK = 'certification-testing'
-        if bug.get_task_state(TARGET_TASK).status == 'New':
+        if bug.get_task_state(TARGET_TASK).status == 'Confirmed':
             bug.set_task_state(TARGET_TASK, 'In Progress')
 
         if card_ready_for_updates(card):
