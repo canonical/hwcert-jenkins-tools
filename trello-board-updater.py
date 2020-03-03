@@ -85,7 +85,7 @@ def attach_labels(board, card, label_list):
     for labelstr in label_list:
         for label in board.get_labels():
             if label.name == labelstr:
-                labels = card.list_labels or []
+                labels = card.labels or []
                 if label not in labels:
                     # Avoid crash if checking labels fails to find it
                     try:
@@ -133,7 +133,6 @@ def main():
         re.escape(track))
     card = search_card(board, pattern)
     config = load_config(args.config, args.snap)
-    expected_tests = config.get(args.snap, {}).get('expected_tests', [])
     snap_labels = config.get(args.snap, {}).get('labels', [])
     # Try to find the right card using other arch revision numbers
     # i.e. We could be recording a result for core rev 111 on armhf, but we
@@ -205,7 +204,7 @@ def main():
                             args.snap, args.version, args.revision))
                 break
     # Create the card in the right lane, since we still didn't find it
-    # We only one one card for all architectures, so use the revision
+    # We only want one card for all architectures, so use the revision
     # declared for the default arch in snaps.yaml
     if not card:
         default_arch = config.get(args.snap, {}).get('arch', args.arch)
@@ -237,6 +236,12 @@ def main():
     else:
         summary_data = ""
     attach_labels(board, card, snap_labels)
+    # expected_tests section in the yaml could be either a list of all devices
+    # we want to see tests results on, or a dict of tracks with those devices
+    # specified in a list under each track (ex. pi-kernel)
+    expected_tests = config.get(args.snap, {}).get('expected_tests', [])
+    if isinstance(expected_tests, dict):
+        expected_tests = expected_tests.get(track, [])
     checklist = find_or_create_checklist(card, 'Testflinger', expected_tests)
     if args.cardonly:
         item_name = "{} ({})".format(args.name, 'In progress')
