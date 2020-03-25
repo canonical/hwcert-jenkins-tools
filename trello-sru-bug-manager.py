@@ -288,6 +288,8 @@ def process_debs(lp, trello):
                 'No bug found for {} or bug is already closed'.format(version))
             continue
 
+        add_bug_description(bug, card)
+
         # Automatically mark our task "In Progress" if it's still "Confirmed"
         TARGET_TASK = 'certification-testing'
         if bug.get_task_state(TARGET_TASK).status == 'Confirmed':
@@ -301,10 +303,13 @@ def process_debs(lp, trello):
         update_lp(bug, 'certification-testing', card)
 
 
-def update_lp(bug, target_task, card):
-    print('- LP:{}'.format(bug.id))
+def add_bug_description(bug, card):
     desc = "[[{}]({})] - {}".format(bug.id, bug.web_link, bug)
     card.set_description(desc)
+
+
+def update_lp(bug, target_task, card):
+    print('- LP:{}'.format(bug.id))
     # If the bug is already fix-released, there's nothing more to do
     TARGET_TASK = target_task
     try:
