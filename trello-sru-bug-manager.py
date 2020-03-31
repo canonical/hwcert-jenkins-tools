@@ -18,6 +18,7 @@
 #        Paul Larson <paul.larson@canonical.com>
 
 import argparse
+import datetime
 import os
 import re
 import requests
@@ -69,7 +70,9 @@ class LPHelper:
                     bug.get('task', {}).get(
                             'snap-certification-testing', {}).get(
                             'target') == snap):
-                    return SruBug(self.lp.bugs(bug.get('bug')))
+                    return SruBug(
+                        self.lp.bugs(bug.get('bug')),
+                        bug.get('cycle'))
             # If we get this far, no bug was found
             raise LookupError
         except Exception:
@@ -98,7 +101,9 @@ class LPHelper:
                     bug.get('series') == series and
                     bug.get('variant') == 'debs'
                    ):
-                    return SruBug(self.lp.bugs(bug.get('bug')))
+                    return SruBug(
+                        self.lp.bugs(bug.get('bug')),
+                        bug.get('cycle'))
             # If we get this far, no bug was found
             raise LookupError
         except Exception:
@@ -128,13 +133,23 @@ class TrelloHelper:
 
 class SruBug:
     """Simplify operations we care about on an LP bug"""
-    def __init__(self, bug):
+    def __init__(self, bug, cycle):
         self.bug = bug
         self.id = bug.id
         self.web_link = bug.web_link
+        self.cycle = cycle
+        self.calculate_due_date()
 
     def __repr__(self):
         return self.bug.title
+
+    def calculate_due_date(self):
+        cycle_parts = tuple(
+            int(x) for x in self.cycle.split('-')[0].split('.'))
+        cycle_start = datetime.datetime(*cycle_parts, hour=12)
+        # Since cycle starts on a Monday, +11 days is the due date
+        # (Friday of the 2nd week in the cycle)
+        self.due_date = cycle_start + datetime.timedelta(days=11)
 
     def get_task_state(self, task_name):
         for task in self.bug.bug_tasks:
@@ -261,6 +276,9 @@ def process_snaps(lp, trello):
 
         add_bug_description(bug, card)
 
+        # Add due date to the card
+        card.set_due(bug.due_date)
+
         # Automatically mark our task "In Progress" if it's "Confirmed"
         TARGET_TASK = 'snap-certification-testing'
         if bug.get_task_state(TARGET_TASK).status == 'Confirmed':
@@ -291,6 +309,9 @@ def process_debs(lp, trello):
             continue
 
         add_bug_description(bug, card)
+
+        # Add due date to the card
+        card.set_due(bug.due_date)
 
         # Automatically mark our task "In Progress" if it's still "Confirmed"
         TARGET_TASK = 'certification-testing'
