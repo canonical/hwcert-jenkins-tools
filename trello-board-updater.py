@@ -44,20 +44,17 @@ def find_or_create_checklist(card, checklist_name, items=[]):
     return checklist
 
 
-def change_checklist_item(checklist, name, checked=False):
-    # keep the trailing space so that we don't match the wrong thing later
-    r = re.match('\[*(.* )\(', name)
-    if r:
-        snapname = r.group(1)
-        for item in checklist.items:
-            if snapname in item.get('name'):
-                checklist.rename_checklist_item(item.get('name'), name)
-                checklist.set_checklist_item(name, checked)
-                return True
-        else:
-            return False
+def change_checklist_item(checklist, name, content, checked=False):
+    for item in checklist.items:
+        if (
+            name + ' ' in item.get('name') or
+            name + ']' in item.get('name')
+        ):
+            checklist.rename_checklist_item(item.get('name'), content)
+            checklist.set_checklist_item(content, checked)
+            return True
     else:
-        print('WARNING: Invalid name specified', name)
+        return False
 
 
 def no_new_fails_or_skips(summary_data):
@@ -232,7 +229,8 @@ def main():
         summary_data = args.summary.read()
         summary += summary_data
         summary += '\n```\n'
-        card.comment(summary)
+        comment = card.comment(summary)
+        comment_link = "{}#comment-{}".format(card.url, comment['id'])
     else:
         summary_data = ""
     attach_labels(board, card, snap_labels)
@@ -244,24 +242,25 @@ def main():
         expected_tests = expected_tests.get(track, [])
     checklist = find_or_create_checklist(card, 'Testflinger', expected_tests)
     if args.cardonly:
-        item_name = "{} ({})".format(args.name, 'In progress')
+        item_content = "{} ({})".format(args.name, 'In progress')
     else:
-        item_name = "{} ({})".format(args.name, datetime.utcnow().isoformat())
+        item_content = "[{}]({}) ({})".format(
+            args.name, comment_link, datetime.utcnow().isoformat())
     if jenkins_link:
-        item_name += " [[JENKINS]({})]".format(jenkins_link)
+        item_content += " [[JENKINS]({})]".format(jenkins_link)
     if c3_link:
-        item_name += " [[C3]({})]".format(c3_link)
+        item_content += " [[C3]({})]".format(c3_link)
     elif not args.cardonly:
         # If there was no c3_link, it's because the submission failed
         attach_labels(board, card, ['TESTFLINGER CRASH'])
 
     if not change_checklist_item(
-            checklist, item_name,
+            checklist, args.name, item_content,
             checked=no_new_fails_or_skips(summary_data)):
         if args.name.endswith('spread'):
             checklist_spread = find_or_create_checklist(card, 'Spread')
             if not change_checklist_item(
-                    checklist_spread, item_name,
+                    checklist_spread, args.name, item_content,
                     checked=no_new_fails_or_skips(summary_data)):
                 checklist_spread.add_checklist_item(
                     item_name, checked=no_new_fails_or_skips(summary_data))
