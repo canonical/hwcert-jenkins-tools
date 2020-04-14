@@ -263,7 +263,7 @@ def main():
                     checklist_spread, args.name, item_content,
                     checked=no_new_fails_or_skips(summary_data)):
                 checklist_spread.add_checklist_item(
-                    item_name, checked=no_new_fails_or_skips(summary_data))
+                    item_content, checked=no_new_fails_or_skips(summary_data))
 
     if not [c for c in card.fetch_checklists() if c.name == 'Sign-Off']:
         checklist = find_or_create_checklist(card, 'Sign-Off')
