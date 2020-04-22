@@ -256,7 +256,7 @@ def run(args, board, c3_link, jenkins_link):
     sut = cid
     if (kernel_stack == 'xenial' or kernel_stack == 'xenial-hwe')\
        and str(args.sru_type) == 'oem':
-            sut = cid + '-oem'
+        sut = cid + '-oem'
     if 'argos' in args.queue:
         if 'desktop' in args.name:
             sut = cid + '-dgx-station'
@@ -374,19 +374,19 @@ class TestTrelloUpdaterKernelDebSRU(unittest.TestCase):
 
         requests.get = MagicMock(return_value=self._request_get())
         requests.models.Response.json = MagicMock(
-                                        side_effect=self._get_package_data)
+            side_effect=self._get_package_data)
         trello.board.Board.get_cards = MagicMock(return_value=self._get_cards(
-                                                self.board,
-                                                9999,
-                                                card_name))
+            self.board,
+            9999,
+            card_name))
         trello.board.Card.comment = MagicMock(return_value="fake_comment")
         trello.board.Card.fetch_checklists = MagicMock(
-                                                return_value=[])
+            return_value=[])
         mock_checklist = MagicMock()
         mock_checklist.add_checklist_item = print
 
         trello.board.Card.add_checklist = MagicMock(
-                                            return_value=mock_checklist)
+            return_value=mock_checklist)
 
     def setUp(self):
         self.debs_yaml_stream = open('./data/debs.yaml')
