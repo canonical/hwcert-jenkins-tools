@@ -101,7 +101,7 @@ def download_artifacts(projects):
     # this is file-system stateful so it's easier to debug/reuse
     latest_good = dict()
     for proj in projects.keys():
-        os.makedirs('proj', exist_ok=True)
+        os.makedirs(proj, exist_ok=True)
         os.chdir(proj)
         # let's create a copy so we can modify original while iterating
         builds = projects[proj][:]
@@ -148,7 +148,7 @@ def measurement_tool_invocation(projects):
                 print(' '.join(cmd))
 
 def push_results(projects):
-    from measure_snappy_jobs import InfluxQueryWriter, push_using_bridge
+    from measure_snappy_jobs import InfluxQueryWriter, push_to_influx
     problems = []
     for proj in projects.keys():
         for index in projects[proj]:
@@ -164,11 +164,7 @@ def push_results(projects):
                         print("Failed to parse {}".format(submission_file))
                         continue
                     iqw = InfluxQueryWriter(proj, content, timestamp)
-                    res = push_using_bridge(iqw.extract_measurements())
-                    if not res.ok:
-                        problems.append(
-                            "Failed to push {}/{}. {} - {}".format(
-                                proj, index, res.status_code, res.text))
+                    res = push_to_influx(iqw.extract_measurements())
     return problems
 
 
