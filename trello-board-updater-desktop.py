@@ -6,6 +6,7 @@
 #
 # Written by:
 #        Taihsiang Ho <taihsiang.ho@canonical.com>
+#        Sylvain Pineau <sylvain.pineau@canonical.com>
 #
 #
 # The script uses py-trello package 0.9.0. You may want to fetch it from
@@ -15,6 +16,7 @@
 # SUTs
 #
 import argparse
+import importlib
 import os
 import re
 import requests
@@ -34,87 +36,10 @@ from trello.exceptions import ResourceUnavailable
 
 from unittest.mock import MagicMock
 
+tbu = importlib.import_module("trello-board-updater")
+
 format_str = "[ %(funcName)s() ] %(message)s"
 logging.basicConfig(level=logging.INFO, format=format_str)
-
-
-def environ_or_required(key):
-    if os.environ.get(key):
-        return {'default': os.environ.get(key)}
-    else:
-        return {'required': True}
-
-
-def search_card(board, query, card_filter="open"):
-    for card in board.get_cards(card_filter=card_filter):
-        if re.match(query, card.name):
-            return card
-
-
-def find_or_create_checklist(card, checklist_name, items=[]):
-    existing_checklists = card.fetch_checklists()
-    checklist = None
-    for c in existing_checklists:
-        if c.name == checklist_name:
-            checklist = c
-            break
-    if not checklist:
-        checklist = card.add_checklist(checklist_name, [])
-        for item in items:
-            item_msg = item + ' (NO RESULTS)'
-            checklist.add_checklist_item(item_msg)
-    return checklist
-
-
-def change_checklist_item(checklist, name, checked=False):
-    # keep the trailing space so that we don't match the wrong thing later
-    r = re.match('\[*(.*? )\(', name)
-    if r:
-        debname = r.group(1)
-        for item in checklist.items:
-            if debname in item.get('name'):
-                checklist.rename_checklist_item(item.get('name'), name)
-                checklist.set_checklist_item(name, checked)
-                return True
-        else:
-            return False
-    else:
-        print('WARNING: Invalid name specified', name)
-
-
-def no_new_fails_or_skips(summary_data):
-    """Check summary data for new fails or skips
-
-    Return True if there are no new fails or skips detected and if all
-    tests passed
-    """
-    return ("No new failed or skipped tests" in summary_data and
-            "All tests passed" in summary_data)
-
-
-def load_config(configfile):
-    if not configfile:
-        return []
-    try:
-        data = yaml.safe_load(configfile)
-    except (yaml.parser.ParserError, yaml.scanner.ScannerError):
-        print('ERROR: Error parsing', configfile.name)
-        sys.exit(1)
-    return data
-
-
-def attach_labels(board, card, label_list):
-    for labelstr in label_list:
-        for label in board.get_labels():
-            if label.name == labelstr:
-                labels = card.list_labels or []
-                if label not in labels:
-                    # Avoid crash if checking labels fails to find it
-                    try:
-                        card.add_label(label)
-                    except ResourceUnavailable:
-                        pass
-                break
 
 
 def run(args, board, c3_link, jenkins_link):
@@ -203,8 +128,8 @@ def run(args, board, c3_link, jenkins_link):
         re.escape(kernel_stack),
         re.escape(deb_kernel_image),
         deb_version)
-    card = search_card(board, pattern)
-    config = load_config(args.config)
+    card = tbu.search_card(board, pattern)
+    config = tbu.load_config(args.config, None)
     expected_tests = config.get(kernel_stack, {}).get('expected_tests', [])
 
     logging.info('SRU type: {}'.format(args.sru_type))
@@ -241,10 +166,11 @@ def run(args, board, c3_link, jenkins_link):
         summary_data = args.summary.read()
         summary += summary_data
         summary += '\n```\n'
-        card.comment(summary)
+        comment = card.comment(summary)
+        comment_link = "{}#comment-{}".format(card.url, comment['id'])
     else:
         summary_data = ""
-    checklist = find_or_create_checklist(card, 'Testflinger', expected_tests)
+    checklist = tbu.find_or_create_checklist(card, 'Testflinger', expected_tests)
     job_name = args.name.split('-')
     cid = job_name[-2] + '-' + job_name[-1]
 
@@ -265,30 +191,32 @@ def run(args, board, c3_link, jenkins_link):
     print('Detected oem xenial run SUT: {}'.format(sut))
 
     if args.cardonly:
-        item_name = "{} ({})".format(sut, 'In progress')
+        item_content = "{} ({})".format(args.name, 'In progress')
     else:
-        item_name = "{} ({})".format(sut, datetime.utcnow().isoformat())
+        item_content = "[{}]({}) ({})".format(
+            args.name, comment_link, datetime.utcnow().isoformat())
     if jenkins_link:
-        item_name += " [[JENKINS]({})]".format(jenkins_link)
+        item_content += " [[JENKINS]({})]".format(jenkins_link)
     if c3_link:
-        item_name += " [[C3]({})]".format(c3_link)
+        item_content += " [[C3]({})]".format(c3_link)
     elif not args.cardonly:
         # If there was no c3_link, it's because the submission failed
-        attach_labels(board, card, ['TESTFLINGER CRASH'])
+        tbu.attach_labels(board, card, ['TESTFLINGER CRASH'])
 
     # debug message
     logging.info('checklist: {}'.format(checklist))
-    logging.info('item_name: {}'.format(item_name))
-    if not change_checklist_item(
-            checklist, item_name, checked=no_new_fails_or_skips(summary_data)):
-        checklist.add_checklist_item(item_name)
+    logging.info('item_content: {}'.format(item_content))
+    if not tbu.change_checklist_item(
+            checklist, args.name, item_content,
+            checked=tbu.no_new_fails_or_skips(summary_data)):
+        checklist.add_checklist_item(item_content)
 
     if not [c for c in card.fetch_checklists() if c.name == 'Sign-Off']:
-        checklist = find_or_create_checklist(card, 'Sign-Off')
+        checklist = tbu.find_or_create_checklist(card, 'Sign-Off')
         checklist.add_checklist_item('Ready for ' + lanes[0], True)
         checklist.add_checklist_item('Ready for ' + lanes[1])
         checklist.add_checklist_item('Can be Archived')
-    checklist = find_or_create_checklist(card, 'Revisions')
+    checklist = tbu.find_or_create_checklist(card, 'Revisions')
     rev = '{} ({})'.format(deb_version, args.arch)
     if rev not in [item['name'] for item in checklist.items]:
         checklist.add_checklist_item(rev)
@@ -313,11 +241,11 @@ def run(args, board, c3_link, jenkins_link):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--key', help="Trello API key",
-                        **environ_or_required('TRELLO_API_KEY'))
+                        **tbu.environ_or_required('TRELLO_API_KEY'))
     parser.add_argument('--token', help="Trello OAuth token",
-                        **environ_or_required('TRELLO_TOKEN'))
+                        **tbu.environ_or_required('TRELLO_TOKEN'))
     parser.add_argument('--board', help="Trello board identifier",
-                        **environ_or_required('TRELLO_BOARD'))
+                        **tbu.environ_or_required('TRELLO_BOARD'))
     parser.add_argument('--config', help="Pool configuration",
                         type=argparse.FileType())
     parser.add_argument('-a', '--arch', help="deb architecture",
