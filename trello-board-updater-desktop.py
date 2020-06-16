@@ -291,7 +291,7 @@ class TestTrelloUpdaterKernelDebSRU(unittest.TestCase):
 
     def _mock_factory(self, jenkins_job_template, card_name, packages_info):
         parser = argparse.ArgumentParser()
-        args = parser.parse_args()
+        args = parser.parse_args([])
         args.__dict__.update(jenkins_job_template)
 
         self.args = args
@@ -326,6 +326,7 @@ class TestTrelloUpdaterKernelDebSRU(unittest.TestCase):
 
     def test_stock_xenial_4_4_kernel_stack(self):
         jenkins_job_template = {
+            'cardonly': False,
             'name': 'xenial-desktop-201606-22344',
             'arch': 'amd64',
             'kernel': 'linux-generic',
@@ -346,6 +347,7 @@ class TestTrelloUpdaterKernelDebSRU(unittest.TestCase):
 
     def test_stock_xenial_4_15_kernel_stack(self):
         jenkins_job_template = {
+            'cardonly': False,
             'name': 'xenial-hwe-desktop-201606-22344',
             'arch': 'amd64',
             'kernel': 'linux-generic-hwe-16_04',
@@ -367,6 +369,7 @@ class TestTrelloUpdaterKernelDebSRU(unittest.TestCase):
 
     def test_stock_bionic_4_15_kernel_stack(self):
         jenkins_job_template = {
+            'cardonly': False,
             'name': 'bionic-desktop-201606-22344',
             'arch': 'amd64',
             'kernel': 'linux-generic',
@@ -387,6 +390,7 @@ class TestTrelloUpdaterKernelDebSRU(unittest.TestCase):
 
     def test_oem_xenial_4_4_kernel_stack(self):
         jenkins_job_template = {
+            'cardonly': False,
             'name': 'xenial-desktop-201610-25144',
             'arch': 'amd64',
             'kernel': 'linux-generic',
@@ -407,6 +411,7 @@ class TestTrelloUpdaterKernelDebSRU(unittest.TestCase):
 
     def test_oem_xenial_4_15_kernel_stack(self):
         jenkins_job_template = {
+            'cardonly': False,
             'name': 'xenial-hwe-desktop-201802-26107',
             'arch': 'amd64',
             'kernel': 'linux-generic-hwe-16_04',
@@ -428,6 +433,7 @@ class TestTrelloUpdaterKernelDebSRU(unittest.TestCase):
 
     def test_oem_bionic_4_15_kernel_stack(self):
         jenkins_job_template = {
+            'cardonly': False,
             'name': 'bionic-desktop-201802-26107',
             'arch': 'amd64',
             'kernel': 'linux-oem',
@@ -448,6 +454,7 @@ class TestTrelloUpdaterKernelDebSRU(unittest.TestCase):
 
     def test_oem_osp1_bionic_4_15_kernel_stack(self):
         jenkins_job_template = {
+            'cardonly': False,
             'name': 'bionic-desktop-201906-27089',
             'arch': 'amd64',
             'kernel': 'linux-oem-osp1',
@@ -469,6 +476,7 @@ class TestTrelloUpdaterKernelDebSRU(unittest.TestCase):
 
     def test_argos_dgx_station_xenial_4_4(self):
         jenkins_job_template = {
+            'cardonly': False,
             'name': 'xenial-desktop-201711-25989',
             'arch': 'amd64',
             'kernel': 'linux-generic',
@@ -495,6 +503,7 @@ class TestTrelloUpdaterKernelDebSRU(unittest.TestCase):
 
     def test_argos_dgx_1_xenial_4_4(self):
         jenkins_job_template = {
+            'cardonly': False,
             'name': 'xenial-server-201802-26098',
             'arch': 'amd64',
             'kernel': 'linux-generic',
@@ -521,10 +530,11 @@ class TestTrelloUpdaterKernelDebSRU(unittest.TestCase):
 
     def test_argos_dgx_1_xenial_hwe(self):
         jenkins_job_template = {
+            'cardonly': False,
             'name': 'xenial-hwe-server-201802-26098',
             'arch': 'amd64',
             'kernel': 'linux-generic-hwe-16_04',
-            'series': 'xenial-hwe',
+            'series': 'xenial',
             'sru_type': 'oem',
             'queue': 'argos-201802-26098',
             'config': self.debs_yaml_stream,
