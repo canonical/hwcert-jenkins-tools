@@ -200,6 +200,7 @@ def main():
                         card.set_name('{} - {} - ({})'.format(
                             args.snap, args.version, args.revision))
                 break
+                print('Using card: {} ({})'.format(card.name, card.short_url))
     # Create the card in the right lane, since we still didn't find it
     # We only want one card for all architectures, so use the revision
     # declared for the default arch in snaps.yaml
@@ -221,6 +222,8 @@ def main():
             else:
                 card = lane.add_card('{} - {} - ({})'.format(
                     args.snap, args.version, default_rev))
+        print('No card found!')
+        print('Creating card: {} ({})'.format(card.name, card.short_url))
     if not args.cardonly:
         summary = '**[TESTFLINGER] {} {} {} ({}) {}**\n---\n\n'.format(
             args.name, args.snap, args.version, args.revision, args.channel)
