@@ -56,7 +56,7 @@ def push_influx_generic(measurement, tags, time, fields):
         }
     ]
     client.write_points(body)
-    print("measurement: %s at: %s pushed to influx", measurement, str(time))
+    print("Measurement pushed to influx at {}".format(time))
 
 
 def main():
@@ -67,8 +67,7 @@ def main():
     url = "https://certification.canonical.com/api/v1/certifiedmodeldetails/report/?format=json"
     r = requests.get(url)
     if not r.ok:
-        sys.stdout.write("Unable to access report. HTTP %s" % r.status_code)
-        sys.exit(1)
+        raise SystemExit("Unable to access report. HTTP {}".format(r.status_code))
     report = r.json()
     measure = 'pre-certs-report'
 
