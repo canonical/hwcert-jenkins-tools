@@ -5,6 +5,8 @@ import os
 import requests
 import sys
 
+from collections import defaultdict
+
 
 class RevcacheResults():
     resultmap = {
@@ -18,7 +20,7 @@ class RevcacheResults():
         :param name:
             String identifier for the data, usually the job name
         """
-        self.data = {}
+        self.data = defaultdict(list)
         self.new_fails_or_skips = False
         revcache_server = os.environ.get(
             "REVCACHE_SERVER", "https://testflinger-revcache.canonical.com")
@@ -41,10 +43,7 @@ class RevcacheResults():
                 id = result.get('id')
                 if not id:
                     continue
-                if id not in self.data:
-                    self.data[id] = [result.get('status')]
-                else:
-                    self.data[id].append(result.get('status'))
+                self.data[id].append(result.get('status'))
 
     def get_summary(self, result_id):
         """Get a string that summarizes the list of previous results_all
@@ -123,6 +122,7 @@ def main():
     fails = [x.get('id') for x in results if x.get('status') == 'fail']
     passes = [x.get('id') for x in results if x.get('status') == 'pass']
     skips = [x.get('id') for x in results if x.get('status') == 'skip']
+    total = len(results)
 
     if os.path.exists('c3link'):
         print('\n')
@@ -134,7 +134,7 @@ def main():
     print('pass:\t{}'.format(len(passes)))
     print('fail:\t{}'.format(len(fails)))
     print('skip:\t{}'.format(len(skips)))
-    print('total:\t{}'.format(len(results)))
+    print('total:\t{}'.format(total))
     print('\n')
 
     if len(fails) == 0:
@@ -142,6 +142,9 @@ def main():
     else:
         print('Failed tests:')
         print('\n'.join(fails))
+    print()
+    if total <= 1:
+        print("WARNING: Very small number of total tests!")
     print()
     print('-' * 80)
     print()

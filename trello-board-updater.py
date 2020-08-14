@@ -63,8 +63,8 @@ def no_new_fails_or_skips(summary_data):
     Return True if there are no new fails or skips detected and if all
     tests passed
     """
-    return ("No new failed or skipped tests" in summary_data and
-            "All tests passed" in summary_data)
+    return ("No new failed or skipped tests" in summary_data and not
+            "WARNING: Very small number of total tests" in summary_data)
 
 
 def load_config(configfile, snapname):
