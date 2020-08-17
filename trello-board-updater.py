@@ -60,11 +60,11 @@ def change_checklist_item(checklist, name, content, checked=False):
 def no_new_fails_or_skips(summary_data):
     """Check summary data for new fails or skips
 
-    Return True if there are no new fails or skips detected and if all
-    tests passed
+    Return True if there are no new fails or skips detected and if
+    more than 1 test actually ran as a sanity check
     """
-    return ("No new failed or skipped tests" in summary_data and not
-            "WARNING: Very small number of total tests" in summary_data)
+    return ("No new failed or skipped tests" in summary_data and
+            "WARNING: Very small number of total tests" not in summary_data)
 
 
 def load_config(configfile, snapname):
