@@ -92,10 +92,16 @@ class RevcacheResults():
             if summary:
                 report += "[{}] {}\n".format(summary.rjust(11), result_id)
                 # Detect if there are new failed or skipped tests
-                if status in ('fail', 'skip'):
+                if status == 'skip':
                     # Fewer than 2 means this is the first time we've seen
-                    # this test and it was failed or skipped
+                    # this test and it skipped, so mark it as new
                     if len(summary) < 2 or summary[-1] != summary[-2]:
+                        self.new_fails_or_skips = True
+                if status == 'fail':
+                    # For fails, always declare new failures unless we have
+                    # A full history of 10 previous runs, and all failed
+                    if len(summary) < 11 or (
+                            any(x != summary[-1] for x in summary)):
                         self.new_fails_or_skips = True
         return report
 
