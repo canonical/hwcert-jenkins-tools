@@ -75,7 +75,7 @@ class RevcacheResults():
                 return self.get_summary(result_id) + self.resultmap.get(status)
         return ""
 
-    def get_unique_results(self, result_id, new_results, status):
+    def get_unique_results(self, new_results, status):
         """Generate a report of prior results, only if it was ever different
         :param result_id:
             The name (id) of the result to get results on
@@ -151,15 +151,15 @@ def main():
 
     history = RevcacheResults(revcache_key)
 
-    report = history.get_unique_results(revcache_key, fails, "fail")
+    report = history.get_unique_results(fails, "fail")
     if report:
         print('Unstable failed tests:')
         print(report)
-    report = history.get_unique_results(revcache_key, skips, "skip")
+    report = history.get_unique_results(skips, "skip")
     if report:
         print('Unstable skipped tests:')
         print(report)
-    report = history.get_unique_results(revcache_key, passes, "pass")
+    report = history.get_unique_results(passes, "pass")
     if report:
         print('Unstable passing tests:')
         print(report)
