@@ -100,8 +100,7 @@ class RevcacheResults():
                 if status == 'fail':
                     # For fails, always declare new failures unless we have
                     # A full history of 10 previous runs, and all failed
-                    if len(summary) < 11 or (
-                            any(x != summary[-1] for x in summary)):
+                    if summary != 'F'*11:
                         self.new_fails_or_skips = True
         return report
 
