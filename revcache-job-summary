@@ -39,11 +39,26 @@ class RevcacheResults():
         #     ex. {"example/testname": ["pass", "fail", "skip", "pass"]}
         for results_list in run_list:
             results_list = json.loads(results_list).get('results', [])
+            fails = 0
+            passes = 0
+            skips = 0
+            total = len(results_list)
             for result in results_list:
                 id = result.get('id')
                 if not id:
                     continue
-                self.data[id].append(result.get('status'))
+                status = result.get('status')
+                if status == 'fail':
+                    fails += 1
+                elif status == 'pass':
+                    passes += 1
+                elif status == 'skip':
+                    skips += 1
+                self.data[id].append(status)
+        self.last_fails = fails
+        self.last_passes = passes
+        self.last_skips = skips
+        self.last_total = total
 
     def get_summary(self, result_id):
         """Get a string that summarizes the list of previous results_all
@@ -116,13 +131,11 @@ def main():
         print('Usually this means that the run failed to complete. ',
               'Check the output in the jenkins job for more details')
         return 0
-    revcache_key = sys.argv[2]
+    history = RevcacheResults(sys.argv[2])
 
     with open(sys.argv[1]) as result_file:
         result_data = json.load(result_file)
 
-    # Get all results from the file
-    # New style json report for submission service
     results = result_data.get('results')
     fails = [x.get('id') for x in results if x.get('status') == 'fail']
     passes = [x.get('id') for x in results if x.get('status') == 'pass']
@@ -136,10 +149,13 @@ def main():
 
     print('Summary')
     print('-------')
-    print('pass:\t{}'.format(len(passes)))
-    print('fail:\t{}'.format(len(fails)))
-    print('skip:\t{}'.format(len(skips)))
-    print('total:\t{}'.format(total))
+    print('pass:\t{}\t\t({:+d})'.format(
+        len(passes), len(passes)-history.last_passes))
+    print('fail:\t{}\t\t({:+d})'.format(
+        len(fails), len(fails)-history.last_fails))
+    print('skip:\t{}\t\t({:+d})'.format(
+        len(skips), len(skips)-history.last_skips))
+    print('total:\t{}\t\t({:+d})'.format(total, total-history.last_total))
     print('\n')
 
     if len(fails) == 0:
@@ -153,8 +169,6 @@ def main():
     print()
     print('-' * 80)
     print()
-
-    history = RevcacheResults(revcache_key)
 
     report = history.get_unique_results(fails, "fail")
     if report:
