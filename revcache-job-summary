@@ -22,6 +22,10 @@ class RevcacheResults():
         """
         self.data = defaultdict(list)
         self.new_fails_or_skips = False
+        self.last_fails = 0
+        self.last_passes = 0
+        self.last_skips = 0
+        self.last_total = 0
         revcache_server = os.environ.get(
             "REVCACHE_SERVER", "https://testflinger-revcache.canonical.com")
         revcache_url = "{}/v1/results/{}".format(revcache_server, name)
@@ -37,28 +41,29 @@ class RevcacheResults():
         # Create a dict to hold all results
         # For each individual result ID, this will hold a list of prior results
         #     ex. {"example/testname": ["pass", "fail", "skip", "pass"]}
-        for results_list in run_list:
-            results_list = json.loads(results_list).get('results', [])
-            fails = 0
-            passes = 0
-            skips = 0
-            total = len(results_list)
-            for result in results_list:
-                id = result.get('id')
-                if not id:
-                    continue
-                status = result.get('status')
-                if status == 'fail':
-                    fails += 1
-                elif status == 'pass':
-                    passes += 1
-                elif status == 'skip':
-                    skips += 1
-                self.data[id].append(status)
-        self.last_fails = fails
-        self.last_passes = passes
-        self.last_skips = skips
-        self.last_total = total
+        if run_list:
+            for results_list in run_list:
+                results_list = json.loads(results_list).get('results', [])
+                fails = 0
+                passes = 0
+                skips = 0
+                total = len(results_list)
+                for result in results_list:
+                    id = result.get('id')
+                    if not id:
+                        continue
+                    status = result.get('status')
+                    if status == 'fail':
+                        fails += 1
+                    elif status == 'pass':
+                        passes += 1
+                    elif status == 'skip':
+                        skips += 1
+                    self.data[id].append(status)
+            self.last_fails = fails
+            self.last_passes = passes
+            self.last_skips = skips
+            self.last_total = total
 
     def get_summary(self, result_id):
         """Get a string that summarizes the list of previous results_all
