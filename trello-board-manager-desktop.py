@@ -45,7 +45,9 @@ repository_promotion_map = {
 codename_map = {'xenial': '16.04',
                 'bionic': '18.04',
                 'cosmic': '18.10',
-                'disco': '19.04'}
+                'disco': '19.04',
+                'focal': '20.04',
+                'groovy': '20.10'}
 
 logger = logging.getLogger("trello-board-manager-desktop")
 

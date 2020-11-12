@@ -55,7 +55,9 @@ def run(args, board, c3_link, jenkins_link):
         if 'osp1' in args.kernel:
             kernel_stack = 'oem-osp1'
         else:
-            kernel_stack = 'oem'
+            kernel_stack = 'oem_bionic'
+    if kernel_stack == 'focal' and 'oem' in args.kernel:
+        kernel_stack = 'oem_focal'
 
     uri = urlparse(jenkins_link)
     jenkins_host = '{uri.scheme}://{uri.netloc}/'.format(uri=uri)
@@ -93,7 +95,7 @@ def run(args, board, c3_link, jenkins_link):
     dlv_short = dlv[0] + '_' + dlv[1] + '_' + dlv[2] + '-' + dlv[3]
     logging.info("linux deb version: {}".format(dlv))
     logging.info("linux deb version (underscores): {}".format(dlv_short))
-    kernel_suffix = kernel_stack
+    kernel_suffix = kernel_stack.split('_')[0]
     if args.sru_type == 'stock' or args.sru_type == 'stock-hwe':
         # for stock images, it always uses generic kernels
         #
@@ -123,6 +125,13 @@ def run(args, board, c3_link, jenkins_link):
     logging.info("kernel_suffix: {}".format(kernel_suffix))
 
     deb_kernel_image = 'linux-image-' + dlv_short + '-' + kernel_suffix
+
+    if args.sru_type == 'oem' and "focal" in args.series:
+        # On focal, the meta package is separated in to two packages,
+        # linux-image-oem-20_04 and linux-headers-oem-20_04,
+        # get deb_version from one of them.
+        deb_kernel_image = 'linux-image-oem-20_04'
+
     deb_version = package_data[deb_kernel_image]
     pattern = "{} - {} - \({}\)".format(
         re.escape(kernel_stack),
@@ -555,6 +564,48 @@ class TestTrelloUpdaterKernelDebSRU(unittest.TestCase):
         self.assertEqual(kdeb_card.sut, target_sut)
         self.assertEqual(kdeb_card.expected_tests[target_sut_kdc_id],
                          target_sut)
+
+    def test_oem_focal_5_6_kernel_stack(self):
+        jenkins_job_template = {
+            'cardonly': False,
+            'name': 'focal-desktop-xps13-9310-c1',
+            'arch': 'amd64',
+            'kernel': 'linux-oem',
+            'series': 'focal',
+            'sru_type': 'oem',
+            'queue': '',
+            'config': self.debs_yaml_stream,
+            'summary': self.summary_stream
+        }
+        card_name = "oem_focal - linux-image-oem-20_04 - (5.6.0.1034.30)"
+
+        self._mock_factory(jenkins_job_template, card_name,
+                           "./data/deb-package_focal-main-amd64.json")
+
+        kdeb_card = run(self.args, self.board, self.c3_link, self.jenkins_link)
+
+        self.assertEqual(kdeb_card.kernel_stack, "oem")
+
+    def test_stock_focal_5_4_kernel_stack(self):
+        jenkins_job_template = {
+            'cardonly': False,
+            'name': 'focal-desktop-inspiron20-3064',
+            'arch': 'amd64',
+            'kernel': 'linux-generic',
+            'series': 'focal',
+            'sru_type': 'stock',
+            'queue': '',
+            'config': self.debs_yaml_stream,
+            'summary': self.summary_stream
+        }
+        card_name = "focal - linux-image-5_4_0-54-generic - (5.4.0-54.60)"
+
+        self._mock_factory(jenkins_job_template, card_name,
+                           "./data/deb-package_focal-main-amd64.json")
+
+        kdeb_card = run(self.args, self.board, self.c3_link, self.jenkins_link)
+
+        self.assertEqual(kdeb_card.kernel_stack, "focal")
 
 
 if __name__ == "__main__":
