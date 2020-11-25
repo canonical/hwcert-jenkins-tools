@@ -45,7 +45,7 @@ logging.basicConfig(level=logging.INFO, format=format_str)
 def run(args, board, c3_link, jenkins_link):
 
     kernel_stack = args.series
-    if args.name.split('-')[1] == 'hwe':
+    if args.sru_type == 'stock-hwe':
         kernel_stack = args.series + '-hwe'
 
     # The current oem stack
