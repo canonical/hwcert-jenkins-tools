@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""
+Get version and revision data for snaps we care about testing
+"""
+
+import json
+import requests
+import sys
+import yaml
+from argparse import ArgumentParser
+
+parser = ArgumentParser()
+parser.add_argument("--config", "-c", required=True,
+                    help="Yaml file with snap names and store data")
+args = parser.parse_args()
+
+with open(args.config) as f:
+    snap_data = yaml.safe_load(f)
+    SNAPS = [(k, snap_data[k]["store"]) for k in snap_data.keys()]
+
+"""
+Create a yaml file that can be referenced like...
+snap:
+    track:
+        risk:
+            arch:
+                version
+                revision
+"""
+mysnapdict = dict()
+for snap, store in SNAPS:
+    url = "https://api.snapcraft.io/v2/snaps/info/{}".format(snap)
+    headers = {"Snap-Device-Series": "16",
+               "Snap-Device-Store": store}
+    a = requests.get(url, headers=headers)
+    j = a.json()
+    if not hasattr(mysnapdict, snap):
+        mysnapdict[snap] = dict()
+    if "channel-map" not in j:
+        print("WARNING: BAD ITEM: ", file=sys.stderr)
+        print(j, file=sys.stderr)
+        continue
+    for x in j.get("channel-map"):
+        track = x["channel"]["track"]
+        if track not in mysnapdict[snap]:
+            mysnapdict[snap][track] = dict()
+        risk = x["channel"]["risk"]
+        if risk not in mysnapdict[snap][track]:
+            mysnapdict[snap][track][risk] = dict()
+        architecture = x["channel"]["architecture"]
+        if architecture not in mysnapdict[snap][track][risk]:
+            mysnapdict[snap][track][risk][architecture] = dict()
+        version = x["version"]
+        revision = x["revision"]
+        mysnapdict[snap][track][risk][architecture]["version"] = version
+        mysnapdict[snap][track][risk][architecture]["revision"] = revision
+print(json.dumps(mysnapdict, indent=2))
