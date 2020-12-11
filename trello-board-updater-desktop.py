@@ -64,10 +64,8 @@ def run(args, board, c3_link, jenkins_link):
 
     # TODO: we could merge main and universe repositories from the source
     # jenkins jobs
-    # linux-oem is in universe rather than main
-    if 'oem-osp1' in args.kernel and not args.series == 'xenial':
-        package_json_name_template = '{}-universe-{}-proposed.json'
-    elif 'raspi' in args.kernel:
+    # linux-oem is in main now
+    if 'raspi' in args.kernel:
         package_json_name_template = '{}-universe-{}-proposed.json'
     else:
         # packages of generic kernels
@@ -76,7 +74,7 @@ def run(args, board, c3_link, jenkins_link):
         #     oem image  - xenial
         #     oem images - shipped with oem-4.13
         #     argos dgx-1/dgx-station images
-        package_json_name_template = '{}-main-{}-proposed.json'
+	package_json_name_template = '{}-main-{}-proposed.json'
 
     package_json_url_template = '{}/job/cert-package-data/'\
                                 'lastSuccessfulBuild/artifact/' + \
