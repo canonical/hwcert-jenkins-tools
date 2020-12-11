@@ -118,6 +118,10 @@ def run(args, board, c3_link, jenkins_link):
         # TODO: we may need to add more conditions when more oem images
         # is updated to use generic kernel
         kernel_suffix = 'generic'
+    elif args.sru_type == 'oem' and "bionic" in args.series:
+	# bionic oem image has started using generic kernel.
+	# bionic-oem and bionic-oem-osp1 will upgrade to 5.4 kernel.
+        kernel_suffix = 'generic'
 
     if 'raspi' in args.kernel:
         kernel_suffix = 'raspi2'
