@@ -74,7 +74,7 @@ def run(args, board, c3_link, jenkins_link):
         #     oem image  - xenial
         #     oem images - shipped with oem-4.13
         #     argos dgx-1/dgx-station images
-	package_json_name_template = '{}-main-{}-proposed.json'
+        package_json_name_template = '{}-main-{}-proposed.json'
 
     package_json_url_template = '{}/job/cert-package-data/'\
                                 'lastSuccessfulBuild/artifact/' + \
