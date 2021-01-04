@@ -87,6 +87,16 @@ def run(args, board, c3_link, jenkins_link):
     response = requests.get(url=package_json_url)
     package_data = response.json()
 
+    # Since bionic-oem and bionic-oem-osp1 are retired, we should move oem item to generic card.
+    # In order to distinguish them, we add a prefix to the item name.
+    if 'oem' in args.kernel and 'oem' in args.sru_type and args.series == 'bionic':
+        print(kernel_stack,args.kernel)
+        kernel_stack = 'bionic'
+        if 'osp1' in args.kernel:
+            args.name = 'oem-osp1-'+ args.name
+	else:
+            args.name = 'oem-'+ args.name
+
     # linux deb version
     # e.g. linux-generic-hwe-16.04 which version is 4.15.0.50.71
     dlv = package_data[args.kernel].split('.')
