@@ -94,7 +94,7 @@ def run(args, board, c3_link, jenkins_link):
         kernel_stack = 'bionic'
         if 'osp1' in args.kernel:
             args.name = 'oem-osp1-'+ args.name
-	else:
+        else:
             args.name = 'oem-'+ args.name
 
     # linux deb version
