@@ -91,7 +91,7 @@ def run(args, board, c3_link, jenkins_link):
     # In order to distinguish them, we add a prefix to the item name.
     if 'oem' in args.kernel and 'oem' in args.sru_type and args.series == 'bionic':
         print(kernel_stack,args.kernel)
-        kernel_stack = 'bionic'
+        kernel_stack = 'bionic-hwe'
         if 'osp1' in args.kernel:
             args.name = 'oem-osp1-'+ args.name
         else:
