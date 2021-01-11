@@ -93,9 +93,9 @@ def run(args, board, c3_link, jenkins_link):
         print(kernel_stack,args.kernel)
         kernel_stack = 'bionic-hwe'
         if 'osp1' in args.kernel:
-            args.name = 'oem-osp1-'+ args.name
+            args.name = 'oem-osp1-'+ args.name + '-hwe'
         else:
-            args.name = 'oem-'+ args.name
+            args.name = 'oem-'+ args.name + '-hwe'
 
     # linux deb version
     # e.g. linux-generic-hwe-16.04 which version is 4.15.0.50.71
