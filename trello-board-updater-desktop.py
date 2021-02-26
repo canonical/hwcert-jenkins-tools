@@ -96,6 +96,11 @@ def run(args, board, c3_link, jenkins_link):
             args.name = 'oem-osp1-'+ args.name + '-hwe'
         else:
             args.name = 'oem-'+ args.name + '-hwe'
+    #since some focal-oem machines will upgrade to 5.8-hwe kernel, therefore we should move those item to focal-hwe card.
+    if 'hwe' in args.kernel and 'oem' in args.sru_type and args.series == 'focal':
+        print(kernel_stack,args.kernel)
+        kernel_stack = 'focal-hwe'
+        args.name = 'oem-'+ args.name + '-hwe'
 
     # linux deb version
     # e.g. linux-generic-hwe-16.04 which version is 4.15.0.50.71
@@ -130,6 +135,9 @@ def run(args, board, c3_link, jenkins_link):
 	# bionic oem image has started using generic kernel.
 	# bionic-oem and bionic-oem-osp1 will upgrade to 5.4 kernel.
         kernel_suffix = 'generic'
+    elif args.sru_type == 'oem' and "focal" in args.series and 'hwe' in args.kernel:
+	# some focal-oem machines will upgrade to 5.8-hwe kernel.
+        kernel_suffix = 'generic'
 
     if 'raspi' in args.kernel:
         kernel_suffix = 'raspi2'
@@ -137,12 +145,6 @@ def run(args, board, c3_link, jenkins_link):
     logging.info("kernel_suffix: {}".format(kernel_suffix))
 
     deb_kernel_image = 'linux-image-' + dlv_short + '-' + kernel_suffix
-
-    if args.sru_type == 'oem' and "focal" in args.series:
-        # On focal, the meta package is separated in to two packages,
-        # linux-image-oem-20_04 and linux-headers-oem-20_04,
-        # get deb_version from one of them.
-        deb_kernel_image = 'linux-image-oem-20_04'
 
     deb_version = package_data[deb_kernel_image]
     pattern = "{} - {} - \({}\)".format(
