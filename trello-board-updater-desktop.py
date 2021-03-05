@@ -150,7 +150,7 @@ def run(args, board, c3_link, jenkins_link):
     pattern = "{} - {} - \({}\)".format(
         re.escape(kernel_stack),
         re.escape(deb_kernel_image),
-        deb_version)
+        re.escape(deb_version))
     card = tbu.search_card(board, pattern)
     config = tbu.load_config(args.config, None)
     expected_tests = config.get(kernel_stack, {}).get('expected_tests', [])
