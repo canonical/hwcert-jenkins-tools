@@ -4,7 +4,9 @@ import json
 import os
 import requests
 import sys
+import yaml
 
+from argparse import ArgumentParser
 from collections import defaultdict
 
 
@@ -125,21 +127,44 @@ class RevcacheResults():
         return report
 
 
-def main():
-    if len(sys.argv) != 3:
-        print('Usage:')
-        print('\t{} JSON_RESULT_FILE REVCACHE_KEY'.format(sys.argv[0]))
-        return 1
+def get_test_fail_hints(fail_list, known_fails):
+    if not known_fails:
+        # Only generate the detailed list if known_fails data is provided
+        return fail_list
+    detailed_fail_list = list()
+    for failed_test in fail_list:
+        detailed_fail_list.append(failed_test)
+        reason = known_fails.get(failed_test, 'Unknown')
+        detailed_fail_list.append('  - {}'.format(reason))
+    return detailed_fail_list
 
-    if not os.path.exists(sys.argv[1]):
+
+def main():
+    parser = ArgumentParser()
+    parser.add_argument('-f', '--faildata',
+                        help='YAML data file for known failures')
+    parser.add_argument('result_file', help='JSON file with results')
+    parser.add_argument('revcache_key',
+                        help='Key or job name to search for in revcache')
+    args = parser.parse_args()
+
+    if not os.path.exists(args.result_file):
         print('No results file found!')
         print('Usually this means that the run failed to complete. ',
               'Check the output in the jenkins job for more details')
         return 0
-    history = RevcacheResults(sys.argv[2])
+    history = RevcacheResults(args.revcache_key)
 
-    with open(sys.argv[1]) as result_file:
+    with open(args.result_file) as result_file:
         result_data = json.load(result_file)
+
+    try:
+        with open(args.faildata) as f:
+            fail_hints = yaml.safe_load(f)
+    except Exception:
+        # If anything goes wrong, it's better to return a a summary without
+        # details than nothing at all
+        fail_hints = dict()
 
     results = result_data.get('results')
     fails = [x.get('id') for x in results if x.get('status') == 'fail']
@@ -166,8 +191,9 @@ def main():
     if len(fails) == 0:
         print('All tests passed!')
     else:
+        fails_details = get_test_fail_hints(fails, fail_hints)
         print('Failed tests:')
-        print('\n'.join(fails))
+        print('\n'.join(fails_details))
     print()
     if total <= 1:
         print("WARNING: Very small number of total tests!")
