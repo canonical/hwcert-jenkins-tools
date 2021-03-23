@@ -82,16 +82,14 @@ class LPHelper:
         series = stack.split('-')[0]
         package = 'linux'
         if 'hwe' in stack:
-            package += '-hwe'
-            if '5.4' in version:
-                package += '-5.4'
+            if not 'xenial' in series:
+                package += '-hwe-' + version.split('.')[0] + '.' + version.split('.')[1]
+            else:
+                package += '-hwe'
         # TODO: this will evolve when time goes by
-        elif "oem-osp1" in stack:
-            series = "bionic"
-            package += "-oem-osp1"
         elif 'oem' in stack:
-            series = 'bionic'
-            package += '-oem'
+            series = series.split('_')[1]
+            package += '-oem-' + version.split('.')[0] + '.' + version.split('.')[1]
 
         try:
             # Only match if there's a valid task for this stack name, and
