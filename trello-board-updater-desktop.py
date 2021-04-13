@@ -45,7 +45,7 @@ logging.basicConfig(level=logging.INFO, format=format_str)
 def run(args, board, c3_link, jenkins_link):
 
     kernel_stack = args.series
-    if args.name.split('-')[1] == 'hwe' or args.sru_type == 'stock-hwe':
+    if args.sru_type == 'stock-hwe':
         kernel_stack = args.series + '-hwe'
 
     # The current oem stack
@@ -139,8 +139,18 @@ def run(args, board, c3_link, jenkins_link):
 	# some focal-oem machines will upgrade to 5.8-hwe kernel.
         kernel_suffix = 'generic'
 
+    # For raspi kernels
     if 'raspi' in args.kernel:
-        kernel_suffix = 'raspi2'
+        if "xenial" in args.series:
+            kernel_suffix = 'raspi2'
+        if "bionic" in args.series:
+            if "hwe" in args.kernel:
+                kernel_suffix = 'raspi'
+            else:
+                kernel_suffix = 'raspi2'
+        else:
+            kernel_suffix = 'raspi'
+        kernel_stack = kernel_stack + '-' + kernel_suffix
 
     logging.info("kernel_suffix: {}".format(kernel_suffix))
 
@@ -182,8 +192,8 @@ def run(args, board, c3_link, jenkins_link):
                   'new card.')
             sys.exit(1)
     if not args.cardonly:
-        summary = '**[TESTFLINGER] {} {} {} ({})**\n---\n\n'.format(
-            args.name, args.kernel, deb_kernel_image, deb_version)
+        summary = '**[TESTFLINGER] {} {} {} {} ({})**\n---\n\n'.format(
+            args.name, args.arch, args.kernel, deb_kernel_image, deb_version)
         summary += '- Jenkins build details: {}\n'.format(jenkins_link)
         summary += '- Full results at: {}\n\n```\n'.format(c3_link)
         summary_data = args.summary.read()
@@ -194,24 +204,11 @@ def run(args, board, c3_link, jenkins_link):
     else:
         summary_data = ""
     checklist = tbu.find_or_create_checklist(card, 'Testflinger', expected_tests)
-    job_name = args.name.split('-')
-    cid = job_name[-2] + '-' + job_name[-1]
 
-    # speicial case for xenial stack because oem xenial image uses
-    # stock xenial kernel
-    # to tell which cid is oem SUT easier, we add a suffix -oem.
-    # TODO: we may need to update this condition when new oem GM update
-    # delivered
-    sut = cid
-    if (kernel_stack == 'xenial' or kernel_stack == 'xenial-hwe')\
-       and str(args.sru_type) == 'oem':
-        sut = cid + '-oem'
-    if 'argos' in args.queue:
-        if 'desktop' in args.name:
-            sut = cid + '-dgx-station'
-        else:
-            sut = cid + '-dgx-1'
-    print('Detected oem xenial run SUT: {}'.format(sut))
+    # Need to test different arch on the same device, separate the results
+    # TODO: We should support different arch for all devices, not just raspi
+    if 'raspi' in args.kernel:
+        args.name = args.name + '-' + args.arch
 
     if args.cardonly:
         item_content = "{} ({})".format(args.name, 'In progress')
@@ -256,7 +253,7 @@ def run(args, board, c3_link, jenkins_link):
     k_deb_card.deb_version = deb_version
     # card content: SUTs
     k_deb_card.expected_tests = expected_tests
-    k_deb_card.sut = sut
+    k_deb_card.sut = args.name
 
     return k_deb_card
 
