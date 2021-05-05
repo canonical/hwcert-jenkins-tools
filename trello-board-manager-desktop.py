@@ -47,7 +47,8 @@ codename_map = {'xenial': '16.04',
                 'cosmic': '18.10',
                 'disco': '19.04',
                 'focal': '20.04',
-                'groovy': '20.10'}
+                'groovy': '20.10',
+                'hirsute': '21.04'}
 
 logger = logging.getLogger("trello-board-manager-desktop")
 
@@ -80,6 +81,8 @@ def move_card(config, lane_name, card):
         # the oem image is based on the other distro
         if codename == 'oem':
             codename = 'bionic'
+        elif codename == 'oem_focal':
+            codename = 'focal'
 
         logger.debug('arch: {}'.format(arch))
         logger.debug('stack: {}'.format(stack))
@@ -113,16 +116,16 @@ def move_card(config, lane_name, card):
             pkg_data = response.json()
 
             # stack_version_full, svf, for example 4.4.0.150.158
-            if 'oem-osp1' in stack:
-                svf = pkg_data['linux-oem-osp1']
-            elif 'oem' in stack:
-                svf = pkg_data['linux-oem']
+            if 'oem' in stack and '5.6' in card.name:
+                svf = pkg_data['linux-oem-20_04']
+            elif 'oem' in stack and '5.10' in card.name:
+                svf = pkg_data['linux-oem-20_04b']
             else:
                 svf = pkg_data['linux-generic']
 
             if 'hwe' in stack:
-                svf = pkg_data['linux-generic-hwe-' +
-                               codename_map[codename].replace('.', '_')]
+                svf = re.match(r'\d+.\d+.\d+.\d+.\d+',
+                               pkg_data['linux-generic-hwe-' + codename_map[codename].replace('.', '_')]).group(0)
             # I only want 4_4_0-150
             sv = svf[:svf.rfind('.')].replace('.', '-')
             stack_version = sv.replace('-', '_', 2)
