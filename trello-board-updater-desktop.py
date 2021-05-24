@@ -64,8 +64,8 @@ def run(args, board, c3_link, jenkins_link):
 
     # TODO: we could merge main and universe repositories from the source
     # jenkins jobs
-    # linux-oem is in main now
-    if 'raspi' in args.kernel:
+    # linux-raspi is in universe for bionic
+    if args.series == 'bionic' and 'raspi' in args.kernel:
         package_json_name_template = '{}-universe-{}-proposed.json'
     else:
         # packages of generic kernels
