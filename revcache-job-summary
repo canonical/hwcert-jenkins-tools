@@ -133,9 +133,10 @@ def get_test_fail_hints(fail_list, known_fails):
         return fail_list
     detailed_fail_list = list()
     for failed_test in fail_list:
-        detailed_fail_list.append(failed_test)
-        reason = known_fails.get(failed_test, 'Unknown')
+        detailed_fail_list.append('[{}]'.format(failed_test))
+        reason = known_fails.get(failed_test, 'Unknown reason for failure')
         detailed_fail_list.append('  - {}'.format(reason))
+        detailed_fail_list.append('')
     return detailed_fail_list
 
 
@@ -192,7 +193,8 @@ def main():
         print('All tests passed!')
     else:
         fails_details = get_test_fail_hints(fails, fail_hints)
-        print('Failed tests:')
+        print('Failed tests')
+        print('------------')
         print('\n'.join(fails_details))
     print()
     if total <= 1:
