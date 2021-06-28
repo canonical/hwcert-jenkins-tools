@@ -31,7 +31,7 @@ def main():
     # If the JSON data already exists, read it so we can update it because
     # we want to preserve the latest seen version of each package even if
     # it's not in the Packages data because it migrated out of proposed
-    if os.path.exists(args.json_file):
+    if os.path.exists(args.json_file) and os.stat(args.json_file).st_size > 0:
         with open(args.json_file) as j_file:
             data = json.load(j_file)
     else:
