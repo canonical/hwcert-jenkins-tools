@@ -10,6 +10,7 @@ import os
 import re
 import requests
 import sys
+import time
 import yaml
 
 from datetime import datetime
@@ -141,10 +142,21 @@ def main():
             'Snap-Device-Series': '16',
             'Snap-Device-Store': args.brandstore,
         }
-        json = requests.get(
-            'https://api.snapcraft.io/v2/'
-            'snaps/info/{}'.format(args.snap),
-            headers=headers).json()
+        try:
+            json = requests.get(
+                'https://api.snapcraft.io/v2/'
+                'snaps/info/{}'.format(args.snap),
+                headers=headers).json()
+        except Exception:
+            # Sometimes either the request is bad or it returns something that
+            # .json() doesn't like. If it's a short-term issue, maybe we can
+            # give it one more chance to pass
+            print("WARNING: Bad store request, retrying...")
+            time.sleep(30)
+            json = requests.get(
+                'https://api.snapcraft.io/v2/'
+                'snaps/info/{}'.format(args.snap),
+                headers=headers).json()
         # store_track is used for searching for the right track name in the
         # store, which would be latest if nothing is defined
         # track is used for search in the cards, which will be either the
