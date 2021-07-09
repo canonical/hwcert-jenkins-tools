@@ -16,6 +16,7 @@ import yaml
 from datetime import datetime
 from trello import TrelloClient
 from trello.exceptions import ResourceUnavailable
+from mailtool import send_mail
 
 
 def environ_or_required(key):
@@ -107,6 +108,7 @@ def main():
                         required=True)
     parser.add_argument('-b', '--brandstore', help="brand store identifier",
                         default='ubuntu')
+    parser.add_argument('-e', '--email', help="Email recipients")
     parser.add_argument('-n', '--name', help="SUT name", required=True)
     parser.add_argument('-s', '--snap', help="snap name", required=True)
     parser.add_argument('-v', '--version', help="snap version", required=True)
@@ -236,6 +238,14 @@ def main():
                     args.snap, args.version, default_rev))
         print('No card found!')
         print('Creating card: {} ({})'.format(card.name, card.short_url))
+        if args.email:
+            msg_subject = '[SUV-RESULT] {}'.format(card.name)
+            msg_body = ('New results posted for {} version {}\n\n'
+                        '{}\n{}'.format(args.snap, args.version, card.name, card.short_url))
+            try:
+                send_mail(to=args.email, subject=msg_subject, body=msg_body)
+            except Exception as e:
+                print('WARNING: Unable to send email: {}'.format(e))
     if not args.cardonly:
         summary = '**[TESTFLINGER] {} {} {} ({}) {}**\n---\n\n'.format(
             args.name, args.snap, args.version, args.revision, args.channel)
