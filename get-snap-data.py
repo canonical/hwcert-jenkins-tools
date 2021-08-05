@@ -29,7 +29,7 @@ snap:
 """
 mysnapdict = dict()
 for snap, store in SNAPS:
-    url = "https://api.snapcraft.io/v2/snaps/info/{}".format(snap)
+    url = "https://api.snapcraft.io/v2/snaps/info/{}?fields=version,revision,snap-yaml".format(snap)
     headers = {"Snap-Device-Series": "16",
                "Snap-Device-Store": store}
     a = requests.get(url, headers=headers)
@@ -52,6 +52,13 @@ for snap, store in SNAPS:
             mysnapdict[snap][track][risk][architecture] = dict()
         version = x["version"]
         revision = x["revision"]
+        snap_yaml = x.get("snap-yaml")
+        if snap_yaml:
+            snap_dict = yaml.safe_load(snap_yaml)
+            grade = snap_dict.get("grade")
+        else:
+            grade = "unknown"
         mysnapdict[snap][track][risk][architecture]["version"] = version
         mysnapdict[snap][track][risk][architecture]["revision"] = revision
+        mysnapdict[snap][track][risk][architecture]["grade"] = grade
 print(json.dumps(mysnapdict, indent=2))
