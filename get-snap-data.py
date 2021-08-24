@@ -42,14 +42,6 @@ for snap, store in SNAPS:
         continue
     for x in j.get("channel-map"):
         track = x["channel"]["track"]
-        if track not in mysnapdict[snap]:
-            mysnapdict[snap][track] = dict()
-        risk = x["channel"]["risk"]
-        if risk not in mysnapdict[snap][track]:
-            mysnapdict[snap][track][risk] = dict()
-        architecture = x["channel"]["architecture"]
-        if architecture not in mysnapdict[snap][track][risk]:
-            mysnapdict[snap][track][risk][architecture] = dict()
         version = x["version"]
         revision = x["revision"]
         snap_yaml = x.get("snap-yaml")
@@ -58,6 +50,17 @@ for snap, store in SNAPS:
             grade = snap_dict.get("grade")
         else:
             grade = "unknown"
+        # Special case: We only want to test mir-kiosk for grade: stable
+        if snap == "mir-kiosk" and grade == "devel":
+            continue
+        if track not in mysnapdict[snap]:
+            mysnapdict[snap][track] = dict()
+        risk = x["channel"]["risk"]
+        if risk not in mysnapdict[snap][track]:
+            mysnapdict[snap][track][risk] = dict()
+        architecture = x["channel"]["architecture"]
+        if architecture not in mysnapdict[snap][track][risk]:
+            mysnapdict[snap][track][risk][architecture] = dict()
         mysnapdict[snap][track][risk][architecture]["version"] = version
         mysnapdict[snap][track][risk][architecture]["revision"] = revision
         mysnapdict[snap][track][risk][architecture]["grade"] = grade
