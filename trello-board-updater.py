@@ -40,6 +40,7 @@ def find_or_create_checklist(card, checklist_name, items=[]):
             checklist = c
             break
     if not checklist:
+        print("Creating checklist: {}".format(checklist_name))
         checklist = card.add_checklist(checklist_name, [])
         for item in items:
             checklist.add_checklist_item(item + ' (NO RESULTS)')
@@ -47,6 +48,14 @@ def find_or_create_checklist(card, checklist_name, items=[]):
 
 
 def change_checklist_item(checklist, name, content, checked=False):
+    """Attempt to rename and change details on a checklist item
+
+    Return True if the item is located and changes are made
+    Return False if no matching item was found in the specified checklist
+
+    Since some cards have multiple results checklists, a False return
+    may be expected in many cases
+    """
     for item in checklist.items:
         if (
             name + ' ' in item.get('name') or
@@ -259,36 +268,35 @@ def main():
     else:
         summary_data = ""
     attach_labels(board, card, snap_labels)
-    # expected_tests section in the yaml could be either a list of all devices
-    # we want to see tests results on, or a dict of tracks with those devices
-    # specified in a list under each track (ex. pi-kernel)
-    expected_tests = config.get(args.snap, {}).get('expected_tests', [])
-    if isinstance(expected_tests, dict):
-        expected_tests = expected_tests.get(track, [])
-    checklist = find_or_create_checklist(card, 'Testflinger', expected_tests)
-    if args.cardonly:
-        item_content = "{} ({})".format(args.name, 'In progress')
-    else:
-        item_content = "[{}]({}) ({})".format(
-            args.name, comment_link, datetime.utcnow().isoformat())
-    if jenkins_link:
-        item_content += " [[JENKINS]({})]".format(jenkins_link)
-    if c3_link:
-        item_content += " [[C3]({})]".format(c3_link)
-    elif not args.cardonly:
-        # If there was no c3_link, it's because the submission failed
-        attach_labels(board, card, ['TESTFLINGER CRASH'])
+    card_checklists = config.get(args.snap, {}).get('checklists', {})
+    for checklist_name in card_checklists.keys():
+        # expected_tests section in the yaml could be either a list of all
+        # devices we want to see tests results on, or a dict of tracks with
+        # those devices specified in a list under each track (ex. pi-kernel)
+        expected_tests = card_checklists.get(
+            checklist_name, {}).get('expected_tests', [])
+        if isinstance(expected_tests, dict):
+            # If multiple tracks are defined, only look at expected tests
+            # for the track we care about
+            expected_tests = expected_tests.get(track, [])
+        checklist = find_or_create_checklist(
+            card, checklist_name, expected_tests)
+        if args.cardonly:
+            item_content = "{} ({})".format(args.name, 'In progress')
+        else:
+            item_content = "[{}]({}) ({})".format(
+                args.name, comment_link, datetime.utcnow().isoformat())
+        if jenkins_link:
+            item_content += " [[JENKINS]({})]".format(jenkins_link)
+        if c3_link:
+            item_content += " [[C3]({})]".format(c3_link)
+        elif not args.cardonly:
+            # If there was no c3_link, it's because the submission failed
+            attach_labels(board, card, ['TESTFLINGER CRASH'])
 
-    if not change_checklist_item(
+        change_checklist_item(
             checklist, args.name, item_content,
-            checked=no_new_fails_or_skips(summary_data)):
-        if args.name.endswith('spread'):
-            checklist_spread = find_or_create_checklist(card, 'Spread')
-            if not change_checklist_item(
-                    checklist_spread, args.name, item_content,
-                    checked=no_new_fails_or_skips(summary_data)):
-                checklist_spread.add_checklist_item(
-                    item_content, checked=no_new_fails_or_skips(summary_data))
+            checked=no_new_fails_or_skips(summary_data))
 
     if not [c for c in card.fetch_checklists() if c.name == 'Sign-Off']:
         checklist = find_or_create_checklist(card, 'Sign-Off')
