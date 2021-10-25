@@ -126,12 +126,8 @@ def move_card(config, lane_name, card):
                 svf = pkg_data['linux-generic']
 
             if 'hwe' in stack:
-                if '5.11' in card.name:
-                    svf = re.match(r'\d+.\d+.\d+.\d+.\d+',
-                               pkg_data['linux-generic-hwe-' + codename_map[codename].replace('.', '_') + '-edge']).group(0)
-                else:
-                    svf = re.match(r'\d+.\d+.\d+.\d+.\d+',
-                               pkg_data['linux-generic-hwe-' + codename_map[codename].replace('.', '_')]).group(0)
+                svf = re.match(r'\d+.\d+.\d+.\d+.\d+',
+                        pkg_data['linux-generic-hwe-' + codename_map[codename].replace('.', '_')]).group(0)
             # I only want 4_4_0-150
             sv = svf[:svf.rfind('.')].replace('.', '-')
             stack_version = sv.replace('-', '_', 2)
