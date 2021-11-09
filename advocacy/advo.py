@@ -47,12 +47,16 @@ def set_cause_version_from_snap_list(cause, snap_list):
 
 def main():
     build_url = os.getenv("BUILD_URL")
+    print("BUILD_URL:", build_url)
+    csv = ""
     try:
-        csv = curl("{}artifact/artifacts/checkbox.csv".format(build_url))
-    except CurlError:
-        print('Unable to fetch jenkins project information.')
+        with open("artifacts/checkbox.csv") as f:
+            csv = f.read()
+    except OSError:
+        print('Unable to read CSV results.')
+    print("CSV:", csv)
     if 'snap,cold,hot' not in csv:
-        raise SystemExit(1)
+        raise SystemExit("CSV format unsupported")
 
     url = "{}api/json".format(build_url)
     try:
@@ -60,6 +64,7 @@ def main():
     except CurlError:
         print('Unable to fetch jenkins project information.')
     build_desc = json.loads(res)
+    print(json.dumps(build_desc, indent=4, sort_keys=True))
     cause = 'Manual run'
     cause_version = 'N/A'
     try:
@@ -69,10 +74,11 @@ def main():
         cause = cause.replace('-stable', '').replace('-candidate', '').replace(
             '-beta', '')
         try:
-            snap_list = curl("{}artifact/artifacts/snap_list.txt".format(
-                build_url))
-            cause_version = set_cause_version_from_snap_list(cause, snap_list)
-        except CurlError:
+            with open("artifacts/snap_list.txt") as f:
+                snap_list = f.read()
+                cause_version = set_cause_version_from_snap_list(
+                    cause, snap_list)
+        except OSError:
             snap_list = None
     except KeyError:
         try:
@@ -88,11 +94,11 @@ def main():
         except CurlError:
             print('Unable to fetch URLTrigger project information.')
         try:
-            deb_manifest = curl("{}artifact/artifacts/manifest.txt".format(
-                build_url))
-            cause_version = set_cause_version_from_manifest(
-                cause, deb_manifest)
-        except CurlError:
+            with open("artifacts/manifest.txt") as f:
+                deb_manifest = f.read()
+                cause_version = set_cause_version_from_manifest(
+                    cause, deb_manifest)
+        except OSError:
             deb_manifest = None
     ts = build_desc['timestamp']
     date = datetime.datetime.fromtimestamp(ts/1000).strftime(
@@ -102,7 +108,7 @@ def main():
         release = match.groups()[0]
         hw_id = match.groups()[1]
     else:
-        raise SystemExit(1)
+        raise SystemExit("Unable to find release/hw_id data")
 
     snaps = {line.split(',')[0] for line in csv.splitlines()[1:]}
     for l in csv.splitlines()[1:]:
@@ -141,6 +147,7 @@ def main():
             }]
             if cause in snaps and cause != snap:
                 continue
+            print("uploading measurements:", measurements)
             client.write_points(measurements)
         except ValueError:
             continue
