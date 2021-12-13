@@ -122,6 +122,8 @@ def move_card(config, lane_name, card):
                 svf = pkg_data['linux-oem-20_04b']
             elif 'oem' in stack and '5.13' in card.name:
                 svf = pkg_data['linux-oem-20_04c']
+            elif 'oem' in stack and '5.14' in card.name:
+                svf = pkg_data['linux-oem-20_04d']
             else:
                 svf = pkg_data['linux-generic']
 
@@ -159,6 +161,7 @@ def move_card(config, lane_name, card):
 
             if (repo == lane_name and deb_version != m.group("version")):
                 archive_card(card)
+                print(deb_version,"=================================",m.group("version"))
                 continue
             if (repo == next_repo and
                 deb_kernel_image == m.group("package") and
