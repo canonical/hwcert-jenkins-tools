@@ -161,7 +161,6 @@ def move_card(config, lane_name, card):
 
             if (repo == lane_name and deb_version != m.group("version")):
                 archive_card(card)
-                print(deb_version,"=================================",m.group("version"))
                 continue
             if (repo == next_repo and
                 deb_kernel_image == m.group("package") and
