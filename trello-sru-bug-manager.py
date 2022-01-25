@@ -45,7 +45,7 @@ class LPHelper:
                 # so we can use it more easily
                 url = ('https://kernel.ubuntu.com/~kernel-ppa/status'
                        '/swm/status.yaml')
-                bugdata = yaml.safe_load(requests.get(url).content)
+                bugdata = yaml.safe_load(requests.get(url).content)['trackers']
                 for x in bugdata:
                     # Add a 'bug' field that we can use later
                     bugdata[x]['bug'] = x
