@@ -24,7 +24,7 @@ import re
 import requests
 
 from trello import TrelloClient
-from yaml import load
+from yaml import safe_load
 from yaml.parser import ParserError
 
 
@@ -33,6 +33,7 @@ channel_promotion_map = {
     'edge': 'beta',
     'beta': 'candidate',
     'candidate': 'stable',
+    'stable': 'stable',
 }
 
 
@@ -112,7 +113,7 @@ def main():
     client = TrelloClient(api_key=args.key, token=args.token)
     board = client.get_board(args.board)
     try:
-        config = load(args.config)
+        config = safe_load(args.config)
     except ParserError:
         raise SystemExit('Error parsing %s' % args.config.name)
     for lane in board.list_lists():
