@@ -23,6 +23,7 @@ import os
 import re
 import requests
 import sys
+import traceback
 import yaml
 
 from launchpadlib.launchpad import Launchpad, uris
@@ -77,6 +78,8 @@ class LPHelper:
             # If we get this far, no bug was found
             raise LookupError
         except Exception:
+            traceback.print_exc()
+            print('WARNING: something went wrong, but continuing with other cards...')
             raise LookupError
 
     def find_sru_bug_deb(self, stack, version):
@@ -108,6 +111,8 @@ class LPHelper:
             # If we get this far, no bug was found
             raise LookupError
         except Exception:
+            traceback.print_exc()
+            print('WARNING: something went wrong, but continuing with other cards...')
             raise LookupError
 
 
@@ -145,12 +150,17 @@ class SruBug:
         return self.bug.title
 
     def calculate_due_date(self):
-        cycle_parts = tuple(
-            int(x) for x in self.cycle.split('-')[0].split('.'))
-        cycle_start = datetime.datetime(*cycle_parts, hour=12)
-        # Since cycle starts on a Monday, +11 days is the due date
-        # (Friday of the 2nd week in the cycle)
-        self.due_date = cycle_start + datetime.timedelta(days=11)
+        try:
+            cycle_parts = tuple(
+                int(x) for x in self.cycle.split('-')[0].split('.'))
+            cycle_start = datetime.datetime(*cycle_parts, hour=12)
+            # Since cycle starts on a Monday, +11 days is the due date
+            # (Friday of the 2nd week in the cycle)
+            self.due_date = cycle_start + datetime.timedelta(days=11)
+        except Exception:
+            self.due_date = None
+            traceback.print_exc()
+            print("WARNING: Unable to set due date for {}".format(self.id))
 
     def get_task_state(self, task_name):
         for task in self.bug.bug_tasks:
@@ -280,7 +290,8 @@ def process_snaps(lp, trello):
         add_bug_description(bug, card)
 
         # Add due date to the card
-        card.set_due(bug.due_date)
+        if bug.due_date:
+            card.set_due(bug.due_date)
 
         # Automatically mark our task "In Progress" if it's "Confirmed"
         TARGET_TASK = 'snap-certification-testing'
@@ -314,7 +325,8 @@ def process_debs(lp, trello):
         add_bug_description(bug, card)
 
         # Add due date to the card
-        card.set_due(bug.due_date)
+        if bug.due_date:
+            card.set_due(bug.due_date)
 
         # Automatically mark our task "In Progress" if it's still "Confirmed"
         TARGET_TASK = 'certification-testing'
