@@ -25,15 +25,16 @@ import requests
 import sys
 import yaml
 
-from launchpadlib.launchpad import Launchpad
+from launchpadlib.launchpad import Launchpad, uris
 from trello import TrelloClient
 from trello.exceptions import ResourceUnavailable
 
 
 class LPHelper:
-    def __init__(self, credentials, project):
+    def __init__(self, credentials, project, staging):
+        lp_server = uris.STAGING_SERVICE_ROOT if staging else uris.LPNET_SERVICE_ROOT
         self.lp = Launchpad.login_with(
-            sys.argv[0], 'production', credentials_file=credentials)
+            sys.argv[0], lp_server, credentials_file=credentials)
         self.project = self.lp.projects(project)
         self.srubugs = []
 
@@ -229,6 +230,8 @@ def get_args():
                         **environ_or_required('TRELLO_BOARD'))
     parser.add_argument('--deb', action='store_true',
                         help='Work on deb instead of snap')
+    parser.add_argument('--staging', action='store_true',
+                        help='Use staging Launchpad for testing this script')
     return parser.parse_args()
 
 
@@ -354,7 +357,7 @@ def update_lp(bug, target_task, card):
 
 def main():
     args = get_args()
-    lp = LPHelper(args.credentials, args.project)
+    lp = LPHelper(args.credentials, args.project, args.staging)
     trello = TrelloHelper(args.key, args.token, args.board)
 
     if args.deb:
