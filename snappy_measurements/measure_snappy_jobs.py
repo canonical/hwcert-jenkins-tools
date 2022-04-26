@@ -36,10 +36,10 @@ in the influx_credentials.py.
 """
 
 MEASURED_JOBS = [
-        'snap-install',
-        'snap-remove',
-        'connect-tillamook-plugs',
-        'connect-caracalla-plugs',
+    'snap-install',
+    'snap-remove',
+    'connect-tillamook-plugs',
+    'connect-caracalla-plugs',
 ]
 
 BOOTUP_JOB_ID = 'info/systemd-analyze'
@@ -48,6 +48,7 @@ BOOTUP_JOB_ID = 'info/systemd-analyze'
 def dquote(s):
     # surround s with double quotes
     return '"{}"'.format(s)
+
 
 def to_human_name(hw_id):
     better_names = {
@@ -74,8 +75,8 @@ class InfluxQueryWriter():
         else:
             self._core_rev = '0'
         self._results = (
-                submission.get('results', []) +
-                submission.get('resource-results', [])
+            submission.get('results', []) +
+            submission.get('resource-results', [])
         )
 
     def generate_sql_inserts(self):
@@ -83,14 +84,14 @@ class InfluxQueryWriter():
                 "hw_id={hw},os_kind={os},core_revision={core_rev} "
                 "elapsed={elapsed} {tstamp}")
         for m in self.extract_measurements():
-                yield TMPL.format(
-                    proj=m['tags']['project_name'],
-                    job=m['tags']['job_name'],
-                    hw=m['tags']['hw_id'],
-                    os=m['tags']['os_kind'],
-                    core_rev=m['tags']['core_revision'],
-                    elapsed=m['fields']['elapsed'],
-                    tstamp=m['time'])
+            yield TMPL.format(
+                proj=m['tags']['project_name'],
+                job=m['tags']['job_name'],
+                hw=m['tags']['hw_id'],
+                os=m['tags']['os_kind'],
+                core_rev=m['tags']['core_revision'],
+                elapsed=m['fields']['elapsed'],
+                tstamp=m['time'])
 
     def extract_measurements(self):
         for result in self._results:
@@ -138,6 +139,7 @@ class InfluxQueryWriter():
                     }
                     yield measurement
 
+
 def parse_sysd_analyze(text):
     """
     >>> expected = {'kernel': 5.459, 'userspace': 18.985, 'total': 24.444}
@@ -177,18 +179,19 @@ def parse_sysd_analyze(text):
     """
     if '+' not in text or '=' not in text:
         return
+
     def extract(tx):
         # XXX: fractions of a seconds can be printed in two ways depending if
         # there are whole seconds to report
         RE = (r'[^\d]*(?P<hours>\s?\d+h)?(?P<minutes>\s?\d+min)?'
-                 '(?P<seconds>\s?\d+(\.\d*)?s)?(?P<millis>\s?\d+ms)?')
+              '(?P<seconds>\s?\d+(\.\d*)?s)?(?P<millis>\s?\d+ms)?')
         groups = re.match(RE, tx).groupdict()
         hours = (groups['hours'] or '0h')[:-1]
         minutes = (groups['minutes'] or '0min')[:-3]
         seconds = (groups['seconds'] or '0s')[:-1]
         milliseconds = (groups['millis'] or '0ms')[:-2]
         res = (float(hours) * 3600 + float(minutes) * 60 + float(seconds) +
-                  float(milliseconds) / 1000)
+               float(milliseconds) / 1000)
         return res
     head, tail = text.split('=')
     res = {'total': extract(tail)}
@@ -213,6 +216,7 @@ def push_using_bridge(measurements):
     }
     res = requests.post('http://10.101.51.246:8000/influx', json=reqobj)
     return res
+
 
 def main():
     parser = argparse.ArgumentParser()
