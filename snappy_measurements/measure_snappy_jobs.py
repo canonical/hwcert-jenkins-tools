@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (C) 2018-2019 Canonical Ltd
+# Copyright (C) 2018-2022 Canonical Ltd
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -17,9 +17,9 @@
 #       Maciej Kisielewski <maciej.kisielewski@canonical.com>
 import argparse
 import json
+import os
 import re
 import time
-
 
 from influx_credentials import credentials
 
@@ -201,12 +201,18 @@ def parse_sysd_analyze(text):
         res[label] = extract(seg)
     return res
 
+
 def push_to_influx(measurements):
     from influxdb import InfluxDBClient
     client = InfluxDBClient(
-        credentials['host'], 8086, credentials['user'], credentials['pass'],
-        credentials['dbname'])
+        credentials['host'],
+        8086,
+        credentials['user'],
+        os.environ.get("INFLUX_PASS") or credentials['pass'],
+        credentials['dbname']
+    )
     client.write_points(measurements)
+
 
 def push_using_bridge(measurements):
     import requests
@@ -245,6 +251,7 @@ def main():
                 push_to_influx(iqw.extract_measurements())
     except Exception as exc:
         raise exc
+
 
 if __name__ == '__main__':
     main()
