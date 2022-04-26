@@ -1,6 +1,6 @@
 credentials = {
-    'host': '127.0.0.1',
-    'user': 'joe',
+    'host': '10.50.124.12',
+    'user': 'ce',
     'pass': 'password',
-    'dbname': 'certsandbox',
+    'dbname': 'snappy_performance',
 }
