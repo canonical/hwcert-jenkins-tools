@@ -10,6 +10,10 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 SMTPSERVER = os.environ.get('SMTP_SERVER', 'localhost')
+SMTPUSER = os.environ.get('SMTP_USER', '')
+SMTPPASSWORD = os.environ.get('SMTP_PASSWORD')
+# MAIL_FROM gets used later to set the msg "from" field
+MAIL_FROM = 'noreply+'+SMTPUSER if SMTPUSER else 'noreply'
 
 ERROR_MSG = """
 ERROR!
@@ -60,10 +64,15 @@ def main():
                 print('Error attaching {}'.format(attach_file))
 
     msg['Subject'] = args.subject
-    msg['From'] = 'noreply@canonical.com'
+    msg['From'] = MAIL_FROM + '@canonical.com'
     msg['To'] = args.to
 
     s = smtplib.SMTP(SMTPSERVER)
+    if SMTPUSER:
+        # Only login if we have credentials in the env
+        s.ehlo()
+        s.starttls()
+        s.login(SMTPUSER, SMTPPASSWORD)
     s.send_message(msg)
     s.quit()
 
