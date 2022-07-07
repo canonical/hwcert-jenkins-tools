@@ -103,7 +103,8 @@ class LPHelper:
                     bug.get('version') == version and
                     bug.get('package') == package and
                     bug.get('series') == series and
-                    bug.get('variant') == 'debs'
+                    bug.get('variant') == 'debs' and
+                    bug.get('task').get("kernel-sru-workflow").get('status') == 'In Progress'
                    ):
                     return SruBug(
                         self.lp.bugs(bug.get('bug')),
