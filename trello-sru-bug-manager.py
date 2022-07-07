@@ -191,7 +191,7 @@ def attach_labels(board, card, label_list):
     for labelstr in label_list:
         for label in board.get_labels():
             if label.name == labelstr:
-                labels = card.list_labels or []
+                labels = card.labels or []
                 if label not in labels:
                     # Avoid crash if checking labels fails to find it
                     try:
