@@ -24,7 +24,7 @@ import re
 import requests
 import sys
 import traceback
-import yaml
+import json
 
 from launchpadlib.launchpad import Launchpad, uris
 from trello import TrelloClient
@@ -45,9 +45,9 @@ class LPHelper:
             try:
                 # Take the kernel sru bug status data and make a list out of it
                 # so we can use it more easily
-                url = ('https://kernel.ubuntu.com/~kernel-ppa/status'
-                       '/swm/status.yaml')
-                bugdata = yaml.safe_load(requests.get(url).content)['trackers']
+                url = ('https://kernel.ubuntu.com/~kernel-ppa/status/'
+                       'swm/status.json')
+                bugdata = json.loads(requests.get(url).content)['trackers']
                 for x in bugdata:
                     # Add a 'bug' field that we can use later
                     bugdata[x]['bug'] = x
