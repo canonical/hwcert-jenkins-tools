@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=3"
+scp \$SSH_OPTS \$1 ubuntu@\$DEVICE_IP:\$2
