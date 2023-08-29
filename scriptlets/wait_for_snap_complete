@@ -1,0 +1,21 @@
+set +x
+loopcnt=0
+until [ $loopcnt -gt 40 ]
+do
+    loopcnt=$((loopcnt+1))
+    changes="$(ssh $SSH_OPTS ubuntu@$DEVICE_IP 'sudo snap changes')"
+    echo Checking for all snap operations to complete...
+    if [ -n "$changes" ] &&
+        [[ "$changes" != *"Doing"* ]] &&
+        [ "$(ssh $SSH_OPTS ubuntu@$DEVICE_IP echo true)" = "true" ]; then
+        done="true"
+        break
+    else
+        sleep 30
+    fi
+done
+if [ -z "$done" ]; then
+    echo "ERROR: Timeout waiting for snap operations!"
+    exit 1
+fi
+set -x

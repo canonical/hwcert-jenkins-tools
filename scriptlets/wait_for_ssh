@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+echo waiting for ssh, the device address:
+echo $DEVICE_IP
+

@@ -1,0 +1,15 @@
+# Retry running a command if any failure occurs
+loopcnt=0
+_run "$@"
+RC="$?"
+while [ $RC -ne 0 ]
+do
+    loopcnt=$((loopcnt+1))
+    if [ $loopcnt -gt 20 ]; then
+        echo "ERROR: retry limit reached!"
+        exit 1
+    fi
+    sleep 30
+    _run "$@"
+    RC="$?"
+done
