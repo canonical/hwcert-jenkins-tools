@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-ssh $SSH_OPTS ubuntu@$DEVICE_IP "$@"
+ssh $SSH_OPTS $DEVICE_IP "$@"
