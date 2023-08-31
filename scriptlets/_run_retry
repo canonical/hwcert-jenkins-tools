@@ -1,15 +1,39 @@
-# Retry running a command if any failure occurs
-loopcnt=0
-_run "$@"
-RC="$?"
-while [ $RC -ne 0 ]
-do
+#!/usr/bin/env bash
+
+# Copyright 2023 Canonical Ltd.
+#
+# This script provides a retry mechanism for running a command.
+# It uses the `_run` function to execute the command and checks the return
+# code. If the command fails, it will retry up to 20 times,
+# with a 30-second sleep between each attempt.
+# This script is intended to be a drop-in replacement for inline convinience
+# functions previously defined in each of the Jenkins jobs.
+#
+# Usage:
+#     `_retry_run <command> [command_args ...]`
+#     Or source it in another script and call
+#     `retry_run <command> [command_args ...]`
+
+
+retry_run() {
+  loopcnt=0
+  _run "$@"
+  RC="$?"
+  while [ $RC -ne 0 ]
+  do
     loopcnt=$((loopcnt+1))
     if [ $loopcnt -gt 20 ]; then
-        echo "ERROR: retry limit reached!"
-        exit 1
+      echo "ERROR: retry limit reached!"
+      return 1
     fi
     sleep 30
     _run "$@"
     RC="$?"
-done
+  done
+  return 0
+}
+
+# Check if the script is being sourced or executed
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  retry_run "$@"
+fi

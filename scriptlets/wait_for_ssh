@@ -1,5 +1,38 @@
 #!/usr/bin/env bash
+#
+# Copyright 2023 Canonical Ltd.
+#
+# This script provides a mechanism for waiting until SSH is available on a remote device.
+# It uses the `set-ssh-options` script to set SSH options and then repeatedly attempts to
+# connect to the device via SSH until successful or until a timeout is reached.
+# This script is intended to be a drop-in replacement for inline convenience
+# functions previously defined in each of the Jenkins jobs.
+#
+# Dependencies:
+#     This script depends on the `set-ssh-options` script to set SSH options.
+#     DEVICE_IP and DEVICE_USER must be set in the environment.
+#
+# Usage:
+#     Source it in another script and call
+#     `wait_for_ssh_function`
 
-echo waiting for ssh, the device address:
-echo $DEVICE_IP
+wait_for_ssh_function() {
+    source "$(dirname "$BASH_SOURCE")/set-ssh-options"
+    loopcnt=0
+    until timeout 10 ssh $SSH_OPTS $DEVICE_IP /bin/true
+    do
+        echo "Testing to see if system is back up"
+        loopcnt=$((loopcnt+1))
+        if [ $loopcnt -gt 20 ]; then
+            echo "ERROR: Timeout waiting for ssh!"
+            return 1
+        fi
+        sleep 30
+    done
+    return 0
+}
 
+# Check if the script is being sourced or executed
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  retry_run "$@"
+fi
