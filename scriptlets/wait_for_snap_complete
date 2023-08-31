@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
 # Copyright 2023 Canonical Ltd.
-# Written by:
-#   Maciej Kisielewski <maciej.kisielewski@canonical.com>
 #
 # This script waits for all snap operations on a remote device to complete.
 # It uses SSH to query the snap changes on the device and checks for any ongoing operations.
