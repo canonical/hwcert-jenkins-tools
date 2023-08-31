@@ -16,7 +16,6 @@
 #     Or source it in another script and call
 #     `run_function <command> [command_args ...]`
 
-
 run_function() {
     source "$(dirname "$BASH_SOURCE")/set-ssh-options"
     ssh $SSH_OPTS $DEVICE_IP "$@"

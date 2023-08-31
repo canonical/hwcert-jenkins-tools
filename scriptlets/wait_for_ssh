@@ -34,5 +34,5 @@ wait_for_ssh_function() {
 
 # Check if the script is being sourced or executed
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  retry_run "$@"
+  wait_for_ssh_function "$@"
 fi

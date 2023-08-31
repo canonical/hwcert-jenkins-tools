@@ -14,7 +14,6 @@
 #     Or source it in another script and call
 #     `retry_run <command> [command_args ...]`
 
-
 retry_run() {
   loopcnt=0
   _run "$@"
