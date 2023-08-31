@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#
+# Copyright 2023 Canonical Ltd.
+#
+# This script provides a mechanism for running a command on a remote device via SSH.
+# It uses the `set-ssh-options` script to set SSH options and then executes the SSH command.
+# This script is intended to be a drop-in replacement for inline convenience
+# functions previously defined in each of the Jenkins jobs.
+#
+# Dependencies:
+#     This script depends on the `set-ssh-options` script to set SSH options.
+#     DEVICE_IP and DEVICE_USER must be set in the environment.
+#
+# Usage:
+#     `_run <command> [command_args ...]`
+#     Or source it in another script and call
+#     `run_function <command> [command_args ...]`
+
+run_function() {
+    source "$(dirname "$BASH_SOURCE")/set-ssh-options"
+    ssh $SSH_OPTS $DEVICE_IP "$@"
+}
+
+# Check if the script is being sourced or executed
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  run_function "$@"
+fi

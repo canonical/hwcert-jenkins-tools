@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#
+# Copyright 2023 Canonical Ltd.
+#
+# This script provides a mechanism for transferring a file to a remote device via SCP.
+# It uses the `set-ssh-options` script to set SSH options and then executes the SCP command.
+# This script is intended to be a drop-in replacement for inline convenience
+# functions previously defined in each of the Jenkins jobs.
+#
+# Dependencies:
+#     This script depends on the `set-ssh-options` script to set SSH options.
+#     DEVICE_IP and DEVICE_USER must be set in the environment.
+#
+# Usage:
+#     `_put <local_file> <remote_file>`
+#     Or source it in another script and call
+#     `put_function <local_file> <remote_file>`
+
+put_function() {
+  source "$(dirname "$BASH_SOURCE")/set-ssh-options"
+  scp $SSH_OPTS $1 $DEVICE_IP:$2
+}
+
+# Check if the script is being sourced or executed
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  put_function "$@"
+fi
