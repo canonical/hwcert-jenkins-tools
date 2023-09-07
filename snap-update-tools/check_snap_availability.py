@@ -124,6 +124,7 @@ def main():
         "--timeout",
         help="Timeout in seconds after which the program will stop checking.",
         default=300,
+        type=float,
     )
     args = parser.parse_args()
 
