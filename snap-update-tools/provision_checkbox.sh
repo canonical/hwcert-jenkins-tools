@@ -44,7 +44,7 @@ if [ "$UPDATED" ]; then
     echo "Removing old virtualenv"
     rm -rf venv
 fi
-virtualenv venv || echo "Virtualenv already exists"
+python3 -m virtualenv --python=python3 venv || echo "Virtualenv already exists"
 source venv/bin/activate
 
 if [ "$UPDATED" ]; then
