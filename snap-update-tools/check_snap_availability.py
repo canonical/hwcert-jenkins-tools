@@ -27,12 +27,21 @@ which in reality means we want to check whether there are following snaps:
     - checkbox_2.9.2-dev5-123abcdef_arm64.snap
 
 So the invocation of this program would be:
-    python3 check_snap_availability.py 2.9.2-dev5-123abcdef edge checkbox22 checkbox16 checkbox --arch amd64 --arch arm64
+    The specs are specified with a yaml that looks like this:
+    required-snaps:
+        - name: checkbox22
+            channels:
+                - edge
+            architectures:
+                - amd64
+                - arm64
+
 """
 
 import argparse
 import requests
 import time
+import yaml
 from dataclasses import dataclass
 
 
@@ -70,39 +79,57 @@ def query_store(snap_spec: SnapSpec) -> dict:
     return response.json()
 
 
-def test_is_snap_found():
+def get_snap_info_from_store(snap_spec: SnapSpec) -> dict:
     """
-    Test the is_snap_found function.
+    Get detailed information about a snap using the info endpoint.
+
+    :param snap_spec: the snap specification
+    :return: deserialised json with the response from the snap store
     """
-    store_response = {
-        "results": [
-            {
-                "name": "kissiel-hello",
-                "revision": {"revision": 7, "version": "0.1"},
-                "snap": {},
-                "snap-id": "ASOt3jzuCAiHxTQTWxyqLhFVmDURUrsc",
-            }
-        ]
-    }
-    snap_spec = SnapSpec("kissiel-hello", "0.1", "edge", "amd64")
-    assert is_snap_found(snap_spec, store_response) == True
+    url = f"https://api.snapcraft.io/v2/snaps/info/{snap_spec.name}"
+    headers = {"Snap-Device-Series": "16", "Snap-Device-Store": "ubuntu"}
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        raise SystemExit(
+            f"Failed to get info about {snap_spec.name} from the snap store."
+        )
+
+    return response.json()
 
 
-def is_snap_found(snap_spec: SnapSpec, store_response: dict) -> bool:
+def is_snap_available(snap_spec: SnapSpec, store_response: dict) -> bool:
     """
-    Process the response from the snap store and check whether the specified snap is available.
+    Process the response from the snap store and check whether the specified
+    snap is available.
     :param snap_spec: the snap specification
     :param store_response: the response from the snap store
     :return: True if the snap is available, False otherwise
     """
+    # let's split the "channel" provided by the user
+    # into the track and the risk
 
-    def matches_spec(result: dict) -> bool:
-        return (
-            result["name"] == snap_spec.name
-            and result["revision"]["version"] == snap_spec.version
-        )
+    def matches_spec(channel_info: dict) -> bool:
+        # some of the channel names don't follow the "track/risk" format
+        # so we need to handle them separately
+        if "/" not in snap_spec.channel:
+            return (
+                channel_info["channel"]["name"] == snap_spec.channel
+                and channel_info["version"] == snap_spec.version
+                and channel_info["channel"]["architecture"] in snap_spec.arch
+            )
+        else:
+            track, risk = snap_spec.channel.split("/")
+            return (
+                channel_info["channel"]["track"] == track
+                and channel_info["channel"]["risk"] == risk
+                and channel_info["version"] == snap_spec.version
+                and channel_info["channel"]["architecture"] in snap_spec.arch
+            )
 
-    return any(matches_spec(result) for result in store_response["results"])
+    return any(
+        matches_spec(channel_info)
+        for channel_info in store_response["channel-map"]
+    )
 
 
 def main():
@@ -110,15 +137,10 @@ def main():
         description="Check whether snaps are available in the snap store."
     )
     parser.add_argument("version", help="Version of the snaps to check for.")
-    parser.add_argument("channel", help="Channel of the snaps to check in.")
     parser.add_argument(
-        "snap_names", nargs="+", help="Names of the snaps to check for."
-    )
-    parser.add_argument(
-        "--arch",
-        action="append",
-        help="Architectures of the snaps to check for.",
-        default=["amd64"],
+        "yaml_file",
+        type=argparse.FileType("r"),
+        help="Path to the YAML file specifying the snap requirements.",
     )
     parser.add_argument(
         "--timeout",
@@ -128,49 +150,68 @@ def main():
     )
     args = parser.parse_args()
 
+    yaml_content = yaml.load(args.yaml_file, Loader=yaml.FullLoader)
+
     # create the matrix of all combinations of the specified characteristics
     snap_specs = [
-        SnapSpec(name, args.version, args.channel, arch)
-        for name in args.snap_names
-        for arch in args.arch
+        SnapSpec(snap["name"], args.version, channel, arch)
+        for snap in yaml_content["required-snaps"]
+        for channel in snap["channels"]
+        for arch in snap["architectures"]
     ]
 
-    # the mapping of snap specifications to their availability so far
+    timeout = 60.0
+    # Dict to store whether each snap is available.
     already_available = {snap_spec: False for snap_spec in snap_specs}
 
-    deadline = time.time() + args.timeout
-    while time.time() < deadline:
+    # Set the deadline.
+    deadline = time.time() + timeout
+
+    while True:
+        # Record of snaps for which we've already fetched the data from the store.
+        already_queried = set()
         for snap_spec in snap_specs:
-            if not already_available[snap_spec]:
+            # Only fetch from the store if not already fetched and not already available.
+            if (
+                snap_spec not in already_queried
+                and not already_available[snap_spec]
+            ):
                 try:
-                    store_response = query_store(snap_spec)
-                    already_available[snap_spec] = is_snap_found(
+                    store_response = get_snap_info_from_store(snap_spec)
+                    already_available[snap_spec] = is_snap_available(
                         snap_spec, store_response
                     )
+                    already_queried.add(snap_spec)
                 except requests.RequestException as exc:
-                    # we're retrying, so we don't want to fail the whole
-                    # program just because of one failed attempt to query
-                    # the snap store
+                    # Handle request exceptions but continue the loop.
                     print(f"Error while querying the snap store: {exc}")
 
+        # Exit the loop if all snaps are found.
         if all(already_available.values()):
             break
-        print("Not all snaps were found. Waiting 30 seconds before retrying.")
-        time.sleep(30)
 
-    # gather not found snaps
-    not_found = [
-        snap_spec
-        for snap_spec, is_available in already_available.items()
-        if not is_available
-    ]
-    if not_found:
-        print("The following snaps were not found:")
+        not_found = [
+            snap_spec
+            for snap_spec, is_available in already_available.items()
+            if not is_available
+        ]
+        print(
+            "Not all snaps were found. Here is the list of snaps that were not found:"
+        )
         for snap_spec in not_found:
-            print(f"{snap_spec.name}_{snap_spec.version}_{snap_spec.arch}")
-        raise SystemExit(1)
-    else:
-        print("All snaps were found.")
+            print(
+                (
+                    f"{snap_spec.name} {snap_spec.version} on channel:"
+                    f" '{snap_spec.channel}' for '{snap_spec.arch}'"
+                )
+            )
+        if time.time() > deadline:
+            raise SystemExit("Timout reached.")
+
+        print("Waiting 30 seconds before retrying.")
+        # Wait before the next iteration.
+        time.sleep(30)
+    print("All snaps were found.")
 
 
 if __name__ == "__main__":
