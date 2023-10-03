@@ -1,0 +1,41 @@
+required-snaps:
+  - name: checkbox22
+    channels: [ latest/edge ]
+    architectures: [ amd64, arm64 ]
+  - name: checkbox16
+    channels: [ latest/edge ]
+    architectures: [ amd64, arm64 ]
+  - name: checkbox
+    channels:
+      - "uc22/edge"
+      - "uc20/edge"
+      - "uc18/edge"
+      - "uc16/edge"
+      - "22.04/edge"
+      - "20.04/edge"
+      - "18.04/edge"
+      - "16.04/edge"
+    architectures: [ amd64, arm64 ]
+
+required-debs:
+  names:
+    - checkbox-ng
+    - checkbox-provider-base
+    - checkbox-provider-certification-client
+    - checkbox-provider-certification-server
+    - checkbox-provider-docker
+    - checkbox-provider-gpgpu
+    - checkbox-provider-iiotg
+    - checkbox-provider-resource
+    - checkbox-provider-sru
+    - checkbox-provider-tpm2
+    - python3-checkbox-ng
+    - python3-checkbox-support
+  architectures:
+    - amd64
+    - i386
+    - arm64
+    - armhf
+    - ppc64el
+    - s390x
+    - riskv64
