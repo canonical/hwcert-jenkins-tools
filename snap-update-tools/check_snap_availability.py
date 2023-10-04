@@ -42,6 +42,7 @@ So the invocation of this program would be:
 
 import argparse
 import requests
+import sys
 import time
 import yaml
 from dataclasses import dataclass
@@ -110,39 +111,12 @@ def is_snap_available(snap_spec: SnapSpec, store_response: dict) -> bool:
     )
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Check whether snaps are available in the snap store."
-    )
-    parser.add_argument("version", help="Version of the snaps to check for.")
-    parser.add_argument(
-        "yaml_file",
-        type=argparse.FileType("r"),
-        help="Path to the YAML file specifying the snap requirements.",
-    )
-    parser.add_argument(
-        "--timeout",
-        help="Timeout in seconds after which the program will stop checking.",
-        default=300,
-        type=float,
-    )
-    args = parser.parse_args()
-
-    yaml_content = yaml.load(args.yaml_file, Loader=yaml.FullLoader)
-
-    # create the matrix of all combinations of the specified characteristics
-    snap_specs = [
-        SnapSpec(snap["name"], args.version, channel, arch)
-        for snap in yaml_content["required-snaps"]
-        for channel in snap["channels"]
-        for arch in snap["architectures"]
-    ]
-
+def check_snaps_availability(snap_specs: list, timeout: int) -> None:
     # Dict to store whether each snap is available.
     already_available = {snap_spec: False for snap_spec in snap_specs}
 
     # Set the deadline.
-    deadline = time.time() + args.timeout
+    deadline = time.time() + timeout
 
     while True:
         # Record of snaps for which we've already fetched the data from the store.
@@ -186,5 +160,36 @@ def main():
     print("All snaps were found.")
 
 
+def main(argv):
+    parser = argparse.ArgumentParser(
+        description="Check whether snaps are available in the snap store."
+    )
+    parser.add_argument("version", help="Version of the snaps to check for.")
+    parser.add_argument(
+        "yaml_file",
+        type=argparse.FileType("r"),
+        help="Path to the YAML file specifying the snap requirements.",
+    )
+    parser.add_argument(
+        "--timeout",
+        help="Timeout in seconds after which the program will stop checking.",
+        default=300,
+        type=float,
+    )
+    args = parser.parse_args(argv[1:])
+
+    yaml_content = yaml.load(args.yaml_file, Loader=yaml.FullLoader)
+
+    # create the matrix of all combinations of the specified characteristics
+    snap_specs = [
+        SnapSpec(snap["name"], args.version, channel, arch)
+        for snap in yaml_content["required-snaps"]
+        for channel in snap["channels"]
+        for arch in snap["architectures"]
+    ]
+
+    check_snaps_availability(snap_specs, args.timeout)
+
+
 if __name__ == "__main__":
-    main()
+    main(sys.argv)

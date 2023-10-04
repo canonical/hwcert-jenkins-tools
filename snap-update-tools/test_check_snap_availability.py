@@ -1,12 +1,15 @@
-import unittest
-from unittest.mock import patch
 import requests
+import unittest
+import yaml
+
+from unittest.mock import patch, mock_open
 
 
 from check_snap_availability import (
     SnapSpec,
     get_snap_info_from_store,
     is_snap_available,
+    main,
 )
 
 
@@ -47,7 +50,7 @@ class TestGetSnapInfoFromStore(unittest.TestCase):
             arch=["amd64"],
         )
 
-        with self.assertRaises(SystemExit) as context:
+        with self.assertRaises(RuntimeError) as context:
             get_snap_info_from_store(snap_example)
 
         self.assertIn("Failed to get info", str(context.exception))
@@ -197,3 +200,67 @@ class TestIsSnapAvailable(unittest.TestCase):
 
         result = is_snap_available(snap_example, store_response)
         self.assertTrue(result)
+
+
+class TestMainFunction(unittest.TestCase):
+    def setUp(self):
+        self.sample_yaml_content = """
+        required-snaps:
+          - name: snap1
+            channels: ["stable", "candidate"]
+            architectures: ["amd64", "armhf"]
+          - name: snap2
+            channels: ["stable"]
+            architectures: ["armhf"]
+        """
+
+    @patch("check_snap_availability.yaml.load")
+    @patch("check_snap_availability.check_snaps_availability")
+    def test_argument_parsing(self, mock_check_snaps, mock_yaml_load):
+        argv = ["script_name", "1.0", "path/to/file.yaml", "--timeout", "100"]
+
+        mock_yaml_load.return_value = {
+            "required-snaps": [
+                {
+                    "name": "snap1",
+                    "channels": ["stable", "candidate"],
+                    "architectures": ["amd64", "armhf"],
+                },
+                {
+                    "name": "snap2",
+                    "channels": ["stable"],
+                    "architectures": ["armhf"],
+                },
+            ]
+        }
+
+        m = mock_open()
+        with patch("builtins.open", m):
+            main(argv)
+
+        # Ensure check_snaps_availability is called with the expected arguments
+        # Ensure that 5 SnapSpec objects are created (4 for snap1 and 1 for snap2)
+        self.assertEqual(len(mock_check_snaps.call_args[0][0]), 5)
+        self.assertEqual(
+            mock_check_snaps.call_args[0][1], 100
+        )  # timeout value
+
+    @patch("check_snap_availability.yaml.load")
+    @patch("check_snap_availability.check_snaps_availability")
+    def test_default_timeout(self, mock_check_snaps, mock_yaml_load):
+        # Sample arguments without specifying timeout
+        argv = ["script_name", "1.0", "path/to/file.yaml"]
+
+        m = mock_open(read_data=self.sample_yaml_content)
+
+        with patch("builtins.open", m):
+            # Mocking yaml.load to just return a dictionary based on the sample content
+            mock_yaml_load.return_value = yaml.safe_load(
+                self.sample_yaml_content
+            )
+            main(argv)
+
+        # Ensure check_snaps_availability is called with default timeout value of 300
+        self.assertEqual(
+            mock_check_snaps.call_args[0][1], 300
+        )  # default timeout value
