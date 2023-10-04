@@ -9,7 +9,7 @@ The characteristics that can be specified are:
   - (required and one) version that all the snaps must have
   - (required and one) channel that all of the snaps must be in
   - (required and 1 or more) names of the snaps
-  - (optional and 1 or more) architectures that all of the snaps must be available for
+  - (required and 1 or more) architectures that all of the snaps must be available for
 
 For instance we want to check whether there are following checkbox-related snaps:
  - checkbox22
@@ -136,7 +136,7 @@ def check_snaps_availability(snap_specs: list, timeout: int) -> None:
         if all(already_available.values()):
             break
 
-        not_avaiable = [
+        not_available = [
             snap_spec
             for snap_spec, is_available in already_available.items()
             if not is_available
@@ -144,7 +144,7 @@ def check_snaps_availability(snap_specs: list, timeout: int) -> None:
         print("Not all snaps were available in the store.")
         print("Here is the list of snaps that were not found:")
 
-        for snap_spec in not_avaiable:
+        for snap_spec in not_available:
             print(
                 (
                     f"{snap_spec.name} {snap_spec.version} on channel:"
