@@ -43,40 +43,16 @@ import requests
 import time
 import yaml
 from dataclasses import dataclass
+from typing import NamedTuple
 
 
-# the dataclass for the concrete snap specification,
+# the nameduple for the concrete snap specification,
 # instance of this class represents one, concrete snap
-@dataclass
-class SnapSpec:
+class SnapSpec(NamedTuple):
     name: str
     version: str
     channel: str
     arch: str
-
-    def __hash__(self) -> int:
-        # needed so we can this dataclass instances as keys
-        return hash((self.name, self.version, self.channel, self.arch))
-
-
-def query_store(snap_spec: SnapSpec) -> dict:
-    """
-    Pull the information about the snap from the snap store.
-    :param snap_spec: the snap specification
-    :return: deserialised json with the response from the snap store
-    """
-    # the documentation for this API is at https://api.snapcraft.io/docs/search.html
-    url = "https://api.snapcraft.io/v2/snaps/find"
-    headers = {"Snap-Device-Series": "16", "Snap-Device-Store": "ubuntu"}
-    params = {
-        "q": snap_spec.name,
-        "channel": snap_spec.channel,
-        "fields": "revision,version",
-        "architecture": snap_spec.arch,
-    }
-
-    response = requests.get(url, headers=headers, params=params)
-    return response.json()
 
 
 def get_snap_info_from_store(snap_spec: SnapSpec) -> dict:
@@ -90,7 +66,7 @@ def get_snap_info_from_store(snap_spec: SnapSpec) -> dict:
     headers = {"Snap-Device-Series": "16", "Snap-Device-Store": "ubuntu"}
     response = requests.get(url, headers=headers)
     if response.status_code != 200:
-        raise SystemExit(
+        raise RuntimeError(
             f"Failed to get info about {snap_spec.name} from the snap store."
         )
 
@@ -160,29 +136,23 @@ def main():
         for arch in snap["architectures"]
     ]
 
-    timeout = 60.0
     # Dict to store whether each snap is available.
     already_available = {snap_spec: False for snap_spec in snap_specs}
 
     # Set the deadline.
-    deadline = time.time() + timeout
+    deadline = time.time() + args.timeout
 
     while True:
         # Record of snaps for which we've already fetched the data from the store.
-        already_queried = set()
         for snap_spec in snap_specs:
             # Only fetch from the store if not already fetched and not already available.
-            if (
-                snap_spec not in already_queried
-                and not already_available[snap_spec]
-            ):
+            if not already_available[snap_spec]:
                 try:
                     store_response = get_snap_info_from_store(snap_spec)
                     already_available[snap_spec] = is_snap_available(
                         snap_spec, store_response
                     )
-                    already_queried.add(snap_spec)
-                except requests.RequestException as exc:
+                except (requests.RequestException, RuntimeError) as exc:
                     # Handle request exceptions but continue the loop.
                     print(f"Error while querying the snap store: {exc}")
 
@@ -190,15 +160,15 @@ def main():
         if all(already_available.values()):
             break
 
-        not_found = [
+        not_avaiable = [
             snap_spec
             for snap_spec, is_available in already_available.items()
             if not is_available
         ]
-        print(
-            "Not all snaps were found. Here is the list of snaps that were not found:"
-        )
-        for snap_spec in not_found:
+        print("Not all snaps were available in the store.")
+        print("Here is the list of snaps that were not found:")
+
+        for snap_spec in not_avaiable:
             print(
                 (
                     f"{snap_spec.name} {snap_spec.version} on channel:"
