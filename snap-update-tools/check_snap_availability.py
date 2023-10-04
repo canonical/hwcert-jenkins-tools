@@ -2,7 +2,9 @@
 """
 This program checks whether snaps with specified characteristics are available in the snap store.
 
-The matrix of all combinations is created and the program peridically checks whether all combinations are available until all of them are found or the timeout is reached.
+The matrix of all combinations is created and the program peridically checks
+whether all combinations are available and waits until either all of them are
+available or the timeout is reached.
 The characteristics that can be specified are:
   - (required and one) version that all the snaps must have
   - (required and one) channel that all of the snaps must be in
@@ -26,16 +28,16 @@ which in reality means we want to check whether there are following snaps:
     - checkbox_2.9.2-dev5-123abcdef_amd64.snap
     - checkbox_2.9.2-dev5-123abcdef_arm64.snap
 
+The specs are specified with a yaml that looks like this:
+required-snaps:
+    - name: checkbox22
+        channels:
+            - edge
+        architectures:
+            - amd64
+            - arm64
 So the invocation of this program would be:
-    The specs are specified with a yaml that looks like this:
-    required-snaps:
-        - name: checkbox22
-            channels:
-                - edge
-            architectures:
-                - amd64
-                - arm64
-
+    python3 check_snap_availability.py 2.9.2-dev5-123abcdef --yaml-file=checkbox-snaps-for-canary.yaml
 """
 
 import argparse
