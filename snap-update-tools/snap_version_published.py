@@ -37,7 +37,7 @@ required-snaps:
             - amd64
             - arm64
 So the invocation of this program would be:
-    python3 check_snap_availability.py 2.9.2-dev5-123abcdef --yaml-file=checkbox-snaps-for-canary.yaml
+    python3 snap_version_published.py 2.9.2-dev5-123abcdef checkbox-snaps-for-canary.yaml
 """
 
 import argparse
