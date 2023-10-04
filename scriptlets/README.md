@@ -1,8 +1,8 @@
-# Convinience functions for Jenkins jobs
+# Convenience functions for Jenkins jobs
 
 ## Description
 
-This directory contains convinience functions that are used in almost all of Certification Team's Jenkins.
+This directory contains Convenience functions that are used in almost all of Certification Team's Jenkins.
 
 ## Testing
 

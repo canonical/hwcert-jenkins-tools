@@ -5,8 +5,6 @@
 # This script waits for all snap operations on a remote device to complete.
 # It uses SSH to query the snap changes on the device and checks for any ongoing operations.
 # The script will retry up to 40 times, with a 30-second sleep between each attempt.
-# This script is intended to be a drop-in replacement for inline convenience
-# functions previously defined in each of the Jenkins jobs.
 #
 # Dependencies:
 #     This script depends on SSH and assumes that SSH options and DEVICE_IP are set.
@@ -32,9 +30,8 @@ wait_for_snap_complete_function() {
             [ "$(ssh $SSH_OPTS $DEVICE_IP echo true)" = "true" ]; then
             done="true"
             break
-        else
-            sleep 30
         fi
+        sleep 30
     done
     if [ -z "$done" ]; then
         echo "ERROR: Timeout waiting for snap operations!"

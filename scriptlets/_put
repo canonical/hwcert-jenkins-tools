@@ -4,8 +4,6 @@
 #
 # This script provides a mechanism for transferring a file to a remote device via SCP.
 # It uses the `set-ssh-options` script to set SSH options and then executes the SCP command.
-# This script is intended to be a drop-in replacement for inline convenience
-# functions previously defined in each of the Jenkins jobs.
 #
 # Dependencies:
 #     This script depends on the `set-ssh-options` script to set SSH options.
