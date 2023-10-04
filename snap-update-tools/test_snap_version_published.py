@@ -5,7 +5,7 @@ import yaml
 from unittest.mock import patch, mock_open
 
 
-from check_snap_availability import (
+from snap_version_published import (
     SnapSpec,
     get_snap_info_from_store,
     is_snap_available,
@@ -214,8 +214,8 @@ class TestMainFunction(unittest.TestCase):
             architectures: ["armhf"]
         """
 
-    @patch("check_snap_availability.yaml.load")
-    @patch("check_snap_availability.check_snaps_availability")
+    @patch("snap_version_published.yaml.load")
+    @patch("snap_version_published.check_snaps_availability")
     def test_argument_parsing(self, mock_check_snaps, mock_yaml_load):
         argv = ["script_name", "1.0", "path/to/file.yaml", "--timeout", "100"]
 
@@ -245,8 +245,8 @@ class TestMainFunction(unittest.TestCase):
             mock_check_snaps.call_args[0][1], 100
         )  # timeout value
 
-    @patch("check_snap_availability.yaml.load")
-    @patch("check_snap_availability.check_snaps_availability")
+    @patch("snap_version_published.yaml.load")
+    @patch("snap_version_published.check_snaps_availability")
     def test_default_timeout(self, mock_check_snaps, mock_yaml_load):
         # Sample arguments without specifying timeout
         argv = ["script_name", "1.0", "path/to/file.yaml"]
