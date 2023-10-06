@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#
+# Copyright 2023 Canonical Ltd.
+#
+# This bash file adds the directory containing scriptlets into $PATH.
+# To use it source it from any directory, like so: `source ~/hwcert-jenkins/tools/scriptlets/import-all`
+
+SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
+echo $SCRIPT
+export PATH=$PATH:$(dirname $SCRIPT)
