@@ -1,7 +1,7 @@
 required-snaps:
   - name: checkbox22
     channels: [ latest/edge ]
-    architectures: [ amd64, arm64, i386 ]
+    architectures: [ amd64, arm64 ]
   - name: checkbox20
     channels: [ latest/edge ]
     architectures: [ amd64, arm64, i386 ]
@@ -10,7 +10,7 @@ required-snaps:
     architectures: [ amd64, arm64, i386 ]
   - name: checkbox16
     channels: [ latest/edge ]
-    architectures: [ amd64, arm64, i386 ]
+    architectures: [ amd64, arm64 ]
   - name: checkbox
     channels:
       - "uc22/edge"
