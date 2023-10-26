@@ -7,10 +7,10 @@ required-snaps:
     architectures: [ amd64, arm64, armhf ]
   - name: checkbox18
     channels: [ latest/edge ]
-    architectures: [ amd64, arm64, i386, armhf ]
+    architectures: [ amd64, arm64, armhf ]
   - name: checkbox16
     channels: [ latest/edge ]
-    architectures: [ amd64, arm64, i386, armhf ]
+    architectures: [ amd64, arm64, armhf ]
   - name: checkbox
     channels:
       - "uc22/edge"
@@ -22,12 +22,3 @@ required-snaps:
       - "18.04/edge"
       - "16.04/edge"
     architectures: [ amd64, arm64, armhf ]
-
-  # for series 18 and 16 we also need a i386 snap
-  - name: checkbox
-    channels:
-      - "uc18/edge"
-      - "uc16/edge"
-      - "18.04/edge"
-      - "16.04/edge"
-    architectures: [ i386 ]
