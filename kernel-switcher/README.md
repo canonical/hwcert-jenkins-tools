@@ -16,9 +16,18 @@ as the argument. Examples:
 - `switch_kernel.py 6.2.0-33-generic`
 - `switch_kernel.py realtime`
 
-Note how the argument is fuzzy matched. But beware, first match will be used
-so for instance if `realtime` is used as the argument, first grub's menuentry
+The matching is done by looking for the string provided as argument in the
+GRUB's menuentries. AKA `argument in menuentry`. No regex matching is done.
+
+Note that the GRUB's menuentry that will be chosen is the first one that
+contains the given argument.
+
+For instance if `realtime` is used as the argument, first grub's menuentry
 that matches `realtime` will be used.
+
+If you wish to use a precise kernel string, like
+`gnulinux-5.4.0-80-generic-advanced-aca31037-7571-415c-b666-f565c524c2a6`
+you are free to do so.
 
 ## Testing
 
