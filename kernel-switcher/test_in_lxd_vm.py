@@ -30,28 +30,11 @@ import contextlib
 import signal
 
 
-class InterruptHandler:
-    def __init__(self):
-        self.interrupted = False
-        self.first_interrupt_time = time.time()
-        signal.signal(signal.SIGINT, self.signal_handler)
-
-    def signal_handler(self, signum, frame):
-        if self.interrupted and time.time() > self.first_interrupt_time + 2:
-            print("\nForced exit.You'll have to do the cleanup yourself.")
-            raise KeyboardInterrupt
-        self.interrupted = True
-        print(
-            "\nCTRL+C detected while using a VM...\n"
-            "Press CTRL+C again in 2 seconds if you really want to force exit"
-        )
-
-
-interrupt_handler = InterruptHandler()
-
-
 class VMContext:
     def __init__(self, vm_name):
+        self.interrupted = False
+        self.first_interrupt_time = None
+        signal.signal(signal.SIGINT, self.signal_handler)
         self.vm_name = vm_name
 
     def __enter__(self):
@@ -63,6 +46,28 @@ class VMContext:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        if not self.interrupted:
+            # if the interrupt already happened, the command to delete the vm
+            # was already issued
+            self._delete_vm()
+
+    def signal_handler(self, signum, frame):
+        if not self.interrupted:
+            # let's start measuring time now
+            self.first_interrupt_time = time.time()
+        if self.interrupted and time.time() > self.first_interrupt_time + 2:
+            print("\nForced exit.You'll have to do the cleanup yourself.")
+            raise KeyboardInterrupt
+
+        self.interrupted = True
+        print(
+            "\nCTRL+C detected while using a VM...\n"
+            "Press CTRL+C again in 2 seconds if you really want to force exit"
+        )
+        self._delete_vm()
+        raise SystemExit("Stopped by the user")
+
+    def _delete_vm(self):
         print(f"Deleting '{self.vm_name}' VM...")
         self._run_host_command(f"lxc delete --force {self.vm_name}")
 
@@ -133,7 +138,6 @@ def extract_kernel_pkgs_from_apt_log(apt_log):
 
 
 def main():
-    interrupt_handler = InterruptHandler()
     with VMContext("vm-test") as vm:
         # Wait for VM to be ready
         time.sleep(10)
