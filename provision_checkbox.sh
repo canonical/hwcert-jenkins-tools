@@ -8,6 +8,9 @@
 set -x
 set -e
 
+# check if a reference to a version was provided
+REF=$1
+
 # setup what's needed for pip
 sudo apt-get update
 sudo apt-get install python3-pip python3-dev python3-virtualenv build-essential -y
@@ -36,6 +39,11 @@ else
     # Fresh clone so rebuild the venv
     UPDATED=true
 fi
+if [ -n "$REF" ]; then
+    git -C checkbox checkout $REF
+    UPDATED=true
+fi
+
 echo "UPDATED: $UPDATED"
 
 # create a virtualenv for Checkbox
@@ -44,11 +52,12 @@ if [ "$UPDATED" ]; then
     echo "Removing old virtualenv"
     rm -rf venv
 fi
-virtualenv venv || echo "Virtualenv already exists"
+python3 -m virtualenv -p python3 venv || echo "Virtualenv already exists"
 source venv/bin/activate
 
 if [ "$UPDATED" ]; then
     echo "Installing Checkbox dependencies"
+    pip install psutil
     pip install -e .
 fi
 echo checkbox version $(checkbox-cli --version)
