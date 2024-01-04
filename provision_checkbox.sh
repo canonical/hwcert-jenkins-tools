@@ -57,7 +57,6 @@ source venv/bin/activate
 
 if [ "$UPDATED" ]; then
     echo "Installing Checkbox dependencies"
-    pip install psutil
     pip install -e .
 fi
 echo checkbox version $(checkbox-cli --version)

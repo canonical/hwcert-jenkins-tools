@@ -5,9 +5,10 @@ Utility scripts and tools authored by the Certification Team to enhance and auto
 ## provision_checkbox.sh
 
 Tool for provisioning Checkbox from source. The provisioned Checkbox does not
-come with any provider, but it's able to control any Checkbox Agent.
+come with any provider, but it's able to control any compatible Checkbox Agent.
 
-To provision Checkbox from source, using the latest version available from main branch run:
+To provision Checkbox from source, using the latest version available from main
+branch run:
 
 ```bash
 ./provision_checkbox.sh
