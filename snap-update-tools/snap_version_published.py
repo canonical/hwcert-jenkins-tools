@@ -47,7 +47,7 @@ import time
 import yaml
 from typing import NamedTuple
 
-from utils import get_snap_info_from_store
+from snap_info_utility import get_snap_info_from_store
 
 
 # the nameduple for the concrete snap specification,

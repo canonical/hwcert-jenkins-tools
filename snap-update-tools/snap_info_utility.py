@@ -1,3 +1,7 @@
+"""
+This module contains every utility function shared among multiple
+scripts that fetches information about snaps
+"""
 import requests
 
 def get_snap_info_from_store(snap_name: str) -> dict:

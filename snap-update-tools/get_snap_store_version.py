@@ -11,7 +11,7 @@ import sys
 
 from argparse import ArgumentParser
 
-from utils import get_snap_info_from_store
+from snap_info_utility import get_snap_info_from_store
 
 
 def parse_args(argv):
