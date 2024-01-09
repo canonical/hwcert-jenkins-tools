@@ -33,7 +33,7 @@ def get_latest_version(snap_info, channel):
     raise SystemExit("No version found in the specified channel")
 
 
-def get_version_store_snap(snap_name: str, channel: str):
+def get_snap_store_version(snap_name: str, channel: str) -> str:
     """
     Returns the latest available version of the snap in a given channel
     """
@@ -44,7 +44,7 @@ def get_version_store_snap(snap_name: str, channel: str):
 
 def main(argv):
     args = parse_args(argv)
-    version = get_version_store_snap(args.snap_name, args.channel)
+    version = get_snap_store_version(args.snap_name, args.channel)
     print(version)
 
 

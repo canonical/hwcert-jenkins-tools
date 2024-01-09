@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-import get_version_store_snap
+import get_snap_store_version
 
 
 class TestSnapScript(unittest.TestCase):
@@ -14,34 +14,34 @@ class TestSnapScript(unittest.TestCase):
             ]
         }
 
-    @patch("get_version_store_snap.get_snap_info_from_store")
+    @patch("get_snap_store_version.get_snap_info_from_store")
     def test_get_latest_version_stable(self, mock_get_info):
         mock_get_info.return_value = self.mock_snap_info
-        version = get_version_store_snap.get_latest_version(
+        version = get_snap_store_version.get_latest_version(
             self.mock_snap_info, "stable"
         )
         self.assertEqual(version, "1.0.0-dev23")
 
-    @patch("get_version_store_snap.get_snap_info_from_store")
+    @patch("get_snap_store_version.get_snap_info_from_store")
     def test_get_latest_version_beta(self, mock_get_info):
         mock_get_info.return_value = self.mock_snap_info
-        version = get_version_store_snap.get_latest_version(
+        version = get_snap_store_version.get_latest_version(
             self.mock_snap_info, "beta"
         )
         self.assertEqual(version, "1.1.0-dev23")
 
-    @patch("get_version_store_snap.get_snap_info_from_store")
+    @patch("get_snap_store_version.get_snap_info_from_store")
     def test_get_latest_version_edge(self, mock_get_info):
         mock_get_info.return_value = self.mock_snap_info
-        version = get_version_store_snap.get_latest_version(
+        version = get_snap_store_version.get_latest_version(
             self.mock_snap_info, "edge"
         )
         self.assertEqual(version, "1.2.0-dev40")
 
-    @patch("get_version_store_snap.get_snap_info_from_store")
+    @patch("get_snap_store_version.get_snap_info_from_store")
     def test_get_latest_version_no_channel(self, mock_get_info):
         mock_get_info.return_value = self.mock_snap_info
         with self.assertRaises(SystemExit):
-            _ = get_version_store_snap.get_latest_version(
+            _ = get_snap_store_version.get_latest_version(
                 self.mock_snap_info, "nonexistent"
             )
