@@ -1,6 +1,18 @@
 #!/usr/bin/env python3
 """
+This program checks whether a specified package is available in launchpad
+for a the PPA correspondent to a snap channel
+
+The matrix of all combinations is created and the program peridically checks
+whether all combinations are available and waits until either all of them are
+available or the timeout is reached.
+The characteristics that can be specified are:
+  - (required and one) name of the package
+  - (required and one) name of the deb file
+  - (required and 1 or more) versions of ubuntu
+  - (required and 1 or more) architectures
 """
+
 
 import argparse
 import requests
