@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+"""
+"""
+
+import argparse
+import requests
+import sys
+import time
+import yaml
+from typing import NamedTuple
+
+
+# the nameduple for the ppa specification
+class PpaSpec(NamedTuple):
+    name: str
+    deb_name: str
+    version: str
+    arch: str
+
+
+def is_package_available(url: str) -> bool:
+    """
+    Check if a package is available in launchpad.
+    :param snap_spec: url to the deb package
+    """
+    try:
+        response = requests.head(url)
+        if response.status_code == 200:
+            return True
+    except requests.ConnectionError:
+        print(f"Failed to connect to the URL: {url}")
+    return False
+
+
+def check_packages_availability(
+    ppa_specs: list[PpaSpec], channel: str, timeout: int
+) -> None:
+    """
+    Iterate over the list of packages and check whether they are available
+    in the ppa.
+    :param ppa_specs: the list of packages to check
+    :param channel: the ppa correspondent to the channel
+    :param timeout: the timeout in seconds
+    """
+    # Dict to store whether each ppa is available.
+    already_available = {ppa_spec: False for ppa_spec in ppa_specs}
+    # Set the deadline.
+    deadline = time.time() + timeout
+
+    base_url = (
+        f"http://ppa.launchpad.net/checkbox-dev/{channel}/ubuntu/pool/main/c/"
+    )
+    while True:
+        for ppa_spec in ppa_specs:
+            if already_available[ppa_spec]:
+                continue
+            url = (
+                f"{base_url}{ppa_spec.name}/{ppa_spec.deb_name}"
+                f"_{ppa_spec.version}_{ppa_spec.arch}.deb"
+            )
+            already_available[ppa_spec] = is_package_available(url)
+
+        # Exit the loop if all packages are found.
+        if all(already_available.values()):
+            break
+
+        not_available = [
+            ppa_spec
+            for ppa_spec, is_available in already_available.items()
+            if not is_available
+        ]
+        print("Not all packages were available in the store.")
+        print("Here is the list of packages that were not found:")
+
+        for ppa_spec in not_available:
+            print(f"{ppa_spec.name} {ppa_spec.version}  for '{ppa_spec.arch}'")
+        if time.time() > deadline:
+            raise SystemExit("Timeout reached.")
+
+        print("Waiting 30 seconds before retrying.")
+        # Wait before the next iteration.
+        time.sleep(30)
+    print("All packages were found.")
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(
+        description="Check whether packages are available in the ppa"
+    )
+    parser.add_argument("version", help="Version of the packages to check for")
+    parser.add_argument(
+        "yaml_file",
+        type=argparse.FileType("r"),
+        help="Path to the YAML file specifying the package requirements",
+    )
+    parser.add_argument(
+        "--timeout",
+        help="Timeout in seconds after which the program will stop checking",
+        default=300,
+        type=float,
+    )
+    args = parser.parse_args(argv[1:])
+
+    yaml_content = yaml.load(args.yaml_file, Loader=yaml.FullLoader)
+
+    # create the matrix of all combinations of the specified characteristics
+    ppa_specs = [
+        PpaSpec(
+            package["name"],
+            package["deb-name"],
+            "{}~ubuntu{}".format(args.version, ubuntu_version),
+            arch,
+        )
+        for package in yaml_content["required-packages"]
+        for ubuntu_version in package["versions"]
+        for arch in package["architectures"]
+        if (arch != "riscv64" and ubuntu_version != 18.04)
+    ]
+
+    channel = yaml_content["channel"]
+    check_packages_availability(ppa_specs, channel, args.timeout)
+
+
+if __name__ == "__main__":
+    main(sys.argv)
