@@ -1,46 +1,46 @@
 channel: edge
-required-packages:
+required-debs:
  - name: checkbox-ng
    deb-name: checkbox-ng
-   versions: [ 18.04.1, 20.04.1, 22.04.1, 23.04.1, 23.10.1, 24.04.1 ]
+   versions: [ 18.04, 20.04, 22.04, 23.04, 23.10, 24.04 ]
    architectures: [ all ]
    
  - name: checkbox-provider-base
    deb-name: checkbox-provider-base
-   versions: [ 18.04.1, 20.04.1, 22.04.1, 23.04.1, 23.10.1, 24.04.1 ]
+   versions: [ 18.04, 20.04, 22.04, 23.04, 23.10, 24.04 ]
    architectures: [ amd64, arm64, armhf, ppc64el, riscv64, s390x ]
 
  - name: checkbox-provider-certification-client
    deb-name: checkbox-provider-certification-client
-   versions: [ 18.04.1, 20.04.1, 22.04.1, 23.04.1, 23.10.1, 24.04.1 ]
+   versions: [ 18.04, 20.04, 22.04, 23.04, 23.10, 24.04 ]
    architectures: [ all ]
 
  - name: checkbox-provider-certification-server
    deb-name: checkbox-provider-certification-server
-   versions: [ 18.04.1, 20.04.1, 22.04.1, 23.04.1, 23.10.1, 24.04.1 ]
+   versions: [ 18.04, 20.04, 22.04, 23.04, 23.10, 24.04 ]
    architectures: [ all ]
 
  - name: checkbox-provider-gpgpu
    deb-name: checkbox-provider-gpgpu
-   versions: [ 18.04.1, 20.04.1, 22.04.1, 23.04.1, 23.10.1, 24.04.1 ]
+   versions: [ 18.04, 20.04, 22.04, 23.04, 23.10, 24.04 ]
    architectures: [ all ]
 
  - name: checkbox-provider-resource
    deb-name: checkbox-provider-resource
-   versions: [ 18.04.1, 20.04.1, 22.04.1, 23.04.1, 23.10.1, 24.04.1 ]
+   versions: [ 18.04, 20.04, 22.04, 23.04, 23.10, 24.04 ]
    architectures: [ amd64, arm64, armhf, ppc64el, riscv64, s390x ]
 
  - name: checkbox-provider-sru
    deb-name: checkbox-provider-sru
-   versions: [ 18.04.1, 20.04.1, 22.04.1, 23.04.1, 23.10.1, 24.04.1 ]
+   versions: [ 18.04, 20.04, 22.04, 23.04, 23.10, 24.04 ]
    architectures: [ amd64, arm64, armhf, ppc64el, riscv64, s390x ]
 
  - name: checkbox-provider-tpm2
    deb-name: checkbox-provider-tpm2
-   versions: [ 18.04.1, 20.04.1, 22.04.1, 23.04.1, 23.10.1, 24.04.1 ]
+   versions: [ 18.04, 20.04, 22.04, 23.04, 23.10, 24.04 ]
    architectures: [ all ]
 
  - name: checkbox-support
    deb-name: python3-checkbox-support
-   versions: [ 18.04.1, 20.04.1, 22.04.1, 23.04.1, 23.10.1, 24.04.1 ]
+   versions: [ 18.04, 20.04, 22.04, 23.04, 23.10, 24.04 ]
    architectures: [ all ]

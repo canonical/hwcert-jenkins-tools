@@ -23,17 +23,18 @@ from typing import NamedTuple
 
 
 # the nameduple for the ppa specification
-class PpaSpec(NamedTuple):
+class PackageSpec(NamedTuple):
     name: str
     deb_name: str
     version: str
     arch: str
 
 
-def is_package_available(url: str) -> bool:
+def url_header_check(url: str) -> bool:
     """
-    Check if a package is available in launchpad.
-    :param snap_spec: url to the deb package
+    Check whether the url header is available.
+    :param url: the url to check
+    :return: True if the header is available, False otherwise
     """
     try:
         response = requests.head(url)
@@ -44,8 +45,25 @@ def is_package_available(url: str) -> bool:
     return False
 
 
+def get_package_specs(yaml_content: dict, version: str) -> list[PackageSpec]:
+    package_specs = [
+        PackageSpec(
+            package["name"],
+            package["deb-name"],
+            "{}~ubuntu{}".format(version, ubuntu_version),
+            arch,
+        )
+        for package in yaml_content["required-debs"]
+        for ubuntu_version in package["versions"]
+        for arch in package["architectures"]
+        if (arch != "riscv64" and ubuntu_version != 18.04)
+    ]
+
+    return package_specs
+
+
 def check_packages_availability(
-    ppa_specs: list[PpaSpec], channel: str, timeout: int
+    ppa_specs: list[PackageSpec], channel: str, timeout: int
 ) -> None:
     """
     Iterate over the list of packages and check whether they are available
@@ -68,9 +86,9 @@ def check_packages_availability(
                 continue
             url = (
                 f"{base_url}{ppa_spec.name}/{ppa_spec.deb_name}"
-                f"_{ppa_spec.version}_{ppa_spec.arch}.deb"
+                f"_{ppa_spec.version}.1_{ppa_spec.arch}.deb"
             )
-            already_available[ppa_spec] = is_package_available(url)
+            already_available[ppa_spec] = url_header_check(url)
 
         # Exit the loop if all packages are found.
         if all(already_available.values()):
@@ -114,23 +132,10 @@ def main(argv):
     args = parser.parse_args(argv[1:])
 
     yaml_content = yaml.load(args.yaml_file, Loader=yaml.FullLoader)
-
-    # create the matrix of all combinations of the specified characteristics
-    ppa_specs = [
-        PpaSpec(
-            package["name"],
-            package["deb-name"],
-            "{}~ubuntu{}".format(args.version, ubuntu_version),
-            arch,
-        )
-        for package in yaml_content["required-packages"]
-        for ubuntu_version in package["versions"]
-        for arch in package["architectures"]
-        if (arch != "riscv64" and ubuntu_version != 18.04)
-    ]
+    package_specs = get_package_specs(yaml_content, args.version)
 
     channel = yaml_content["channel"]
-    check_packages_availability(ppa_specs, channel, args.timeout)
+    check_packages_availability(package_specs, channel, args.timeout)
 
 
 if __name__ == "__main__":
