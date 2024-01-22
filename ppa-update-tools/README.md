@@ -4,8 +4,7 @@ This directory contains programs that help test checkbox PPAs.
 
 ## ppa_version_published.py
 
-This program checks whether a specified package is available in launchpad
-for a the PPA correspondent to a snap channel
+This program checks whether a specified package is available in a given PPA.
 
 Characteristics include package name, deb name, ubuntu versions and 
 architectures.

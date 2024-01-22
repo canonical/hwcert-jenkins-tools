@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-This program checks whether a specified package is available in launchpad
+This program checks whether a specified package is available in a given PPA.
 for a the PPA correspondent to a snap channel
 
 The matrix of all combinations is created and the program peridically checks
