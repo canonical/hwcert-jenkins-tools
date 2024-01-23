@@ -3,14 +3,15 @@
 This program checks whether a specified package is available in a given PPA.
 for a the PPA correspondent to a snap channel
 
-The matrix of all combinations is created and the program peridically checks
+The matrix of all combinations is created and the program periodically checks
 whether all combinations are available and waits until either all of them are
 available or the timeout is reached.
 The characteristics that can be specified are:
-  - (required and one) name of the package
-  - (required and one) name of the deb file
+  - (required and one) name of the source
+  - (required and one) name of the package (.deb file)
   - (required and 1 or more) versions of ubuntu
   - (required and 1 or more) architectures
+  - (optional and 1 or more) excluded combinations of ubuntu version and arch
 """
 
 
@@ -24,8 +25,8 @@ from typing import NamedTuple
 
 # the nameduple for the ppa specification
 class PackageSpec(NamedTuple):
-    name: str
-    deb_name: str
+    source: str
+    package: str
     version: str
     arch: str
 
@@ -48,12 +49,12 @@ def url_header_check(url: str) -> bool:
 def get_package_specs(yaml_content: dict, version: str) -> list[PackageSpec]:
     package_specs = [
         PackageSpec(
-            package["name"],
-            package["deb-name"],
+            package["source"],
+            package["package"],
             "{}~ubuntu{}".format(version, ubuntu_version),
             arch,
         )
-        for package in yaml_content["required-debs"]
+        for package in yaml_content["required-packages"]
         for ubuntu_version in package["versions"]
         for arch in package["architectures"]
         # We are excluding the combinations that are not being built
@@ -64,17 +65,17 @@ def get_package_specs(yaml_content: dict, version: str) -> list[PackageSpec]:
 
 
 def check_packages_availability(
-    ppa_specs: list[PackageSpec], channel: str, timeout: int
+    package_specs: list[PackageSpec], channel: str, timeout: int
 ) -> None:
     """
     Iterate over the list of packages and check whether they are available
     in the ppa.
-    :param ppa_specs: the list of packages to check
+    :param package_specs: the list of packages to check
     :param channel: the ppa correspondent to the channel
     :param timeout: the timeout in seconds
     """
     # Dict to store whether each ppa is available.
-    already_available = {ppa_spec: False for ppa_spec in ppa_specs}
+    already_available = {package_spec: False for package_spec in package_specs}
     # Set the deadline.
     deadline = time.time() + timeout
 
@@ -82,29 +83,32 @@ def check_packages_availability(
         f"http://ppa.launchpad.net/checkbox-dev/{channel}/ubuntu/pool/main/c/"
     )
     while True:
-        for ppa_spec in ppa_specs:
-            if already_available[ppa_spec]:
+        for package_spec in package_specs:
+            if already_available[package_spec]:
                 continue
             url = (
-                f"{base_url}{ppa_spec.name}/{ppa_spec.deb_name}"
-                f"_{ppa_spec.version}.1_{ppa_spec.arch}.deb"
+                f"{base_url}{package_spec.name}/{package_spec.deb_name}"
+                f"_{package_spec.version}.1_{package_spec.arch}.deb"
             )
-            already_available[ppa_spec] = url_header_check(url)
+            already_available[package_spec] = url_header_check(url)
 
         # Exit the loop if all packages are found.
         if all(already_available.values()):
             break
 
         not_available = [
-            ppa_spec
-            for ppa_spec, is_available in already_available.items()
+            package_spec
+            for package_spec, is_available in already_available.items()
             if not is_available
         ]
         print("Not all packages were available in the store.")
         print("Here is the list of packages that were not found:")
 
-        for ppa_spec in not_available:
-            print(f"{ppa_spec.name} {ppa_spec.version}  for '{ppa_spec.arch}'")
+        for package_spec in not_available:
+            print(
+                f"{package_spec.name} {package_spec.version}  for"
+                f" '{package_spec.arch}'"
+            )
         if time.time() > deadline:
             raise SystemExit("Timeout reached.")
 

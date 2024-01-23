@@ -6,6 +6,7 @@ from unittest.mock import patch, mock_open
 
 
 from ppa_version_published import (
+    PackageSpec,
     url_header_check,
     get_package_specs,
     main,
@@ -45,53 +46,58 @@ class TestIsPackageAvailable(unittest.TestCase):
         result = url_header_check(self.url_example)
         self.assertFalse(result)
 
+
 class TestGetPackageSpecs(unittest.TestCase):
     def setUp(self):
         self.sample_yaml_content = {
-                "channel": "edge",
-                "required-debs": [
-                    {
-                        "name": "pkg1",
-                        "deb-name": "pkg1-deb",
-                        "versions": ["20.04", "22.04"],
-                        "architectures": ["amd64", "armhf"],
-                    },
-                    {
-                        "name": "pkg2",
-                        "deb-name": "pkg2-deb",
-                        "versions": ["20.04", "22.04"],
-                        "architectures": ["all"],
-                    },
-                ],
-            }
-        
+            "channel": "edge",
+            "required-packages": [
+                {
+                    "source": "src1",
+                    "package": "pkg1",
+                    "versions": ["20.04", "22.04"],
+                    "architectures": ["amd64", "armhf"],
+                    "exclude": [["22.04", "armhf"]],
+                },
+                {
+                    "source": "src2",
+                    "package": "pkg2",
+                    "versions": ["20.04", "22.04"],
+                    "architectures": ["all"],
+                },
+            ],
+        }
+
     def test_get_package_specs(self):
         package_specs = get_package_specs(self.sample_yaml_content, "1.0~dev1")
 
-        # 6 PackageSpec objects are created (4 for pkg1 and 2 for pkg2)
-        self.assertEqual(len(package_specs), 6)
+        # 5 PackageSpec objects are created:
+        #   - 4 packages minus 1 excluded for src1
+        #   - 1 package for src2
+        self.assertEqual(len(package_specs), 5)
 
-        # The first package spec is pkg1
-        self.assertEqual(package_specs[0].name, "pkg1")
-        self.assertEqual(package_specs[0].deb_name, "pkg1-deb")
+        # The first package spec is src1
+        self.assertEqual(package_specs[0].source, "src1")
+        self.assertEqual(package_specs[0].package, "pkg1")
         self.assertEqual(package_specs[0].version, "1.0~dev1~ubuntu20.04")
         self.assertEqual(package_specs[0].arch, "amd64")
 
-class TestMainFunction(unittest.TestCase):
-    def setUp(self):
-        self.sample_yaml_content = """
-        channel: edge
-        required-debs:
-          - name: pkg1
-            deb-name: pkg1-deb
-            versions: ["1.0", "2.0"]
-            architectures: ["amd64", "armhf"]
-          - name: pkg2
-            deb-name: pkg2-deb
-            versions: ["1.0", "2.0"]
-            architectures: ["all"]
-        """
+        # The exclusion excludes only the intended package
+        self.assertTrue(
+            PackageSpec("src1", "pkg1", "1.0~dev1~ubuntu22.04", "amd64")
+            in package_specs
+        )
+        self.assertTrue(
+            PackageSpec("src1", "pkg1", "1.0~dev1~ubuntu20.04", "armhf")
+            in package_specs
+        )
+        self.assertFalse(
+            PackageSpec("src1", "pkg1", "1.0~dev1~ubuntu22.04", "armhf")
+            in package_specs
+        )
 
+
+class TestMainFunction(unittest.TestCase):
     @patch("ppa_version_published.yaml.load")
     @patch("ppa_version_published.check_packages_availability")
     def test_argument_parsing(self, mock_check_packages, mock_yaml_load):
@@ -99,16 +105,17 @@ class TestMainFunction(unittest.TestCase):
 
         mock_yaml_load.return_value = {
             "channel": "edge",
-            "required-debs": [
+            "required-packages": [
                 {
-                    "name": "pkg1",
-                    "deb-name": "pkg1-deb",
+                    "source": "src1",
+                    "package": "pkg1",
                     "versions": ["1.0", "2.0"],
                     "architectures": ["amd64", "armhf"],
+                    "exclude": [["2.0", "armhf"]],
                 },
                 {
-                    "name": "pkg2",
-                    "deb-name": "pkg2-deb",
+                    "source": "src2",
+                    "package": "pkg2",
                     "versions": ["1.0", "2.0"],
                     "architectures": ["all"],
                 },
@@ -120,8 +127,10 @@ class TestMainFunction(unittest.TestCase):
             main(argv)
 
         # check_packages_availability is called with the expected arguments
-        # 6 PackageSpec objects are created (4 for pkg1 and 2 for pkg2)
-        self.assertEqual(len(mock_check_packages.call_args[0][0]), 6)
+        # 5 PackageSpec objects are created:
+        #   - 4 packages minus 1 excluded for src1
+        #   - 1 package for src2
+        self.assertEqual(len(mock_check_packages.call_args[0][0]), 5)
         # The channel is edge
         self.assertEqual(
             mock_check_packages.call_args[0][1], "edge"
@@ -137,14 +146,22 @@ class TestMainFunction(unittest.TestCase):
         # Sample arguments without specifying timeout
         argv = ["script_name", "1.0", "path/to/file.yaml"]
 
-        m = mock_open(read_data=self.sample_yaml_content)
+        sample_yaml_content = """
+        channel: edge
+        required-packages:
+          - source: src1
+            package: pkg1
+            versions: ["1.0", "2.0"]
+            architectures: ["amd64", "armhf"]
+            exclude: [["3.0", "armhf"]]
+        """
+
+        m = mock_open(read_data=sample_yaml_content)
 
         with patch("builtins.open", m):
             # Mocking yaml.load to just return a dictionary based on the
             # sample content
-            mock_yaml_load.return_value = yaml.safe_load(
-                self.sample_yaml_content
-            )
+            mock_yaml_load.return_value = yaml.safe_load(sample_yaml_content)
             main(argv)
 
         # Ensure check_packages_availability is called with default timeout

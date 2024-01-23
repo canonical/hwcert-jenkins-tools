@@ -1,52 +1,52 @@
 channel: edge
-required-debs:
- - name: checkbox-ng
-   deb-name: checkbox-ng
+required-packages:
+ - source: checkbox-ng
+   package: checkbox-ng
    versions: [ "18.04", "20.04", "22.04", "23.04", "23.10", "24.04" ]
    architectures: [ all ]
    
- - name: checkbox-provider-base
-   deb-name: checkbox-provider-base
+ - source: checkbox-provider-base
+   package: checkbox-provider-base
    versions: [ "18.04", "20.04", "22.04", "23.04", "23.10", "24.04" ]
    architectures: [ amd64, arm64, armhf, ppc64el, riscv64, s390x ]
    # The package is not built in 18.04 for riscv64
    exclude: [["18.04", riscv64]]
 
- - name: checkbox-provider-certification-client
-   deb-name: checkbox-provider-certification-client
+ - source: checkbox-provider-certification-client
+   package: checkbox-provider-certification-client
    versions: [ "18.04", "20.04", "22.04", "23.04", "23.10", "24.04" ]
    architectures: [ all ]
 
- - name: checkbox-provider-certification-server
-   deb-name: checkbox-provider-certification-server
+ - source: checkbox-provider-certification-server
+   package: checkbox-provider-certification-server
    versions: [ "18.04", "20.04", "22.04", "23.04", "23.10", "24.04" ]
    architectures: [ all ]
 
- - name: checkbox-provider-gpgpu
-   deb-name: checkbox-provider-gpgpu
+ - source: checkbox-provider-gpgpu
+   package: checkbox-provider-gpgpu
    versions: [ "18.04", "20.04", "22.04", "23.04", "23.10", "24.04" ]
    architectures: [ all ]
 
- - name: checkbox-provider-resource
-   deb-name: checkbox-provider-resource
+ - source: checkbox-provider-resource
+   package: checkbox-provider-resource
    versions: [ "18.04", "20.04", "22.04", "23.04", "23.10", "24.04" ]
    architectures: [ amd64, arm64, armhf, ppc64el, riscv64, s390x ]
    # The package is not built in 18.04 for riscv64
    exclude: [["18.04", riscv64]]
 
- - name: checkbox-provider-sru
-   deb-name: checkbox-provider-sru
+ - source: checkbox-provider-sru
+   package: checkbox-provider-sru
    versions: [ "18.04", "20.04", "22.04", "23.04", "23.10", "24.04" ]
    architectures: [ amd64, arm64, armhf, ppc64el, riscv64, s390x ]
    # The package is not built in 18.04 for riscv64
    exclude: [["18.04", riscv64]]
 
- - name: checkbox-provider-tpm2
-   deb-name: checkbox-provider-tpm2
+ - source: checkbox-provider-tpm2
+   package: checkbox-provider-tpm2
    versions: [ "18.04", "20.04", "22.04", "23.04", "23.10", "24.04" ]
    architectures: [ all ]
 
- - name: checkbox-support
-   deb-name: python3-checkbox-support
+ - source: checkbox-support
+   package: python3-checkbox-support
    versions: [ "18.04", "20.04", "22.04", "23.04", "23.10", "24.04" ]
    architectures: [ all ]
