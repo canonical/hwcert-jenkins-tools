@@ -56,7 +56,8 @@ def get_package_specs(yaml_content: dict, version: str) -> list[PackageSpec]:
         for package in yaml_content["required-debs"]
         for ubuntu_version in package["versions"]
         for arch in package["architectures"]
-        if (arch != "riscv64" and ubuntu_version != 18.04)
+        # We are excluding the combinations that are not being built
+        if [ubuntu_version, arch] not in package.get("exclude", [])
     ]
 
     return package_specs
