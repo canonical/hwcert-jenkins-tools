@@ -28,6 +28,7 @@ class PackageSpec(NamedTuple):
     source: str
     package: str
     version: str
+    ubuntu_version: str
     arch: str
 
 
@@ -47,20 +48,41 @@ def url_header_check(url: str) -> bool:
 
 
 def get_package_specs(yaml_content: dict, version: str) -> list[PackageSpec]:
-    package_specs = [
-        PackageSpec(
-            package["source"],
-            package["package"],
-            "{}~ubuntu{}".format(version, ubuntu_version),
-            arch,
-        )
-        for package in yaml_content["required-packages"]
-        for ubuntu_version in package["versions"]
-        for arch in package["architectures"]
-        # We are excluding the combinations that are not being built
-        if [ubuntu_version, arch] not in package.get("exclude", [])
-    ]
+    """
+    Create a list of PackageSpec objects from the yaml content.
+    :param yaml_content: file containing the package requirements
+    :param version: the version of the package
+    :return: the list of PackageSpec objects
+    """
 
+    package_specs = []
+    for package in yaml_content["required-packages"]:
+        # General versions and architectures
+        for ubuntu_version in package["versions"]:
+            for arch in package["architectures"]:
+                package_specs.append(
+                    PackageSpec(
+                        package["source"],
+                        package["package"],
+                        version,
+                        ubuntu_version,
+                        arch,
+                    )
+                )
+        # Special handling for the 'include' field if it exists
+        # This is required because ubuntu 18.04 does not build for riscv64
+        if "include" in package:
+            for ubuntu_version in package["include"]["versions"]:
+                for arch in package["include"]["architectures"]:
+                    package_specs.append(
+                        PackageSpec(
+                            package["source"],
+                            package["package"],
+                            version,
+                            ubuntu_version,
+                            arch,
+                        )
+                    )
     return package_specs
 
 
@@ -87,8 +109,9 @@ def check_packages_availability(
             if already_available[package_spec]:
                 continue
             url = (
-                f"{base_url}{package_spec.name}/{package_spec.deb_name}"
-                f"_{package_spec.version}.1_{package_spec.arch}.deb"
+                f"{base_url}{package_spec.source}/{package_spec.package}"
+                f"_{package_spec.version}~ubuntu{package_spec.ubuntu_version}"
+                f".1_{package_spec.arch}.deb"
             )
             already_available[package_spec] = url_header_check(url)
 
@@ -106,8 +129,9 @@ def check_packages_availability(
 
         for package_spec in not_available:
             print(
-                f"{package_spec.name} {package_spec.version}  for"
-                f" '{package_spec.arch}'"
+                f"{package_spec.package:<40} | "
+                f"ubuntu version {package_spec.ubuntu_version} | "
+                f"architecture {package_spec.arch}"
             )
         if time.time() > deadline:
             raise SystemExit("Timeout reached.")

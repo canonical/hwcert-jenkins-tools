@@ -7,10 +7,12 @@ required-packages:
    
  - source: checkbox-provider-base
    package: checkbox-provider-base
-   versions: [ "18.04", "20.04", "22.04", "23.04", "23.10", "24.04" ]
+   versions: [ "20.04", "22.04", "23.04", "23.10", "24.04" ]
    architectures: [ amd64, arm64, armhf, ppc64el, riscv64, s390x ]
    # The package is not built in 18.04 for riscv64
-   exclude: [["18.04", riscv64]]
+   include: 
+      versions: [ "18.04"]
+      architectures: [ amd64, arm64, armhf, ppc64el, s390x ]
 
  - source: checkbox-provider-certification-client
    package: checkbox-provider-certification-client
@@ -29,17 +31,21 @@ required-packages:
 
  - source: checkbox-provider-resource
    package: checkbox-provider-resource
-   versions: [ "18.04", "20.04", "22.04", "23.04", "23.10", "24.04" ]
+   versions: [ "20.04", "22.04", "23.04", "23.10", "24.04" ]
    architectures: [ amd64, arm64, armhf, ppc64el, riscv64, s390x ]
    # The package is not built in 18.04 for riscv64
-   exclude: [["18.04", riscv64]]
+   include: 
+      versions: [ "18.04"]
+      architectures: [ amd64, arm64, armhf, ppc64el, s390x ]
 
  - source: checkbox-provider-sru
    package: checkbox-provider-sru
-   versions: [ "18.04", "20.04", "22.04", "23.04", "23.10", "24.04" ]
+   versions: [ "20.04", "22.04", "23.04", "23.10", "24.04" ]
    architectures: [ amd64, arm64, armhf, ppc64el, riscv64, s390x ]
    # The package is not built in 18.04 for riscv64
-   exclude: [["18.04", riscv64]]
+   include: 
+      versions: [ "18.04"]
+      architectures: [ amd64, arm64, armhf, ppc64el, s390x ]
 
  - source: checkbox-provider-tpm2
    package: checkbox-provider-tpm2
