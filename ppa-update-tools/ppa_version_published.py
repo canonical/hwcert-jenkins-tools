@@ -69,20 +69,7 @@ def get_package_specs(yaml_content: dict, version: str) -> list[PackageSpec]:
                         arch,
                     )
                 )
-        # Special handling for the 'include' field if it exists
-        # This is required because ubuntu 18.04 does not build for riscv64
-        if "include" in package:
-            for ubuntu_version in package["include"]["versions"]:
-                for arch in package["include"]["architectures"]:
-                    package_specs.append(
-                        PackageSpec(
-                            package["source"],
-                            package["package"],
-                            version,
-                            ubuntu_version,
-                            arch,
-                        )
-                    )
+    package_specs.sort()
     return package_specs
 
 

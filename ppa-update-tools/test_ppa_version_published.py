@@ -57,10 +57,12 @@ class TestGetPackageSpecs(unittest.TestCase):
                     "package": "pkg1",
                     "versions": ["20.04", "22.04"],
                     "architectures": ["amd64", "armhf"],
-                    "include": {
-                        "versions": ["18.04"],
-                        "architectures": ["amd64"],
-                    },
+                },
+                {
+                    "source": "src1",
+                    "package": "pkg1",
+                    "versions": ["18.04"],
+                    "architectures": ["amd64"],
                 },
                 {
                     "source": "src2",
@@ -79,18 +81,14 @@ class TestGetPackageSpecs(unittest.TestCase):
         #   - 2 package for src2
         self.assertEqual(len(package_specs), 7)
 
-        # The first package spec is src1
+        # The packages are sorted
         self.assertEqual(package_specs[0].source, "src1")
         self.assertEqual(package_specs[0].package, "pkg1")
         self.assertEqual(package_specs[0].version, "1.0~dev1")
-        self.assertEqual(package_specs[0].ubuntu_version, "20.04")
+        self.assertEqual(package_specs[0].ubuntu_version, "18.04")
         self.assertEqual(package_specs[0].arch, "amd64")
 
         # The inclusion adds only the intended package
-        self.assertTrue(
-            PackageSpec("src1", "pkg1", "1.0~dev1", "18.04", "amd64")
-            in package_specs
-        )
         self.assertFalse(
             PackageSpec("src1", "pkg1", "1.0~dev1", "18.04", "armhf")
             in package_specs
@@ -111,10 +109,12 @@ class TestMainFunction(unittest.TestCase):
                     "package": "pkg1",
                     "versions": ["1.0", "2.0"],
                     "architectures": ["amd64", "armhf"],
-                    "include": {
-                        "versions": ["18.04"],
-                        "architectures": ["amd64"],
-                    },
+                },
+                {
+                    "source": "src1",
+                    "package": "pkg1",
+                    "versions": ["18.04"],
+                    "architectures": ["amd64"],
                 },
                 {
                     "source": "src2",
@@ -156,9 +156,10 @@ class TestMainFunction(unittest.TestCase):
             package: pkg1
             versions: ["1.0", "2.0"]
             architectures: ["amd64", "armhf"]
-            include:
-                versions: ["18.04"],
-                architectures: ["amd64"],
+          - source: src1
+            package: pkg1
+            versions: ["3.0"]
+            architectures: ["amd64""]
         """
 
         m = mock_open(read_data=sample_yaml_content)
