@@ -17,7 +17,7 @@ are two yaml files that define what snaps and packages it should look for:
 
  
 Example usage:
-`python3 checkbox_version_published.py 2.10.09.2-dev5-123abcdef --snaps-yaml checkbox-canary-snaps.yaml --packages-yaml checkbox-canary-packages.yaml`
+`python3 checkbox_version_published.py 3.3.0-dev10 --snaps-yaml checkbox-canary-snaps.yaml --packages-yaml checkbox-canary-packages.yaml`
 
 ## test_* files
 
