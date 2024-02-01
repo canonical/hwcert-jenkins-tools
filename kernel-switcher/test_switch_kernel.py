@@ -12,13 +12,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import re
-import subprocess
+import argparse
 import unittest
 
 from unittest.mock import call, mock_open, patch
 
+from switch_kernel import add_efi_opt
 from switch_kernel import assert_root
 from switch_kernel import find_menuentry_for_kernel
 from switch_kernel import get_grub_cfg_contents
@@ -27,6 +26,7 @@ from switch_kernel import get_submenu_entry
 from switch_kernel import main
 from switch_kernel import parse_args
 from switch_kernel import update_grub_default_contents
+from switch_kernel import update_cmd_linux_default
 
 
 class TestAssertRoot(unittest.TestCase):
@@ -37,7 +37,7 @@ class TestAssertRoot(unittest.TestCase):
 
         try:
             assert_root()
-        except SystemExit as e:
+        except SystemExit:
             self.fail("assert_root() raised SystemExit unexpectedly!")
 
     @patch("os.geteuid")
@@ -254,15 +254,55 @@ class TestUpdateGrubDefaultContents(unittest.TestCase):
 class TestParseArgs(unittest.TestCase):
     def test_parse_args(self):
         argv = ["switch_kernel.py", "5.4.0-80"]
-        kernel, dry_run = parse_args(argv)
-        self.assertEqual(kernel, "5.4.0-80")
-        self.assertFalse(dry_run)
+        args = parse_args(argv)
+        self.assertEqual(args.kernel[0], "5.4.0-80")
+        self.assertFalse(args.dry_run)
+        self.assertFalse(args.enable_efi_vars)
 
     def test_parse_args_with_dry_run(self):
         argv = ["switch_kernel.py", "5.4.0-80", "--dry-run"]
-        kernel, dry_run = parse_args(argv)
-        self.assertEqual(kernel, "5.4.0-80")
-        self.assertTrue(dry_run)
+        args = parse_args(argv)
+        self.assertEqual(args.kernel[0], "5.4.0-80")
+        self.assertTrue(args.dry_run)
+        self.assertFalse(args.enable_efi_vars)
+
+
+    def test_parse_args_with_efi_vars(self):
+        argv = ["switch_kernel.py", "5.4.0-80", "--enable-efi-vars"]
+        args = parse_args(argv)
+        self.assertEqual(args.kernel[0], "5.4.0-80")
+        self.assertFalse(args.dry_run)
+        self.assertTrue(args.enable_efi_vars)
+
+class TestAddEfiOpt(unittest.TestCase):
+    def test_add_efi_opt_replace_noruntime(self):
+        before = "efi=noruntime"
+        self.assertEqual(add_efi_opt(before), "efi=runtime")
+
+    def test_add_efi_opt_empty(self):
+        self.assertEqual(add_efi_opt(""), "efi=runtime")
+
+    def test_add_efi_opt_no_change(self):
+        self.assertEqual(add_efi_opt("efi=runtime"), "efi=runtime")
+
+    def test_add_efi_opt_add_runtime(self):
+        before = "quiet splash"
+        self.assertEqual(add_efi_opt(before), "quiet splash efi=runtime")
+
+    def test_add_efi_opt_replace_in_the_middle(self):
+        before = "quiet efi=noruntime splash"
+        self.assertEqual(add_efi_opt(before), "quiet efi=runtime splash")
+
+class TestUpdateCmdLinuxDefault(unittest.TestCase):
+    def test_update_cmd_linux_default_smoke(self):
+        before = "FOO=bar\nGRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash\"\nBIZ=baz"
+        after = "FOO=bar\nGRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash efi=runtime\"\nBIZ=baz"
+        self.assertEqual(update_cmd_linux_default(before), after)
+
+    def test_update_cmd_linux_default_empty(self):
+        before = ""
+        after = ""
+        self.assertEqual(update_cmd_linux_default(before), after)
 
 
 class TestMain(unittest.TestCase):
@@ -288,7 +328,11 @@ class TestMain(unittest.TestCase):
         mock_parse_args,
     ):
         # Set up mocks
-        mock_parse_args.return_value = ("5.4.0-80", False)
+        mock_parse_args.return_value = argparse.Namespace(
+            kernel=['5.4.0-80'],
+            dry_run=False,
+            enable_efi_vars=False
+        )
         mock_get_grub_cfg_contents.return_value = "test grub cfg contents"
         mock_get_submenu_entry.return_value = "test submenu entry"
         mock_find_menuentry_for_kernel.return_value = "test menuentry"
@@ -351,7 +395,11 @@ class TestMain(unittest.TestCase):
         mock_parse_args,
     ):
         # Set up mocks
-        mock_parse_args.return_value = ("5.4.0-80", False)
+        mock_parse_args.return_value = argparse.Namespace(
+            kernel=['5.4.0-80'],
+            dry_run=False,
+            enable_efi_vars=False
+        )
         mock_get_grub_cfg_contents.return_value = "test grub cfg contents"
         mock_get_submenu_entry.return_value = "test submenu entry"
         mock_find_menuentry_for_kernel.return_value = "test menuentry"
@@ -413,7 +461,11 @@ class TestMain(unittest.TestCase):
         mock_parse_args,
     ):
         # Set up mocks
-        mock_parse_args.return_value = ("5.4.0-80", True)
+        mock_parse_args.return_value = argparse.Namespace(
+            kernel=['5.4.0-80'],
+            dry_run=True,
+            enable_efi_vars=False
+        )
         mock_get_grub_cfg_contents.return_value = "test grub cfg contents"
         mock_get_submenu_entry.return_value = "test submenu entry"
         mock_find_menuentry_for_kernel.return_value = "test menuentry"
@@ -450,5 +502,150 @@ class TestMain(unittest.TestCase):
                 call("Dry run, not writing to grub config."),
                 call("Would have written:"),
                 call("GRUB_DEFAULT='test submenu entry>test menuentry'"),
+            ]
+        )
+
+
+    @patch("switch_kernel.parse_args")
+    @patch("switch_kernel.get_grub_cfg_contents")
+    @patch("switch_kernel.get_submenu_entry")
+    @patch("switch_kernel.find_menuentry_for_kernel")
+    @patch("switch_kernel.get_grub_default_contents")
+    @patch("switch_kernel.update_grub_default_contents")
+    @patch("builtins.print")
+    @patch("os.path.exists")
+    @patch("os.remove")
+    def test_main_with_efi_run(
+        self,
+        mock_remove,
+        mock_exists,
+        mock_print,
+        mock_update_grub_default_contents,
+        mock_get_grub_default_contents,
+        mock_find_menuentry_for_kernel,
+        mock_get_submenu_entry,
+        mock_get_grub_cfg_contents,
+        mock_parse_args,
+    ):
+        # Set up mocks
+        mock_parse_args.return_value = argparse.Namespace(
+            kernel=['5.4.0-80'],
+            dry_run=False,
+            enable_efi_vars=True
+        )
+        mock_get_grub_cfg_contents.return_value = "test grub cfg contents"
+        mock_get_submenu_entry.return_value = "test submenu entry"
+        mock_find_menuentry_for_kernel.return_value = "test menuentry"
+        mock_get_grub_default_contents.return_value = (
+            "GRUB_DEFAULT=test grub default contents\n"
+            "GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash\""
+        )
+
+        # Call main
+        main([])
+
+       # Check that the expected functions were called with the expected arguments
+        mock_parse_args.assert_called_once_with([])
+        mock_get_grub_cfg_contents.assert_called_once_with()
+        mock_get_submenu_entry.assert_called_once_with(
+            "test grub cfg contents"
+        )
+        mock_find_menuentry_for_kernel.assert_called_once_with(
+            "5.4.0-80", "test grub cfg contents"
+        )
+        mock_get_grub_default_contents.assert_called_once_with()
+        mock_remove.assert_called_once_with(
+            "/etc/default/grub.d/40-force-partuuid.cfg"
+        )
+        #mock_update_grub_default_contents.assert_called_once_with(
+        #    "GRUB_DEFAULT='test submenu entry>test menuentry'"
+        #)
+        mock_update_grub_default_contents.assert_called_once_with(
+            "GRUB_DEFAULT='test submenu entry>test menuentry'\n"
+            "GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash efi=runtime\""
+        )
+
+        # Check that the expected output was printed
+        mock_print.assert_has_calls(
+            [
+                call("Reading existing kernel from /boot/grub/grub.cfg..."),
+                call("Found submenu entry: test submenu entry"),
+                call("Searching for menuentry for kernel 5.4.0-80..."),
+                call("Found menuentry: test menuentry"),
+                call("Removing 'force partuuid' from grub config..."),
+                call("Setting new default: test submenu entry>test menuentry"),
+            ]
+        )
+
+
+
+    @patch("switch_kernel.parse_args")
+    @patch("switch_kernel.get_grub_cfg_contents")
+    @patch("switch_kernel.get_submenu_entry")
+    @patch("switch_kernel.find_menuentry_for_kernel")
+    @patch("switch_kernel.get_grub_default_contents")
+    @patch("switch_kernel.update_grub_default_contents")
+    @patch("builtins.print")
+    @patch("os.path.exists")
+    @patch("os.remove")
+    def test_main_implied_efi_vars(
+        self,
+        mock_remove,
+        mock_exists,
+        mock_print,
+        mock_update_grub_default_contents,
+        mock_get_grub_default_contents,
+        mock_find_menuentry_for_kernel,
+        mock_get_submenu_entry,
+        mock_get_grub_cfg_contents,
+        mock_parse_args,
+    ):
+        # Set up mocks
+        mock_parse_args.return_value = argparse.Namespace(
+            kernel=['realtime'],
+            dry_run=False,
+            enable_efi_vars=False
+        )
+        mock_get_grub_cfg_contents.return_value = "test grub cfg contents"
+        mock_get_submenu_entry.return_value = "test submenu entry"
+        mock_find_menuentry_for_kernel.return_value = "test menuentry"
+        mock_get_grub_default_contents.return_value = (
+            "GRUB_DEFAULT=test grub default contents\n"
+            "GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash\""
+        )
+
+        # Call main
+        main([])
+
+       # Check that the expected functions were called with the expected arguments
+        mock_parse_args.assert_called_once_with([])
+        mock_get_grub_cfg_contents.assert_called_once_with()
+        mock_get_submenu_entry.assert_called_once_with(
+            "test grub cfg contents"
+        )
+        mock_find_menuentry_for_kernel.assert_called_once_with(
+            "realtime", "test grub cfg contents"
+        )
+        mock_get_grub_default_contents.assert_called_once_with()
+        mock_remove.assert_called_once_with(
+            "/etc/default/grub.d/40-force-partuuid.cfg"
+        )
+        #mock_update_grub_default_contents.assert_called_once_with(
+        #    "GRUB_DEFAULT='test submenu entry>test menuentry'"
+        #)
+        mock_update_grub_default_contents.assert_called_once_with(
+            "GRUB_DEFAULT='test submenu entry>test menuentry'\n"
+            "GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash efi=runtime\""
+        )
+
+        # Check that the expected output was printed
+        mock_print.assert_has_calls(
+            [
+                call("Reading existing kernel from /boot/grub/grub.cfg..."),
+                call("Found submenu entry: test submenu entry"),
+                call("Searching for menuentry for kernel realtime..."),
+                call("Found menuentry: test menuentry"),
+                call("Removing 'force partuuid' from grub config..."),
+                call("Setting new default: test submenu entry>test menuentry"),
             ]
         )

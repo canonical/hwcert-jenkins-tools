@@ -140,12 +140,56 @@ def parse_args(argv):
         help="do not write anything to the grub config",
     )
 
-    args = parser.parse_args(argv[1:])
-    return args.kernel[0], args.dry_run
+    parser.add_argument(
+        "--enable-efi-vars",
+        action="store_true",
+        help="enable EFI variables so MAAS can reprovision the machine",
+    )
+
+    return parser.parse_args(argv[1:])
+
+    return args.kernel[0], args.dry_run, args.enable_efi_vars
+
+def add_efi_opt(cmdline):
+    """
+    Add the EFI variables to the kernel command line.
+
+    If an efi setting is already there replace it with the `runtime` option.
+    """
+    if not cmdline:
+        return "efi=runtime"
+    if "efi=" in cmdline:
+        return re.sub(r"efi=\S*", "efi=runtime", cmdline)
+
+    return cmdline + " efi=runtime"
+
+def update_cmd_linux_default(grub_cfg_contents):
+    """
+    Goes through the context of the grub config file,
+    finds the line with the `GRUB_CMDLINE_LINUX_DEFAULT` and
+    adds the `efi` option to it.
+    """
+    output = []
+
+    for line in grub_cfg_contents.splitlines():
+        pattern = r'GRUB_CMDLINE_LINUX_DEFAULT="(.*?)"'
+        match = re.search(pattern, line)
+        if match:
+            value = match.group(1)
+            output.append(f'GRUB_CMDLINE_LINUX_DEFAULT="{add_efi_opt(value)}"')
+
+        else:
+            output.append(line)
+    return "\n".join(output)
+
 
 
 def main(argv):
-    kernel, dry_run = parse_args(argv)
+    args = parse_args(argv)
+    kernel = args.kernel[0]
+    dry_run = args.dry_run
+    enable_efi_vars = args.enable_efi_vars
+
 
     print("Reading existing kernel from /boot/grub/grub.cfg...")
     grub_cfg_contents = get_grub_cfg_contents()
@@ -176,6 +220,10 @@ def main(argv):
         f"GRUB_DEFAULT='{new_default}'",
         grub_default_contents,
     )
+    if enable_efi_vars or kernel.lower() == "realtime":
+        new_grub_default_contents = update_cmd_linux_default(new_grub_default_contents)
+
+
     if dry_run:
         print("Dry run, not writing to grub config.")
         print("Would have written:")
