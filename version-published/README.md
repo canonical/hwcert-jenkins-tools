@@ -1,7 +1,7 @@
 # Checkbox version tools
 
 This directory contains programs that help test if a specific version of
-checkbox is available, either in the snap store or on a PPA.
+checkbox is available, in both, the snap store and in the PPA.
 
 ## checkbox_version_published.py
 
