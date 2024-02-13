@@ -148,7 +148,6 @@ def parse_args(argv):
 
     return parser.parse_args(argv[1:])
 
-    return args.kernel[0], args.dry_run, args.enable_efi_vars
 
 def add_efi_opt(cmdline):
     """
@@ -163,20 +162,20 @@ def add_efi_opt(cmdline):
 
     return cmdline + " efi=runtime"
 
-def update_cmd_linux_default(grub_cfg_contents):
+def update_cmd_linux(grub_cfg_contents):
     """
     Goes through the context of the grub config file,
-    finds the line with the `GRUB_CMDLINE_LINUX_DEFAULT` and
+    finds the line with the `GRUB_CMDLINE_LINUX` and
     adds the `efi` option to it.
     """
     output = []
 
     for line in grub_cfg_contents.splitlines():
-        pattern = r'GRUB_CMDLINE_LINUX_DEFAULT="(.*?)"'
+        pattern = r'GRUB_CMDLINE_LINUX="(.*?)"'
         match = re.search(pattern, line)
         if match:
             value = match.group(1)
-            output.append(f'GRUB_CMDLINE_LINUX_DEFAULT="{add_efi_opt(value)}"')
+            output.append(f'GRUB_CMDLINE_LINUX="{add_efi_opt(value)}"')
 
         else:
             output.append(line)
@@ -221,7 +220,7 @@ def main(argv):
         grub_default_contents,
     )
     if enable_efi_vars or kernel.lower() == "realtime":
-        new_grub_default_contents = update_cmd_linux_default(new_grub_default_contents)
+        new_grub_default_contents = update_cmd_linux(new_grub_default_contents)
 
 
     if dry_run:

@@ -26,7 +26,7 @@ from switch_kernel import get_submenu_entry
 from switch_kernel import main
 from switch_kernel import parse_args
 from switch_kernel import update_grub_default_contents
-from switch_kernel import update_cmd_linux_default
+from switch_kernel import update_cmd_linux
 
 
 class TestAssertRoot(unittest.TestCase):
@@ -293,16 +293,16 @@ class TestAddEfiOpt(unittest.TestCase):
         before = "quiet efi=noruntime splash"
         self.assertEqual(add_efi_opt(before), "quiet efi=runtime splash")
 
-class TestUpdateCmdLinuxDefault(unittest.TestCase):
-    def test_update_cmd_linux_default_smoke(self):
-        before = "FOO=bar\nGRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash\"\nBIZ=baz"
-        after = "FOO=bar\nGRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash efi=runtime\"\nBIZ=baz"
-        self.assertEqual(update_cmd_linux_default(before), after)
+class TestUpdateCmdLinux(unittest.TestCase):
+    def test_update_cmd_linux_smoke(self):
+        before = "FOO=bar\nGRUB_CMDLINE_LINUX=\"quiet splash\"\nBIZ=baz"
+        after = "FOO=bar\nGRUB_CMDLINE_LINUX=\"quiet splash efi=runtime\"\nBIZ=baz"
+        self.assertEqual(update_cmd_linux(before), after)
 
-    def test_update_cmd_linux_default_empty(self):
+    def test_update_cmd_linux_empty(self):
         before = ""
         after = ""
-        self.assertEqual(update_cmd_linux_default(before), after)
+        self.assertEqual(update_cmd_linux(before), after)
 
 
 class TestMain(unittest.TestCase):
@@ -538,7 +538,7 @@ class TestMain(unittest.TestCase):
         mock_find_menuentry_for_kernel.return_value = "test menuentry"
         mock_get_grub_default_contents.return_value = (
             "GRUB_DEFAULT=test grub default contents\n"
-            "GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash\""
+            "GRUB_CMDLINE_LINUX=\"quiet splash\""
         )
 
         # Call main
@@ -562,7 +562,7 @@ class TestMain(unittest.TestCase):
         #)
         mock_update_grub_default_contents.assert_called_once_with(
             "GRUB_DEFAULT='test submenu entry>test menuentry'\n"
-            "GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash efi=runtime\""
+            "GRUB_CMDLINE_LINUX=\"quiet splash efi=runtime\""
         )
 
         # Check that the expected output was printed
@@ -611,7 +611,7 @@ class TestMain(unittest.TestCase):
         mock_find_menuentry_for_kernel.return_value = "test menuentry"
         mock_get_grub_default_contents.return_value = (
             "GRUB_DEFAULT=test grub default contents\n"
-            "GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash\""
+            "GRUB_CMDLINE_LINUX=\"quiet splash\""
         )
 
         # Call main
@@ -635,7 +635,7 @@ class TestMain(unittest.TestCase):
         #)
         mock_update_grub_default_contents.assert_called_once_with(
             "GRUB_DEFAULT='test submenu entry>test menuentry'\n"
-            "GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash efi=runtime\""
+            "GRUB_CMDLINE_LINUX=\"quiet splash efi=runtime\""
         )
 
         # Check that the expected output was printed

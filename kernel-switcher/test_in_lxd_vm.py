@@ -158,15 +158,18 @@ def main():
         )
         print("Running the kernel switcher...")
         new_kernel = pkgs[0].replace("linux-image-", "")
-        vm.run_vm_command(f"python3 switch_kernel.py {new_kernel}")
+        vm.run_vm_command(f"python3 switch_kernel.py --enable-efi-vars {new_kernel}")
         print("Rebooting VM...")
         vm.run_vm_command("reboot")
         # we have to wait a few seconds to let the VM reboot
-        time.sleep(3)
+        time.sleep(10)
         print("Waiting for VM to come back...")
         vm.wait_for_vm_ready()
         new_kernel = vm.run_vm_command("uname -r")
         print(f"New kernel: {new_kernel}")
+        kernel_cmdline = vm.run_vm_command("cat /proc/cmdline")
+        if "efi=runtime" not in kernel_cmdline:
+            raise SystemExit("'efi=runtime' not found in kernel cmdline")
 
 
 if __name__ == "__main__":
