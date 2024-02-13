@@ -8,16 +8,16 @@ checkbox is available, in both, the snap store and in the PPA.
 This program checks whether a specific version of checkbox snaps are
 available in the snap store and if the same package version is available in a given PPA.
 
-Aside from the version, that is the same for both snaps and PPA packages, there
-are two yaml files that define what snaps and packages it should look for:
+The snaps and packages that the script should should look for are defined in
+`checkbox-canary.yaml`. This file contains two main sections:
 
-- `*snaps.yaml`: includes snap name, channels, and architectures.
-- `*ppas.yaml`: includes the channel (same as the PPA name), sources, packages,
+- required-snaps: includes snap names, channels, and architectures.
+- required-packages: includes the channel (same as the PPA name), sources, packages,
     versions and architectures.
 
  
 Example usage:
-`python3 checkbox_version_published.py 3.3.0-dev10 --snaps-yaml checkbox-canary-snaps.yaml --packages-yaml checkbox-canary-packages.yaml`
+`python3 checkbox_version_published.py 3.3.0-dev10 checkbox-canary.yaml --timeout 300` 
 
 ## test_* files
 

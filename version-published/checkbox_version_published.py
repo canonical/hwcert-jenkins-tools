@@ -93,9 +93,13 @@ def get_snap_specs(yaml_content: dict, version: str) -> list[SnapSpec]:
     :param version: the version of the snap
     :return: the list of SnapSpec objects
     """
+    if "required-snaps" not in yaml_content:
+        return []
+    else:
+        required_snaps = yaml_content["required-snaps"]
     snap_specs = [
         SnapSpec(snap["name"], version, channel, arch)
-        for snap in yaml_content["required-snaps"]
+        for snap in required_snaps
         for channel in snap["channels"]
         for arch in snap["architectures"]
     ]
@@ -204,15 +208,20 @@ def get_package_specs(yaml_content: dict, version: str) -> list[PackageSpec]:
     :param version: the version of the package
     :return: the list of PackageSpec objects
     """
-    package_specs = []
     version = version.replace("-", "~")
-    for package in yaml_content["required-packages"]:
+    if "required-packages" not in yaml_content:
+        return []
+    else:
+        required_packages = yaml_content["required-packages"]
+
+    package_specs = []
+    for package in required_packages["packages"]:
         # General versions and architectures
         for ubuntu_version in package["versions"]:
             for arch in package["architectures"]:
                 package_specs.append(
                     PackageSpec(
-                        yaml_content["channel"],
+                        required_packages["channel"],
                         package["source"],
                         package["package"],
                         version,
@@ -314,14 +323,9 @@ def main(argv):
     )
     parser.add_argument("version", help="Version of checkbox to check for.")
     parser.add_argument(
-        "--snaps-yaml",
+        "checkbox_yaml",
         type=argparse.FileType("r"),
         help="Path to the YAML file specifying the snap requirements.",
-    )
-    parser.add_argument(
-        "--packages-yaml",
-        type=argparse.FileType("r"),
-        help="Path to the YAML file specifying the PPA package requirements.",
     )
     parser.add_argument(
         "--timeout",
@@ -331,18 +335,9 @@ def main(argv):
     )
     args = parser.parse_args(argv[1:])
 
-    if not args.snaps_yaml and not args.packages_yaml:
-        raise SystemExit("Please specify at least one YAML file.")
-
-    snap_specs = []
-    package_specs = []
-    if args.snaps_yaml:
-        snaps_content = yaml.load(args.snaps_yaml, Loader=yaml.FullLoader)
-        snap_specs = get_snap_specs(snaps_content, args.version)
-
-    if args.packages_yaml:
-        pkgs_content = yaml.load(args.packages_yaml, Loader=yaml.FullLoader)
-        package_specs = get_package_specs(pkgs_content, args.version)
+    yaml_content = yaml.load(args.checkbox_yaml, Loader=yaml.FullLoader)
+    snap_specs = get_snap_specs(yaml_content, args.version)
+    package_specs = get_package_specs(yaml_content, args.version)
 
     check_availability(snap_specs, package_specs, args.timeout)
 
