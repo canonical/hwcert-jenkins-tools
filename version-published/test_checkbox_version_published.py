@@ -46,10 +46,29 @@ class TestGetSnapSpecs(unittest.TestCase):
 
     def test_invalid_yaml_structure(self):
         # Test case for invalid YAML structure
-        yaml_content = "invalid yaml structure"
+        yaml_content = {
+            "required-snaps": {
+                "channel": "edge",
+                "packages": [
+                    {
+                        "source": "src1",
+                        "package": "pkg1",
+                        "versions": ["20.04"],
+                        "architectures": ["amd64"],
+                    },
+                ],
+            }
+        }
         version = "3.0-dev10"
         with self.assertRaises(TypeError):
             get_snap_specs(yaml_content, version)
+
+    def test_empty_yaml(self):
+        # Test case and empty YAML
+        yaml_content = {}
+        version = "3.0-dev10"
+        result = get_snap_specs(yaml_content, version)
+        self.assertEqual(result, [])
 
 
 class TestGetSnapInfoFromStore(unittest.TestCase):
@@ -104,17 +123,15 @@ class TestIsSnapAvailable(unittest.TestCase):
             arch=["amd64"],
         )
         store_response = {
-            "channel-map": [
-                {
-                    "channel": {
-                        "name": "latest/stable",
-                        "architecture": "amd64",
-                        "track": "latest",
-                        "risk": "stable",
-                    },
-                    "version": "1.0",
-                }
-            ]
+            "channel-map": [{
+                "channel": {
+                    "name": "latest/stable",
+                    "architecture": "amd64",
+                    "track": "latest",
+                    "risk": "stable",
+                },
+                "version": "1.0",
+            }]
         }
 
         result = is_snap_available(snap_example, store_response)
@@ -128,17 +145,15 @@ class TestIsSnapAvailable(unittest.TestCase):
             arch=["amd64"],
         )
         store_response = {
-            "channel-map": [
-                {
-                    "channel": {
-                        "name": "latest/stable",
-                        "architecture": "amd64",
-                        "track": "latest",
-                        "risk": "stable",
-                    },
-                    "version": "1.0",
-                }
-            ]
+            "channel-map": [{
+                "channel": {
+                    "name": "latest/stable",
+                    "architecture": "amd64",
+                    "track": "latest",
+                    "risk": "stable",
+                },
+                "version": "1.0",
+            }]
         }
 
         result = is_snap_available(snap_example, store_response)
@@ -152,17 +167,15 @@ class TestIsSnapAvailable(unittest.TestCase):
             arch=["amd64"],
         )
         store_response = {
-            "channel-map": [
-                {
-                    "channel": {
-                        "name": "latest/stable",
-                        "architecture": "amd64",
-                        "track": "latest",
-                        "risk": "stable",
-                    },
-                    "version": "1.0",
-                }
-            ]
+            "channel-map": [{
+                "channel": {
+                    "name": "latest/stable",
+                    "architecture": "amd64",
+                    "track": "latest",
+                    "risk": "stable",
+                },
+                "version": "1.0",
+            }]
         }
 
         result = is_snap_available(snap_example, store_response)
@@ -176,17 +189,15 @@ class TestIsSnapAvailable(unittest.TestCase):
             arch=["arm64"],
         )
         store_response = {
-            "channel-map": [
-                {
-                    "channel": {
-                        "name": "latest/stable",
-                        "architecture": "amd64",
-                        "track": "latest",
-                        "risk": "stable",
-                    },
-                    "version": "1.0",
-                }
-            ]
+            "channel-map": [{
+                "channel": {
+                    "name": "latest/stable",
+                    "architecture": "amd64",
+                    "track": "latest",
+                    "risk": "stable",
+                },
+                "version": "1.0",
+            }]
         }
 
         result = is_snap_available(snap_example, store_response)
@@ -200,17 +211,15 @@ class TestIsSnapAvailable(unittest.TestCase):
             arch=["amd64"],
         )
         store_response = {
-            "channel-map": [
-                {
-                    "channel": {
-                        "name": "stable",
-                        "architecture": "amd64",
-                        "track": "latest",
-                        "risk": "stable",
-                    },
-                    "version": "1.0",
-                }
-            ]
+            "channel-map": [{
+                "channel": {
+                    "name": "stable",
+                    "architecture": "amd64",
+                    "track": "latest",
+                    "risk": "stable",
+                },
+                "version": "1.0",
+            }]
         }
 
         result = is_snap_available(snap_example, store_response)
@@ -224,17 +233,15 @@ class TestIsSnapAvailable(unittest.TestCase):
             arch=["amd64"],
         )
         store_response = {
-            "channel-map": [
-                {
-                    "channel": {
-                        "name": "custom/beta",
-                        "architecture": "amd64",
-                        "track": "custom",
-                        "risk": "beta",
-                    },
-                    "version": "1.0",
-                }
-            ]
+            "channel-map": [{
+                "channel": {
+                    "name": "custom/beta",
+                    "architecture": "amd64",
+                    "track": "custom",
+                    "risk": "beta",
+                },
+                "version": "1.0",
+            }]
         }
 
         result = is_snap_available(snap_example, store_response)
@@ -362,27 +369,29 @@ class TestIsPackageAvailable(unittest.TestCase):
 class TestGetPackageSpecs(unittest.TestCase):
     def test_get_package_specs(self):
         sample_yaml_content = {
-            "channel": "edge",
-            "required-packages": [
-                {
-                    "source": "src1",
-                    "package": "pkg1",
-                    "versions": ["20.04", "22.04"],
-                    "architectures": ["amd64", "armhf"],
-                },
-                {
-                    "source": "src1",
-                    "package": "pkg1",
-                    "versions": ["18.04"],
-                    "architectures": ["amd64"],
-                },
-                {
-                    "source": "src2",
-                    "package": "pkg2",
-                    "versions": ["20.04", "22.04"],
-                    "architectures": ["all"],
-                },
-            ],
+            "required-packages": {
+                "channel": "edge",
+                "packages": [
+                    {
+                        "source": "src1",
+                        "package": "pkg1",
+                        "versions": ["20.04", "22.04"],
+                        "architectures": ["amd64", "armhf"],
+                    },
+                    {
+                        "source": "src1",
+                        "package": "pkg1",
+                        "versions": ["18.04"],
+                        "architectures": ["amd64"],
+                    },
+                    {
+                        "source": "src2",
+                        "package": "pkg2",
+                        "versions": ["20.04", "22.04"],
+                        "architectures": ["all"],
+                    },
+                ],
+            },
         }
 
         version = "3.0-dev10"
@@ -401,10 +410,23 @@ class TestGetPackageSpecs(unittest.TestCase):
 
     def test_invalid_yaml_structure(self):
         # Test case for invalid YAML structure
-        yaml_content = "invalid yaml structure"
+        yaml_content = {
+            "required-packages": [{
+                "name": "checkbox22",
+                "channels": ["latest/edge"],
+                "architectures": ["amd64"],
+            }]
+        }
         version = "3.0-dev10"
         with self.assertRaises(TypeError):
-            get_snap_specs(yaml_content, version)
+            get_package_specs(yaml_content, version)
+
+    def test_empty_yaml(self):
+        # Test case and empty YAML
+        yaml_content = {}
+        version = "3.0-dev10"
+        result = get_package_specs(yaml_content, version)
+        self.assertEqual(result, [])
 
 
 class TestCheckPackagesAvailability(unittest.TestCase):
@@ -516,37 +538,32 @@ class TestMain(unittest.TestCase):
         argv = [
             "script_name",
             "3.0-dev10",
-            "--snaps",
-            "checkbox-canary-snaps.yaml",
-            "--packages",
-            "checkbox-canary-packages.yaml",
+            "checkbox-canary.yaml",
             "--timeout",
             "100",
         ]
 
-        snaps_content = {
-            "required-snaps": [
-                {
-                    "name": "snap1",
-                    "channels": ["edge"],
-                    "architectures": ["amd64", "armhf"],
-                }
-            ]
-        }
-        packages_content = {
-            "channel": "edge",
-            "required-packages": [
-                {
-                    "source": "src1",
-                    "package": "pkg1",
-                    "versions": ["20.04"],
-                    "architectures": ["amd64", "armhf"],
-                }
-            ],
+        yaml_content = {
+            "required-snaps": [{
+                "name": "snap1",
+                "channels": ["edge"],
+                "architectures": ["amd64", "armhf"],
+            }],
+            "required-packages": {
+                "channel": "edge",
+                "packages": [
+                    {
+                        "source": "src1",
+                        "package": "pkg1",
+                        "versions": ["20.04"],
+                        "architectures": ["amd64", "armhf"],
+                    },
+                ],
+            },
         }
 
         # Mock the YAML files
-        mock_yaml_load.side_effect = [snaps_content, packages_content]
+        mock_yaml_load.side_effect = [yaml_content]
 
         # Run the main function
         main(argv)
@@ -567,11 +584,9 @@ class TestMain(unittest.TestCase):
         # The timeout is 100
         self.assertEqual(timeout, 100)
 
-    def test_main_with_missing_arguments(self):
-        # Simulate missing YAML file arguments
+    def test_main_fails_with_missing_arguments(self):
+        # Simulate missing YAML file argument
         argv = ["script_name", "3.0~dev10", "--timeout", "100"]
-        with self.assertRaises(SystemExit) as cm:
+
+        with self.assertRaises(SystemExit):
             main(argv)
-        self.assertEqual(
-            str(cm.exception), "Please specify at least one YAML file."
-        )
