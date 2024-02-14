@@ -47,20 +47,18 @@ class TestGetSnapSpecs(unittest.TestCase):
     def test_invalid_yaml_structure(self):
         # Test case for invalid YAML structure
         yaml_content = {
-            "required-snaps": {
-                "channel": "edge",
-                "packages": [
-                    {
-                        "source": "src1",
-                        "package": "pkg1",
-                        "versions": ["20.04"],
-                        "architectures": ["amd64"],
-                    },
-                ],
-            }
+            "required-snaps": [
+                {
+                    "channel": "edge",
+                    "source": "src1",
+                    "package": "pkg1",
+                    "versions": ["20.04"],
+                    "architectures": ["amd64"],
+                },
+            ],
         }
         version = "3.0-dev10"
-        with self.assertRaises(TypeError):
+        with self.assertRaises(KeyError):
             get_snap_specs(yaml_content, version)
 
     def test_empty_yaml(self):
@@ -369,29 +367,29 @@ class TestIsPackageAvailable(unittest.TestCase):
 class TestGetPackageSpecs(unittest.TestCase):
     def test_get_package_specs(self):
         sample_yaml_content = {
-            "required-packages": {
-                "channel": "edge",
-                "packages": [
-                    {
-                        "source": "src1",
-                        "package": "pkg1",
-                        "versions": ["20.04", "22.04"],
-                        "architectures": ["amd64", "armhf"],
-                    },
-                    {
-                        "source": "src1",
-                        "package": "pkg1",
-                        "versions": ["18.04"],
-                        "architectures": ["amd64"],
-                    },
-                    {
-                        "source": "src2",
-                        "package": "pkg2",
-                        "versions": ["20.04", "22.04"],
-                        "architectures": ["all"],
-                    },
-                ],
-            },
+            "required-packages": [
+                {
+                    "channel": "edge",
+                    "source": "src1",
+                    "package": "pkg1",
+                    "versions": ["20.04", "22.04"],
+                    "architectures": ["amd64", "armhf"],
+                },
+                {
+                    "channel": "edge",
+                    "source": "src1",
+                    "package": "pkg1",
+                    "versions": ["18.04"],
+                    "architectures": ["amd64"],
+                },
+                {
+                    "channel": "edge",
+                    "source": "src2",
+                    "package": "pkg2",
+                    "versions": ["20.04", "22.04"],
+                    "architectures": ["all"],
+                },
+            ],
         }
 
         version = "3.0-dev10"
@@ -418,7 +416,7 @@ class TestGetPackageSpecs(unittest.TestCase):
             }]
         }
         version = "3.0-dev10"
-        with self.assertRaises(TypeError):
+        with self.assertRaises(KeyError):
             get_package_specs(yaml_content, version)
 
     def test_empty_yaml(self):
@@ -549,17 +547,15 @@ class TestMain(unittest.TestCase):
                 "channels": ["edge"],
                 "architectures": ["amd64", "armhf"],
             }],
-            "required-packages": {
-                "channel": "edge",
-                "packages": [
-                    {
-                        "source": "src1",
-                        "package": "pkg1",
-                        "versions": ["20.04"],
-                        "architectures": ["amd64", "armhf"],
-                    },
-                ],
-            },
+            "required-packages": [
+                {
+                    "channel": "edge",
+                    "source": "src1",
+                    "package": "pkg1",
+                    "versions": ["20.04"],
+                    "architectures": ["amd64", "armhf"],
+                },
+            ],
         }
 
         # Mock the YAML files
@@ -590,3 +586,26 @@ class TestMain(unittest.TestCase):
 
         with self.assertRaises(SystemExit):
             main(argv)
+
+    @patch("builtins.open")
+    @patch("checkbox_version_published.yaml.load")
+    def test_invalid_yaml(self, mock_yaml_load, mock_open):
+        argv = [
+            "script_name",
+            "3.0-dev10",
+            "checkbox-canary.yaml",
+            "--timeout",
+            "100",
+        ]
+
+        # Empty YAML content
+        yaml_content = []
+
+        # Mock the YAML files
+        mock_yaml_load.side_effect = [yaml_content]
+
+        # Run the main function
+        with self.assertRaises(ValueError) as e:
+            main(argv)
+
+        self.assertEqual("The YAML content is invalid.", str(e.exception))

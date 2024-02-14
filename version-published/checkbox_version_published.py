@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """
-This program checks whether a specific version of checkbox is available for a
+This program checks whether a specific version of Checkbox is available for a
 series of snaps and if the correspondent packages are available in a given PPA
 
-There are two matrixes of all combinations stored in yaml files and the program
-periodically checks whether all combinations are available and waits until
-either all of them are available or the timeout is reached.
+There are two matrixes of all combinations stored in a yaml file and the
+program periodically checks whether all combinations are available and
+waits until either all of them are available or the timeout is reached.
+The first argument is the version of the snaps and packages to check for.
 
 The characteristics for the snaps that can be specified are:
-  - (required and 1) version that all the snaps must have
   - (required and 1) channel that all of the snaps must be in
   - (required and 1 or more) names of the snaps
   - (required and 1 or more) architectures for all of the snaps
 
 The characteristics for the packages that can be specified are:
+  - (required and 1) channel of the package (same as the PPA name)
   - (required and 1) name of the source
   - (required and 1) name of the package (.deb file)
   - (required and 1 or more) versions of ubuntu
@@ -22,40 +23,39 @@ The characteristics for the packages that can be specified are:
 
 For instance, to check if the "checkbox22" related snaps are available, all
 having a version of "3.3.0-dev10", for the architectures:
-    - amd64
-    - arm64
+  - amd64
+  - arm64
 
 This effectively means we will check the availability of the following snaps:
-    - checkbox22_3.3.0-dev10_amd64.snap
-    - checkbox22_3.3.0-dev10_arm64.snap
+  - checkbox22_3.3.0-dev10_amd64.snap
+  - checkbox22_3.3.0-dev10_arm64.snap
 
-The specs are specified with a yaml that looks like this:
-    required-snaps:
-        - name: checkbox22
-            channels: [ latest/edge ]
-            architectures: [ amd64, arm64 ]
+The snap specs specified in the yaml look like this:
+```
+required-snaps:
+  - name: checkbox22
+    channels: [ latest/edge ]
+    architectures: [ amd64, arm64 ]
+```
 
-So the invocation of this program would be:
-    python3 checkbox_version_published.py 3.3.0-dev10 \
-    --snaps checkbox-canary-snaps.yaml
 
 In the same way we can check whether the packages are available in the PPA.
-For "checkbox-ng" the specs are specified with a yaml that looks like this:
-    channel: edge
-    required-packages:
-      - source: checkbox-ng
-        package: checkbox-ng
-        versions: [ 22.04 ]
-        architectures: [ amd64, arm64 ]
+For "checkbox-ng" the specs specified in the yaml look like this:
+```
+required-packages:
+  - channel: edge
+    source: checkbox-ng
+    package: checkbox-ng
+    versions: [ "18.04", "20.04", "22.04", "23.10", "24.04" ]
+    architectures: [ amd64, arm64 ]
+```
 
-And the invocation of this program would be:
+So, considering `checkbox-canary.yaml` contains both parts, the invocation
+to check if both snaps and packages are available would be:
+```
     python3 checkbox_version_published.py 3.3.0-dev10 \
-    --packages checkbox-canary-packages.yaml
-
-To check both snaps and packages, just specify both yaml files:
-    python3 checkbox_version_published.py 3.3.0-dev10 \
-    --snaps checkbox-canary-snaps.yaml \
-    --packages checkbox-canary-packages.yaml
+    checkbox-canary.yaml --timeout 300
+```
 """
 
 import argparse
@@ -93,10 +93,8 @@ def get_snap_specs(yaml_content: dict, version: str) -> list[SnapSpec]:
     :param version: the version of the snap
     :return: the list of SnapSpec objects
     """
-    if "required-snaps" not in yaml_content:
-        return []
-    else:
-        required_snaps = yaml_content["required-snaps"]
+    required_snaps = yaml_content.get("required-snaps", [])
+
     snap_specs = [
         SnapSpec(snap["name"], version, channel, arch)
         for snap in required_snaps
@@ -209,19 +207,16 @@ def get_package_specs(yaml_content: dict, version: str) -> list[PackageSpec]:
     :return: the list of PackageSpec objects
     """
     version = version.replace("-", "~")
-    if "required-packages" not in yaml_content:
-        return []
-    else:
-        required_packages = yaml_content["required-packages"]
+    required_packages = yaml_content.get("required-packages", {})
 
     package_specs = []
-    for package in required_packages["packages"]:
+    for package in required_packages:
         # General versions and architectures
         for ubuntu_version in package["versions"]:
             for arch in package["architectures"]:
                 package_specs.append(
                     PackageSpec(
-                        required_packages["channel"],
+                        package["channel"],
                         package["source"],
                         package["package"],
                         version,
@@ -336,6 +331,10 @@ def main(argv):
     args = parser.parse_args(argv[1:])
 
     yaml_content = yaml.load(args.checkbox_yaml, Loader=yaml.FullLoader)
+
+    if not isinstance(yaml_content, dict):
+        raise ValueError("The YAML content is invalid.")
+
     snap_specs = get_snap_specs(yaml_content, args.version)
     package_specs = get_package_specs(yaml_content, args.version)
 
