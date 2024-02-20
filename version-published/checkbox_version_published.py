@@ -63,7 +63,7 @@ import requests
 import sys
 import time
 import yaml
-from typing import NamedTuple
+from typing import NamedTuple, List
 
 
 # The named tuple for the snap specification.
@@ -86,7 +86,7 @@ class PackageSpec(NamedTuple):
     arch: str
 
 
-def get_snap_specs(yaml_content: dict, version: str) -> list[SnapSpec]:
+def get_snap_specs(yaml_content: dict, version: str) -> List[SnapSpec]:
     """
     Create a list of SnapSpec objects from the yaml content.
     :param yaml_content: file containing the snap requirements
@@ -158,7 +158,7 @@ def is_snap_available(snap_spec: SnapSpec, store_response: dict) -> bool:
 
 
 def check_snaps_availability(
-    snap_specs: list[SnapSpec],
+    snap_specs: List[SnapSpec],
     snaps_available: dict[SnapSpec, bool],
 ) -> None:
     print("Checking if the snaps are available ...")
@@ -199,7 +199,7 @@ def check_snaps_availability(
         print("All snaps were found.")
 
 
-def get_package_specs(yaml_content: dict, version: str) -> list[PackageSpec]:
+def get_package_specs(yaml_content: dict, version: str) -> List[PackageSpec]:
     """
     Create a list of PackageSpec objects from the yaml content.
     :param yaml_content: file containing the package requirements
@@ -244,7 +244,7 @@ def url_header_check(url: str) -> bool:
 
 
 def check_packages_availability(
-    package_specs: list[PackageSpec],
+    package_specs: List[PackageSpec],
     packages_available: dict[PackageSpec, bool],
 ) -> None:
     print("Checking if the packages are available ...")
