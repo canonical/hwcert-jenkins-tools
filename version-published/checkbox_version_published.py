@@ -63,7 +63,7 @@ import requests
 import sys
 import time
 import yaml
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Dict
 
 
 # The named tuple for the snap specification.
@@ -159,7 +159,7 @@ def is_snap_available(snap_spec: SnapSpec, store_response: dict) -> bool:
 
 def check_snaps_availability(
     snap_specs: List[SnapSpec],
-    snaps_available: dict[SnapSpec, bool],
+    snaps_available: Dict[SnapSpec, bool],
 ) -> None:
     print("Checking if the snaps are available ...")
     # Record of snaps for which we've already fetched the data from the store.
@@ -245,7 +245,7 @@ def url_header_check(url: str) -> bool:
 
 def check_packages_availability(
     package_specs: List[PackageSpec],
-    packages_available: dict[PackageSpec, bool],
+    packages_available: Dict[PackageSpec, bool],
 ) -> None:
     print("Checking if the packages are available ...")
 
