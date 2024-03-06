@@ -65,6 +65,8 @@ import time
 import yaml
 from typing import NamedTuple, List, Dict
 
+from snap_info_utility import get_snap_info_from_store
+
 
 # The named tuple for the snap specification.
 # instance of this class represents one, concrete snap.
@@ -102,24 +104,6 @@ def get_snap_specs(yaml_content: dict, version: str) -> List[SnapSpec]:
         for arch in snap["architectures"]
     ]
     return snap_specs
-
-
-def get_snap_info_from_store(snap_spec: SnapSpec) -> dict:
-    """
-    Get detailed information about a snap using the info endpoint.
-
-    :param snap_spec: the snap specification
-    :return: deserialized json with the response from the snap store
-    """
-    url = f"https://api.snapcraft.io/v2/snaps/info/{snap_spec.name}"
-    headers = {"Snap-Device-Series": "16", "Snap-Device-Store": "ubuntu"}
-    response = requests.get(url, headers=headers)
-    if response.status_code != 200:
-        raise RuntimeError(
-            f"Failed to get info about {snap_spec.name} from the snap store."
-        )
-
-    return response.json()
 
 
 def is_snap_available(snap_spec: SnapSpec, store_response: dict) -> bool:
@@ -169,7 +153,7 @@ def check_snaps_availability(
         if snaps_available[snap_spec]:
             continue
         try:
-            store_response = get_snap_info_from_store(snap_spec)
+            store_response = get_snap_info_from_store(snap_spec.name)
             snaps_available[snap_spec] = is_snap_available(
                 snap_spec, store_response
             )
