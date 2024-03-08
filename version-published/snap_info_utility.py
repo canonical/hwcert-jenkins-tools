@@ -48,10 +48,18 @@ def get_revision_at_offset(version: str, repo_path: str):
     tag = get_latest_tag(repo_path)
     history = get_history_since(tag, repo_path)
     offset = get_offset_from_version(version)
-    # history is now -> tag(inclusive)
-    # raw tag (no dev) is tag so -0 -1 = -1 (latest in history)
-    # dev-1 is tag+1 so -1 -1 = -2 semi lastest in history
-    return history[-offset - 1]
+    # history is HEAD -> latest_tag(included)
+    # reverse it so it tag -> HEAD
+    history = list(reversed(history))
+    # so now 0 is tag
+    #        1 is the commit after the tag
+    #        len(history) -1 is HEAD
+    try:
+        return history[offset]
+    except IndexError:
+        raise SystemExit(
+            "Unable to locate the commit that generated version: ({version})"
+        )
 
 
 def get_latest_tag(repo_path: str):
