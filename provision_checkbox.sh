@@ -23,6 +23,7 @@ if ! git clone https://github.com/canonical/checkbox.git; then
     echo "Before pull: $before_pull"
 
     # Perform the pull
+    git -C checkbox switch main
     git -C checkbox pull
 
     # Get the latest commit after pull
@@ -40,7 +41,8 @@ else
     UPDATED=true
 fi
 if [ -n "$REF" ]; then
-    git -C checkbox checkout $REF
+    PARENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    $PARENT_DIR/version-published/checkout_to_version.py checkbox "$REF"
     UPDATED=true
 fi
 
