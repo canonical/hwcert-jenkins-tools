@@ -11,27 +11,9 @@ Example usage:
 import sys
 
 from argparse import ArgumentParser, ArgumentTypeError
-from subprocess import check_output, check_call
+from subprocess import check_call
 
-
-def get_latest_tag(repo_path: str):
-    return check_output(
-        ["git", "describe", "--tags", "--abbrev=0"], cwd=repo_path, text=True
-    ).strip()
-
-
-def get_history_since(tag: str, repo_path: str):
-    return check_output(
-        [
-            "git",
-            "log",
-            "--pretty=format:'%H'",
-            "--no-patch",
-            f"{tag}..origin/main",
-        ],
-        text=True,
-        cwd=repo_path,
-    ).splitlines()
+from snap_info_utility import get_revision_at_offset
 
 
 def move_branch_head(branch_name, revision, repo_path: str):
@@ -41,17 +23,6 @@ def move_branch_head(branch_name, revision, repo_path: str):
     #       the case, there is no need to push --force, else something
     #       went terribly wrong, we must fail here
     check_call(["git", "push", "origin", branch_name], cwd=repo_path)
-
-
-def get_offset_from_version(version: str) -> int:
-    return int(version.rsplit("dev", 1)[1])
-
-
-def get_revision_at_offset(version: str, repo_path: str):
-    tag = get_latest_tag(repo_path)
-    history = get_history_since(tag, repo_path)
-    offset = get_offset_from_version(version)
-    return history[-offset]  # history is tag->now, not now->tag
 
 
 def move_beta_branch(branch_name: str, version: str, repo_path: str):
