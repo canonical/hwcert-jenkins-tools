@@ -39,6 +39,8 @@ def get_history_since(tag: str, repo_path: str):
 
 
 def get_offset_from_version(version: str) -> int:
+    if "dev" not in version:
+        return 0
     return int(version.rsplit("dev", 1)[1])
 
 
