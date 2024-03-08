@@ -29,7 +29,7 @@ def get_history_since(tag: str, repo_path: str):
         [
             "git",
             "log",
-            "--pretty=format:'%H'",
+            "--pretty=format:%H",
             "--no-patch",
             f"{tag}..origin/main",
         ],
