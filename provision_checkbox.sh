@@ -40,7 +40,7 @@ else
     UPDATED=true
 fi
 if [ -n "$REF" ]; then
-    git -C checkbox checkout $REF
+    ./version-published/checkout_to_version.py checkbox "$REF"
     UPDATED=true
 fi
 
