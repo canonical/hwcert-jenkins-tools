@@ -31,7 +31,7 @@ def get_history_since(tag: str, repo_path: str):
             "log",
             "--pretty=format:%H",
             "--no-patch",
-            f"{tag}..origin/main",
+            f"{tag}~1..origin/main",
         ],
         text=True,
         cwd=repo_path,
@@ -48,8 +48,10 @@ def get_revision_at_offset(version: str, repo_path: str):
     tag = get_latest_tag(repo_path)
     history = get_history_since(tag, repo_path)
     offset = get_offset_from_version(version)
-    # history is tag->now, not now->tag
-    return history[-offset]
+    # history is now -> tag(inclusive)
+    # raw tag (no dev) is tag so -0 -1 = -1 (latest in history)
+    # dev-1 is tag+1 so -1 -1 = -2 semi lastest in history
+    return history[-offset - 1]
 
 
 def get_latest_tag(repo_path: str):

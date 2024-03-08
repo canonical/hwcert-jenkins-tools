@@ -22,7 +22,7 @@ class TestSnapInfoUtility(unittest.TestCase):
             "tag_hash + 3",
             "tag_hash + 2",
             "tag_hash + 1",
-            # here would be hash of tag
+            "tag_hash"
         ]
 
         result = snap_info_utility.get_revision_at_offset(
