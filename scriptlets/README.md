@@ -1,8 +1,13 @@
-# Convenience functions for Jenkins jobs
+# Convenience functions that help perform actions on a remote host
 
 ## Description
 
-This directory contains Convenience functions that are used in almost all of Certification Team's Jenkins.
+Each file here is meant to implement singular functionality.
+Those function like scriptlets are meant to be used in various scripts implementing concrete jobs.
+
+If you find yourself copying the same function between various bash segments in job definitions, consider making it a scriptlet like the ones provided here.
+
+See individual files for their purpose and usage instructions.
 
 ## Testing
 

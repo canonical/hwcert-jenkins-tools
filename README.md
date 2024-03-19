@@ -21,3 +21,11 @@ Examples:
 * `./provision_checkbox.sh v3.0.0`
 * `./provision_checkbox.sh my-dev-branch`
 * `./provision_checkbox.sh da16e1b51c750ad06e7ca24369ab639b33583f05`
+
+## scriptlets
+
+Convenience functions that help perform actions on a remote host.
+
+Example:
+
+* `_run reboot  # reboots the DUT`
