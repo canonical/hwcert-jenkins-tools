@@ -97,8 +97,9 @@ exclude = .*smoke/manual {exclude_test}
 
 
 build_checkbox_launcher() {
+    # arg CID
     # arg testplan
-    # 
+    # arg manifest dir?
 }
 
 # Check if the script is being sourced or executed
