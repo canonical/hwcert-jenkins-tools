@@ -11,6 +11,9 @@
 # Usage:
 #     `build_checkbox_launcher`
 
+from argparse import ArgumentParser
+import json
+import os
 
 # Top of the launcher file - used by all runs
 launcher_head = """
@@ -144,11 +147,12 @@ def build_checkbox_launcher():
     # Merge the launcher we downloaded with checkbox.conf
     import configparser
     c = configparser.ConfigParser(delimiters=('=',))
-    c.optionxform=str;c.read('launcher-head')
+    c.optionxform = str;
+    c.read('launcher-head')
     c.read('launcher-test-selection')
     c.read('device_conf')
     c.read('manifest_conf')
-    c.write(open('checkbox-launcher','wt'))"
+    c.write(open('checkbox-launcher','wt'))
 
 if __name__ == "__main__":
     build_checkbox_launcher()
