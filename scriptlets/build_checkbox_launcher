@@ -94,6 +94,21 @@ exclude = .*smoke/manual {exclude_test}
 # {manifest}
 # EOF
 
+fallback_manifest = """
+[manifest]
+com.canonical.certification::has_bt_smart = false
+com.canonical.certification::has_camera = true
+com.canonical.certification::has_card_reader = true
+com.canonical.certification::has_ethernet_adapter = true
+com.canonical.certification::has_thunderbolt = false
+com.canonical.certification::has_thunderbolt3 = false
+com.canonical.certification::has_touchscreen = false
+com.canonical.certification::has_tpm2_chip = false
+com.canonical.certification::has_usb_storage = true
+com.canonical.certification::has_usb_type_c = false
+com.canonical.certification::has_wlan_adapter = true
+"""
+
 def parse_json(manifest_file_path):
     """
     Given an manifest json file, parse it as a format suitable for the Checkbox launcher file
@@ -108,10 +123,6 @@ def parse_json(manifest_file_path):
         print(line, end="\n")
 
 def build_checkbox_launcher():
-    # arg CID
-    # arg testplan
-    # arg manifest dir?
-
     parser = ArgumentParser(
         prog="",
         description="",
@@ -122,8 +133,10 @@ def build_checkbox_launcher():
     args = parser.parse_args()
 
     manifest_file_path = os.path.join(args.manifest_dir, "pc", args.cid, "manifest.json")
-    # if path does not exist then use default
-    parse_json(manifest_file_path)
+    if path.  exist :
+        parse_json(manifest_file_path)
+    else:
+        fallback_manifest
 
     # TESTPLAN_LAUNCHER_NAME used to identify which test selection to run
     #    cp $TESTPLAN_LAUNCHER_NAME launcher-test-selection
