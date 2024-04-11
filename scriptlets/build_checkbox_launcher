@@ -6,7 +6,7 @@
 # carried out on the DUT
 #
 # Dependencies:
-#     
+#
 #
 # Usage:
 #     `build_checkbox_launcher`
@@ -94,10 +94,6 @@ exclude = .*smoke/manual {exclude_test}
 # EOF
 # cheetah fill --env device_conf.tmpl -p > device_conf
 
-# Manifest information
-# cat <<EOF > manifest_conf
-# {manifest}
-# EOF
 
 fallback_manifest = """
 [manifest]
@@ -114,6 +110,7 @@ com.canonical.certification::has_usb_type_c = false
 com.canonical.certification::has_wlan_adapter = true
 """
 
+
 def parse_json(manifest_file_path):
     """
     Given an manifest json file, parse it as a format suitable for the Checkbox launcher file
@@ -129,6 +126,7 @@ def parse_json(manifest_file_path):
         print(line, end="\n", file=manifest_ini)
     return manifest_ini.getvalue()
 
+
 def build_checkbox_launcher():
     parser = ArgumentParser(
         prog="",
@@ -139,7 +137,9 @@ def build_checkbox_launcher():
     parser.add_argument("manifest_dir", type=str)
     args = parser.parse_args()
 
-    manifest_file_path = os.path.join(args.manifest_dir, "pc", args.cid, "manifest.json")
+    manifest_file_path = os.path.join(
+        args.manifest_dir, "pc", args.cid, "manifest.json"
+    )
     print("Expected manifest path: {}".format(manifest_file_path))
     if os.path.exists(manifest_file_path):
         print("Print found manifest")
@@ -147,20 +147,22 @@ def build_checkbox_launcher():
     else:
         print("Manifest not found, using default")
         manifest_conf = fallback_manifest
-    
-    # TESTPLAN_LAUNCHER_NAME used to identify which test selection to run
-    #    cp $TESTPLAN_LAUNCHER_NAME launcher-test-selection
+
+    launcher_test_selection = checkbox_launcher_sru.format(
+        checkbox_testplan=args.testplan_id, exclude_test=""
+    )
 
     # Merge the launcher we downloaded with checkbox.conf
-    
-    c = configparser.ConfigParser(delimiters=('=',))
-    c.optionxform = str;
+
+    c = configparser.ConfigParser(delimiters=("=",))
+    c.optionxform = str
     c.read_string(launcher_head)
-    # c.read_string('launcher-test-selection')
+    c.read_string(launcher_test_selection)
     # c.read('device_conf')
     c.read_string(manifest_conf)
-    c.write(open('checkbox-launcher','wt'))
+    c.write(open("checkbox-launcher", "wt"))
     print("Wrote checkbox-launcher")
+
 
 if __name__ == "__main__":
     build_checkbox_launcher()
