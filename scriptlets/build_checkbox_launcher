@@ -132,6 +132,7 @@ def build_checkbox_launcher():
         prog="",
         description="",
     )
+    parser.add_argument("job_variant", type=str)
     parser.add_argument("cid", type=str)
     parser.add_argument("testplan_id", type=str)
     parser.add_argument("manifest_dir", type=str)
@@ -148,9 +149,18 @@ def build_checkbox_launcher():
         print("Manifest not found, using default")
         manifest_conf = fallback_manifest
 
-    launcher_test_selection = checkbox_launcher_sru.format(
-        checkbox_testplan=args.testplan_id, exclude_test=""
-    )
+    if args.job_variant == "no_stress":
+        launcher_test_selection = checkbox_launcher_sru_no_stress.format(
+            checkbox_testplan=args.testplan_id, exclude_test=""
+        )
+    elif args.job_variant == "smoke":
+        launcher_test_selection = checkbox_launcher_smoke.format(
+            checkbox_testplan=args.testplan_id, exclude_test=""
+        )
+    else:  # implies "full"
+        launcher_test_selection = checkbox_launcher_sru.format(
+            checkbox_testplan=args.testplan_id, exclude_test=""
+        )
 
     # Merge the launcher we downloaded with checkbox.conf
 
