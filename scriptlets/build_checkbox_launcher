@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
 #
 # Copyright 2024 Canonical Ltd.
 #
@@ -9,7 +9,6 @@
 #     
 #
 # Usage:
-#     Source it in another script and call
 #     `build_checkbox_launcher`
 
 
@@ -95,14 +94,34 @@ exclude = .*smoke/manual {exclude_test}
 # {manifest}
 # EOF
 
+def parse_json(manifest_file_path):
+    """
+    Given an manifest json file, parse it as a format suitable for the Checkbox launcher file
+    """
 
-build_checkbox_launcher() {
+    with open(manifest_file_path) as file:
+        manifest_dict = dict(json.load(file))
+
+    print("        [manifest]", end="\n")
+    for key, value in manifest_dict.items():
+        line = f"        {key} = {value}"
+        print(line, end="\n")
+
+def build_checkbox_launcher():
     # arg CID
     # arg testplan
     # arg manifest dir?
-}
 
-# Check if the script is being sourced or executed
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  build_checkbox_launcher "$@"
-fi
+    parser = ArgumentParser(
+        prog="",
+        description="",
+    )
+    parser.add_argument("cid", type=str)
+    args = parser.parse_args()
+
+    manifest_file_path = os.path.join(manifest_dir, "pc", args.cid, "manifest.json")
+    # if path does not exist then use default
+    parse_json(manifest_file_path)
+
+if __name__ == "__main__":
+    build_checkbox_launcher()
