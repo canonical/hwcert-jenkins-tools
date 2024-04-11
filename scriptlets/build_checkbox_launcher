@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+#
+# Copyright 2024 Canonical Ltd.
+#
+# Construct a launcher file that describes the test session that will
+# carried out on the DUT
+#
+# Dependencies:
+#     
+#
+# Usage:
+#     Source it in another script and call
+#     `build_checkbox_launcher`
+
+build_checkbox_launcher() {
+    pass
+}
+
+# Check if the script is being sourced or executed
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  build_checkbox_launcher "$@"
+fi
