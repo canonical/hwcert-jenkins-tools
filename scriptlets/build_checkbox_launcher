@@ -12,8 +12,93 @@
 #     Source it in another script and call
 #     `build_checkbox_launcher`
 
+
+# Top of the launcher file - used by all runs
+launcher_head = """
+[launcher]
+launcher_version = 1
+stock_reports = text, submission_files
+
+[daemon]
+normal_user = ubuntu
+
+[ui]
+type = silent
+auto_retry = yes
+max_attempts = 3
+delay_before_retry = 15
+
+[transport:example_c3]
+type = submission-service
+secure_id = \$HEXR_DEVICE_SECURE_ID
+
+[transport:example_local_file]
+type = file
+path = /home/ubuntu/c3-local-submission.tar.xz
+
+[exporter:example_tar]
+unit = com.canonical.plainbox::tar
+
+[report:report_example_c3]
+transport = example_c3
+exporter = example_tar
+forced = yes
+
+[report:report_example_file]
+transport = example_local_file
+exporter = example_tar
+forced = yes
+"""
+
+# The test plan selection sections of the launcher
+checkbox_launcher_sru = """
+#!/usr/bin/env checkbox-cli
+[test plan]
+unit = {checkbox_testplan}
+forced = yes
+
+[test selection]
+forced = yes
+exclude = com.canonical.certification::clevis-encrypt-tpm2* com.canonical.certification::stress/poweroff* com.canonical.certification::stress/reboot* .*miscellanea/ubuntu-desktop-recommends .*bluetooth_obex_send {exclude_test}
+"""
+
+checkbox_launcher_sru_no_stress = """
+#!/usr/bin/env checkbox-cli
+[test plan]
+unit = {checkbox_testplan}
+forced = yes
+
+[test selection]
+forced = yes
+exclude = .*disk/disk_stress_ng_.* .*stress/cpu_stress_ng_test .*pts/fs-mark .*pts/ramspeed .*s3_pm-graph_30 .*s2idle_pm-graph_30 .*pts/cpuminer-opt com.canonical.certification::clevis-encrypt-tpm2* com.canonical.certification::stress/poweroff* com.canonical.certification::stress/reboot* .*miscellanea/ubuntu-desktop-recommends .*bluetooth_obex_send {exclude_test}
+"""
+
+checkbox_launcher_smoke = """
+#!/usr/bin/env checkbox-cli
+[test plan]
+unit = com.canonical.certification::smoke
+forced = yes
+
+[test selection]
+forced = yes
+exclude = .*smoke/manual {exclude_test}
+"""
+
+# any config that needs modifying per device
+# cat <<EOF > device_conf.tmpl
+# {checkbox_conf}
+# EOF
+# cheetah fill --env device_conf.tmpl -p > device_conf
+
+# Manifest information
+# cat <<EOF > manifest_conf
+# {manifest}
+# EOF
+
+
 build_checkbox_launcher() {
-    pass
+    # arg testplan
+    # 
 }
 
 # Check if the script is being sourced or executed
