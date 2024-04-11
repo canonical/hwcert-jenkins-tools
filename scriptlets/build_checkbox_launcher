@@ -12,6 +12,8 @@
 #     `build_checkbox_launcher`
 
 from argparse import ArgumentParser
+from io import StringIO
+import configparser
 import json
 import os
 
@@ -120,10 +122,12 @@ def parse_json(manifest_file_path):
     with open(manifest_file_path) as file:
         manifest_dict = dict(json.load(file))
 
-    print("        [manifest]", end="\n")
+    manifest_ini = StringIO()
+    print("[manifest]", end="\n", file=manifest_ini)
     for key, value in manifest_dict.items():
-        line = f"        {key} = {value}"
-        print(line, end="\n")
+        line = f"{key} = {value}"
+        print(line, end="\n", file=manifest_ini)
+    return manifest_ini.getvalue()
 
 def build_checkbox_launcher():
     parser = ArgumentParser(
@@ -136,23 +140,27 @@ def build_checkbox_launcher():
     args = parser.parse_args()
 
     manifest_file_path = os.path.join(args.manifest_dir, "pc", args.cid, "manifest.json")
-    if path.  exist :
-        parse_json(manifest_file_path)
+    print("Expected manifest path: {}".format(manifest_file_path))
+    if os.path.exists(manifest_file_path):
+        print("Print found manifest")
+        manifest_conf = parse_json(manifest_file_path)
     else:
-        fallback_manifest
-
+        print("Manifest not found, using default")
+        manifest_conf = fallback_manifest
+    
     # TESTPLAN_LAUNCHER_NAME used to identify which test selection to run
     #    cp $TESTPLAN_LAUNCHER_NAME launcher-test-selection
 
     # Merge the launcher we downloaded with checkbox.conf
-    import configparser
+    
     c = configparser.ConfigParser(delimiters=('=',))
     c.optionxform = str;
-    c.read('launcher-head')
-    c.read('launcher-test-selection')
-    c.read('device_conf')
-    c.read('manifest_conf')
+    c.read_string(launcher_head)
+    # c.read_string('launcher-test-selection')
+    # c.read('device_conf')
+    c.read_string(manifest_conf)
     c.write(open('checkbox-launcher','wt'))
+    print("Wrote checkbox-launcher")
 
 if __name__ == "__main__":
     build_checkbox_launcher()
