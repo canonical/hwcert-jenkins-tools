@@ -117,11 +117,25 @@ def build_checkbox_launcher():
         description="",
     )
     parser.add_argument("cid", type=str)
+    parser.add_argument("testplan_id", type=str)
+    parser.add_argument("manifest_dir", type=str)
     args = parser.parse_args()
 
-    manifest_file_path = os.path.join(manifest_dir, "pc", args.cid, "manifest.json")
+    manifest_file_path = os.path.join(args.manifest_dir, "pc", args.cid, "manifest.json")
     # if path does not exist then use default
     parse_json(manifest_file_path)
+
+    # TESTPLAN_LAUNCHER_NAME used to identify which test selection to run
+    #    cp $TESTPLAN_LAUNCHER_NAME launcher-test-selection
+
+    # Merge the launcher we downloaded with checkbox.conf
+    import configparser
+    c = configparser.ConfigParser(delimiters=('=',))
+    c.optionxform=str;c.read('launcher-head')
+    c.read('launcher-test-selection')
+    c.read('device_conf')
+    c.read('manifest_conf')
+    c.write(open('checkbox-launcher','wt'))"
 
 if __name__ == "__main__":
     build_checkbox_launcher()
