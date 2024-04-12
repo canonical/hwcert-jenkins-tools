@@ -16,6 +16,7 @@ from io import StringIO
 import configparser
 import json
 import os
+import requests
 
 # This is base template of the checkbox launcher file that will be constructed
 # Other sections or overrides to these values will be applied on top of this
@@ -139,17 +140,13 @@ com.canonical.certification::has_wlan_adapter = true
 """
 
 
-def parse_json(manifest_file_path):
+def parse_json(manifest_json):
     """
     Given an manifest json file, parse it as a format suitable for the Checkbox launcher file
     """
-
-    with open(manifest_file_path) as file:
-        manifest_dict = dict(json.load(file))
-
     manifest_ini = StringIO()
     print("[manifest]", end="\n", file=manifest_ini)
-    for key, value in manifest_dict.items():
+    for key, value in manifest_json.items():
         line = f"{key} = {value}"
         print(line, end="\n", file=manifest_ini)
     return manifest_ini.getvalue()
@@ -165,6 +162,7 @@ def build_checkbox_launcher():
     parser.add_argument("testplan_id", type=str)
     parser.add_argument("extra_excludes", type=str)
     parser.add_argument("manifest_dir", type=str)
+    parser.add_argument("secure_id", type=str)
     args = parser.parse_args()
 
     # The overlay for manifest should come from the shared repo
@@ -173,10 +171,14 @@ def build_checkbox_launcher():
     manifest_file_path = os.path.join(
         args.manifest_dir, "pc", args.cid, "manifest.json"
     )
-    print("Expected manifest path: {}".format(manifest_file_path))
-    if os.path.exists(manifest_file_path):
+
+    print("Fetching Manifest from C3")
+    response = requests.get(
+        f"https://certification.canonical.com/api/v2/machines/{args.cid}/manifest?secure_id={args.secure_id}"
+    )
+    if response.status_code == 200:
         print("Print found manifest")
-        manifest_conf = parse_json(manifest_file_path)
+        manifest_conf = parse_json(response.json())
     else:
         print("Manifest not found, using default")
         manifest_conf = fallback_manifest
