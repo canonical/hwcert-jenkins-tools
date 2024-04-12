@@ -17,7 +17,9 @@ import configparser
 import json
 import os
 
-# Top of the launcher file - used by all runs
+# This is base template of the checkbox launcher file that will be constructed
+# Other sections or overrides to these values will be applied on top of this
+# file using ConfigParser processing
 launcher_head = """
 [launcher]
 launcher_version = 1
@@ -54,9 +56,11 @@ exporter = example_tar
 forced = yes
 """
 
-# The test plan selection sections of the launcher
+# The next three static strings are applied on top the base launcher depending on the jenkins job
+# parameter "TESTPLAN", the options provided are full, no_stress, smoke
+# This is made more complicated by the fact that the test plan itself can also that be modified
+# per project
 checkbox_launcher_sru = """
-#!/usr/bin/env checkbox-cli
 [test plan]
 unit = {checkbox_testplan}
 forced = yes
@@ -67,7 +71,6 @@ exclude = com.canonical.certification::clevis-encrypt-tpm2* com.canonical.certif
 """
 
 checkbox_launcher_sru_no_stress = """
-#!/usr/bin/env checkbox-cli
 [test plan]
 unit = {checkbox_testplan}
 forced = yes
@@ -78,7 +81,6 @@ exclude = .*disk/disk_stress_ng_.* .*stress/cpu_stress_ng_test .*pts/fs-mark .*p
 """
 
 checkbox_launcher_smoke = """
-#!/usr/bin/env checkbox-cli
 [test plan]
 unit = com.canonical.certification::smoke
 forced = yes
@@ -88,13 +90,39 @@ forced = yes
 exclude = .*smoke/manual {exclude_test}
 """
 
-# any config that needs modifying per device
-# cat <<EOF > device_conf.tmpl
-# {checkbox_conf}
-# EOF
-# cheetah fill --env device_conf.tmpl -p > device_conf
+# This the environment that all machines will use if we cannot find one specifically create for that
+# machine
+fallback_environment = """
+[environment]
+ROUTERS = multiple
+WPA_BG_SSID = cert-bg-wpa-tel-l3-01
+WPA_BG_PSK = insecure
+WPA_N_SSID = cert-n-wpa-tel-l3-01
+WPA_N_PSK = insecure
+WPA_AC_SSID = cert-ac-wpa-tel-l3-01
+WPA_AC_PSK = insecure
+WPA_AX_SSID = cert-ax-wpa-tel-l3-01
+WPA_AX_PSK = insecure
+WPA3_AX_SSID = cert-ax-wpa3-tel-l3-01
+WPA3_AX_PSK = insecure
+OPEN_BG_SSID = cert-bg-open-tel-l3-01
+OPEN_N_SSID = cert-n-open-tel-l3-01
+OPEN_AC_SSID = cert-ac-open-tel-l3-01
+OPEN_AX_SSID = cert-ax-open-tel-l3-01
+BTDEVADDR = 54:35:30:15:BC:DA
+TRANSFER_SERVER = cdimage.ubuntu.com
+DISPLAY= :0
+SUDO_USER = ubuntu
+STRESS_NG_DISK_TIME = 15
+STRESS_NG_CPU_TIME = 60
+PTS_CACHE_URL = http://10.102.196.9/sru/phoronix_cache/
+SNAPD_TASK_TIMEOUT = 120
+ZAPPER_HOST = \$ZAPPER_IP
+"""
 
 
+# This is the manifest that all machines will use if we cannot find one specifically created for that
+# machine
 fallback_manifest = """
 [manifest]
 com.canonical.certification::has_bt_smart = false
@@ -135,9 +163,13 @@ def build_checkbox_launcher():
     parser.add_argument("job_variant", type=str)
     parser.add_argument("cid", type=str)
     parser.add_argument("testplan_id", type=str)
+    parser.add_argument("extra_excludes", type=str)
     parser.add_argument("manifest_dir", type=str)
     args = parser.parse_args()
 
+    # The overlay for manifest should come from the shared repo
+    # this sections attempts to find one at the path supplied
+    # and use a suitable default otherwise
     manifest_file_path = os.path.join(
         args.manifest_dir, "pc", args.cid, "manifest.json"
     )
@@ -149,26 +181,40 @@ def build_checkbox_launcher():
         print("Manifest not found, using default")
         manifest_conf = fallback_manifest
 
+    # The overlay for configuration/environment should come from the shared repo
+    # this sections attempts to find one at the path supplied
+    # and use a suitable default otherwise
+    configuration_file_path = os.path.join(
+        args.manifest_dir, "pc", args.cid, "checkbox.conf"
+    )
+    print("Expected configuration path: {}".format(configuration_file_path))
+    if os.path.exists(configuration_file_path):
+        print("Print found configuration")
+        environment_conf = parse_json(manifest_file_path)
+    else:
+        print("Configuration not found, using default")
+        environment_conf = fallback_environment
+
     if args.job_variant == "no_stress":
         launcher_test_selection = checkbox_launcher_sru_no_stress.format(
-            checkbox_testplan=args.testplan_id, exclude_test=""
+            checkbox_testplan=args.testplan_id, exclude_test=args.extra_excludes
         )
     elif args.job_variant == "smoke":
         launcher_test_selection = checkbox_launcher_smoke.format(
-            checkbox_testplan=args.testplan_id, exclude_test=""
+            checkbox_testplan=args.testplan_id, exclude_test=args.extra_excludes
         )
     else:  # implies "full"
         launcher_test_selection = checkbox_launcher_sru.format(
-            checkbox_testplan=args.testplan_id, exclude_test=""
+            checkbox_testplan=args.testplan_id, exclude_test=args.extra_excludes
         )
 
-    # Merge the launcher we downloaded with checkbox.conf
-
+    # Build up the final checkbox launcher by overlaying the various layers
+    # built up above
     c = configparser.ConfigParser(delimiters=("=",))
     c.optionxform = str
     c.read_string(launcher_head)
     c.read_string(launcher_test_selection)
-    # c.read('device_conf')
+    c.read_string(environment_conf)
     c.read_string(manifest_conf)
     c.write(open("checkbox-launcher", "wt"))
     print("Wrote checkbox-launcher")
