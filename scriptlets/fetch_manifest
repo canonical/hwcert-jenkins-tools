@@ -2,22 +2,18 @@
 #
 # Copyright 2024 Canonical Ltd.
 #
-# Fetch the manifest for the machine from C3
-#
-# Dependencies:
-#
+# Fetch the manifest for a given machine from C3
 #
 # Usage:
-#     `fetch_manifest`
+#     `fetch_manifest <CID> <MACHINE_SECURE_ID>`
 
-
-# This is the manifest that all machines will use if we cannot find one specifically created for that
-# machine
 from argparse import ArgumentParser
 from io import StringIO
 import requests
 
 
+# This is the manifest that all machines will use if we cannot find
+# one specifically created for that machine
 fallback_manifest = """        [manifest]
         com.canonical.certification::has_bt_smart = false
         com.canonical.certification::has_camera = true
