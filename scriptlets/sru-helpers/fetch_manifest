@@ -8,46 +8,54 @@
 #     `fetch_manifest <CID> <MACHINE_SECURE_ID>`
 
 from argparse import ArgumentParser
-from io import StringIO
+import configparser
 import requests
 
 
 # This is the manifest that all machines will use if we cannot find
 # one specifically created for that machine
-fallback_manifest = """        [manifest]
-        com.canonical.certification::has_bt_smart = false
-        com.canonical.certification::has_camera = true
-        com.canonical.certification::has_card_reader = true
-        com.canonical.certification::has_ethernet_adapter = true
-        com.canonical.certification::has_thunderbolt = false
-        com.canonical.certification::has_thunderbolt3 = false
-        com.canonical.certification::has_touchscreen = false
-        com.canonical.certification::has_tpm2_chip = false
-        com.canonical.certification::has_usb_storage = true
-        com.canonical.certification::has_usb_type_c = false
-        com.canonical.certification::has_wlan_adapter = true
+fallback_manifest_raw = """[manifest]
+com.canonical.certification::has_bt_smart = false
+com.canonical.certification::has_camera = true
+com.canonical.certification::has_card_reader = true
+com.canonical.certification::has_ethernet_adapter = true
+com.canonical.certification::has_thunderbolt = false
+com.canonical.certification::has_thunderbolt3 = false
+com.canonical.certification::has_touchscreen = false
+com.canonical.certification::has_tpm2_chip = false
+com.canonical.certification::has_usb_storage = true
+com.canonical.certification::has_usb_type_c = false
+com.canonical.certification::has_wlan_adapter = true
 """
+
+fallback_manifest_config = configparser.ConfigParser(delimiters=("=",))
+fallback_manifest_config.read_string(fallback_manifest_raw)
 
 
 def parse_json(manifest_json):
     """
     Given an manifest json file, parse it as a format suitable for the Checkbox launcher file
     """
-    manifest_conf = StringIO()
-    print("        [manifest]", end="\n", file=manifest_conf)
+    manifest_config = configparser.ConfigParser(delimiters=("=",))
+    manifest_config["manifest"] = {}
     for key, value in manifest_json.items():
-        line = f"        {key} = {value}"
-        print(line, end="\n", file=manifest_conf)
-    return manifest_conf.getvalue()
+        manifest_config["manifest"][key] = str(value).lower()
+    return manifest_config
 
 
 def fetch_manifest():
     parser = ArgumentParser(
-        prog="",
-        description="",
+        prog="fetch_manifest",
+        description="Helper script to fetch the manifest for a given machine from C3",
     )
-    parser.add_argument("cid", type=str)
-    parser.add_argument("secure_id", type=str)
+    parser.add_argument("cid", help="Canonical ID of the machine", type=str)
+    parser.add_argument("secure_id", help="Secure ID of the machine", type=str)
+    parser.add_argument(
+        "--manifest_file",
+        help="File name to write the manifest to",
+        default="manifest_conf",
+        type=str,
+    )
     args = parser.parse_args()
 
     print("Fetching Manifest from C3")
@@ -56,13 +64,13 @@ def fetch_manifest():
     )
     if response.status_code == 200:
         print("Found manifest")
-        manifest_conf = parse_json(response.json())
+        manifest_config = parse_json(response.json())
     else:
         print("Manifest not found, using default")
-        manifest_conf = fallback_manifest
+        manifest_config = fallback_manifest_config
 
-    with open("manifest_conf", "w") as f:
-        f.write(manifest_conf)
+    with open(args.manifest_file, "w") as configfile:
+        manifest_config.write(configfile)
 
 
 if __name__ == "__main__":
