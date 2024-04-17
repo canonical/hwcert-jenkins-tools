@@ -37,9 +37,7 @@ def parse_json(manifest_json):
     Given an manifest json file, parse it as a format suitable for the Checkbox launcher file
     """
     manifest_config = configparser.ConfigParser(delimiters=("=",))
-    manifest_config["manifest"] = {}
-    for key, value in manifest_json.items():
-        manifest_config["manifest"][key] = str(value).lower()
+    manifest_config["manifest"] = manifest_json
     return manifest_config
 
 
