@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Wait until there is no apt or dpkg process.
+# If times out, kills those processes.
+
+is_process_running() {
+    # the arg is the process name
+    pgrep "$1" > /dev/null
+}
+wait_for_apt_dpkg_resource_function() {
+
+    # Get the current datetime in seconds since epoch
+    current_time=$(date +%s)
+
+    # Calculate the future datetime (10 minutes from now) in seconds since epoch
+    deadline=$(( $current_time + 600 ))
+
+    # Loop until there are no apt or dpkg processes or timeout occurs
+    while is_process_running "apt" || is_process_running "apt-get" || is_process_running "dpkg"; do
+        echo "System is updating... Waiting for APT resource..."
+        sleep 1
+        current_time=$(date +%s)
+        if [[ $current_time > $deadline ]]; then
+            echo "Timeout. Killing apt, apt-get, and dpkg processes."
+        pkill -x "apt|apt-get|dpkg"
+            break
+        fi
+    done
+}
+
+# Check if the script is being sourced or executed
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  wait_for_apt_dpkg_resource_function "$@"
+fi
