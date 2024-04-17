@@ -3,33 +3,15 @@
 # Copyright 2024 Canonical Ltd.
 #
 # Fetch the manifest for a given machine from C3
+# Exit codes: 0 - Success, 1 - Failure to find manifest
 #
 # Usage:
 #     `fetch_manifest <CID> <MACHINE_SECURE_ID>`
 
 from argparse import ArgumentParser
 import configparser
+import sys
 import requests
-
-
-# This is the manifest that all machines will use if we cannot find
-# one specifically created for that machine
-fallback_manifest_raw = """[manifest]
-com.canonical.certification::has_bt_smart = false
-com.canonical.certification::has_camera = true
-com.canonical.certification::has_card_reader = true
-com.canonical.certification::has_ethernet_adapter = true
-com.canonical.certification::has_thunderbolt = false
-com.canonical.certification::has_thunderbolt3 = false
-com.canonical.certification::has_touchscreen = false
-com.canonical.certification::has_tpm2_chip = false
-com.canonical.certification::has_usb_storage = true
-com.canonical.certification::has_usb_type_c = false
-com.canonical.certification::has_wlan_adapter = true
-"""
-
-fallback_manifest_config = configparser.ConfigParser(delimiters=("=",))
-fallback_manifest_config.read_string(fallback_manifest_raw)
 
 
 def parse_json(manifest_json):
@@ -60,15 +42,15 @@ def fetch_manifest():
     response = requests.get(
         f"https://certification.canonical.com/api/v2/machines/{args.cid}/manifest?secure_id={args.secure_id}"
     )
-    if response.status_code == 200:
-        print("Found manifest")
-        manifest_config = parse_json(response.json())
-    else:
-        print("Manifest not found, using default")
-        manifest_config = fallback_manifest_config
+    if response.status_code != 200:
+        print("Couldn't find manifest for the given machine")
+        sys.exit(1)
 
+    print("Manifest found")
+    manifest_config = parse_json(response.json())
     with open(args.manifest_file, "w") as configfile:
         manifest_config.write(configfile)
+    sys.exit(0)
 
 
 if __name__ == "__main__":
