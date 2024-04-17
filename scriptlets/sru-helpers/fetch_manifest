@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+#
+# Copyright 2024 Canonical Ltd.
+#
+# Fetch the manifest for a given machine from C3
+# Exit codes: 0 - Success, 1 - Failure to find manifest
+#
+# Usage:
+#     `fetch_manifest <CID> <MACHINE_SECURE_ID>`
+
+from argparse import ArgumentParser
+import configparser
+import sys
+import requests
+
+
+def parse_json(manifest_json):
+    """
+    Given an manifest json file, parse it as a format suitable for the Checkbox launcher file
+    """
+    manifest_config = configparser.ConfigParser(delimiters=("=",))
+    manifest_config["manifest"] = manifest_json
+    return manifest_config
+
+
+def fetch_manifest():
+    parser = ArgumentParser(
+        prog="fetch_manifest",
+        description="Helper script to fetch the manifest for a given machine from C3",
+    )
+    parser.add_argument("cid", help="Canonical ID of the machine", type=str)
+    parser.add_argument("secure_id", help="Secure ID of the machine", type=str)
+    parser.add_argument(
+        "--manifest_file",
+        help="File name to write the manifest to",
+        default="manifest_conf",
+        type=str,
+    )
+    args = parser.parse_args()
+
+    print("Fetching Manifest from C3")
+    response = requests.get(
+        f"https://certification.canonical.com/api/v2/machines/{args.cid}/manifest?secure_id={args.secure_id}"
+    )
+    if response.status_code != 200:
+        print("Couldn't find manifest for the given machine")
+        sys.exit(1)
+
+    print("Manifest found")
+    manifest_config = parse_json(response.json())
+    with open(args.manifest_file, "w") as configfile:
+        manifest_config.write(configfile)
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    fetch_manifest()
