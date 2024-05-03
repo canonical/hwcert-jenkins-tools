@@ -14,6 +14,8 @@ from typing import Optional
 import requests
 from requests.auth import HTTPBasicAuth
 
+logging.basicConfig(level=logging.INFO)
+
 reruns_link = "https://test-observer-api.canonical.com/v1/test-executions/reruns"
 
 
