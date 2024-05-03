@@ -9,7 +9,7 @@ Note also that jenkins uses python 3.8
 import logging
 import re
 from os import environ
-from typing import Union
+from typing import Optional
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -18,7 +18,7 @@ reruns_link = "https://test-observer.canonical.com/v1/test-executions/reruns"
 
 
 class Main:
-    def __init__(self, jenkins_api_token: Union[str, None] = None):
+    def __init__(self, jenkins_api_token: Optional[str] = None):
         self.jenkins_auth = HTTPBasicAuth(
             "admin", jenkins_api_token or environ["JENKINS_API_TOKEN"]
         )
@@ -49,7 +49,7 @@ class Main:
             else:
                 logging.error(f"Invalid family name {family}")
 
-    def _extract_base_job_link_from_ci_link(self, ci_link: str) -> Union[str, None]:
+    def _extract_base_job_link_from_ci_link(self, ci_link: str) -> Optional[str]:
         matching = re.match(r"(.+/)\d+/", ci_link)
         if matching:
             return matching.group(1)
