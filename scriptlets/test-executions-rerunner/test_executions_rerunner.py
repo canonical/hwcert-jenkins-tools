@@ -65,3 +65,7 @@ class Main:
         data = {"TESTPLAN": "full"}
         logging.info(f"POST {rerun_link} {data}")
         requests.post(rerun_link, auth=self.jenkins_auth, json=data)
+
+
+if __name__ == "__main__":
+    Main().run()
