@@ -14,7 +14,7 @@ from typing import Optional
 import requests
 from requests.auth import HTTPBasicAuth
 
-reruns_link = "https://test-observer.canonical.com/v1/test-executions/reruns"
+reruns_link = "https://test-observer-api.canonical.com/v1/test-executions/reruns"
 
 
 class Main:
