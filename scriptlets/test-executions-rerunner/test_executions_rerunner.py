@@ -28,6 +28,7 @@ class Main:
     def run(self):
         self._load_rerun_requests()
         self._submit_rerun_requests()
+        self._delete_rerun_requests()
 
     def _load_rerun_requests(self) -> None:
         response = requests.get(reruns_link)
@@ -37,6 +38,13 @@ class Main:
     def _submit_rerun_requests(self) -> None:
         for rerun_request in self.rerun_requests:
             self._submit_rerun(rerun_request)
+
+    def _delete_rerun_requests(self) -> None:
+        test_execution_ids = {rr["test_execution_id"] for rr in self.rerun_requests}
+        if test_execution_ids:
+            requests.delete(
+                reruns_link, json={"test_execution_ids": list(test_execution_ids)}
+            )
 
     def _submit_rerun(self, rerun_request: dict) -> None:
         base_job_link = self._extract_base_job_link_from_ci_link(
