@@ -3,25 +3,43 @@
 # If times out, kills those processes.
 
 is_process_running() {
-    # the arg is the process name
-    pgrep "$1" > /dev/null
+    # The arg is the process name
+    pgrep "$1" > /dev/null 2>&1
 }
-wait_for_apt_dpkg_resource_function() {
 
+is_file_used() {
+    # The arg is the file name
+    fuser -s "$1"
+}
+
+is_resource_busy() {
+    if \
+        is_process_running apt || \
+        is_process_running dpkg || \
+        is_file_used /var/lib/apt/lists/lock || \
+        is_file_used /var/lib/dpkg/lock || \
+        is_file_used /var/cache/debconf/config.dat;
+    then
+        return 0
+    else
+        return 1
+    fi
+}
+
+wait_for_apt_dpkg_resource_function() {
     # Get the current datetime in seconds since epoch
     current_time=$(date +%s)
-
     # Calculate the future datetime (10 minutes from now) in seconds since epoch
     deadline=$(( $current_time + 600 ))
 
     # Loop until there are no apt or dpkg processes or timeout occurs
-    while is_process_running "apt" || is_process_running "apt-get" || is_process_running "dpkg"; do
+    while is_resource_busy; do
         echo "System is updating... Waiting for APT resource..."
         sleep 1
         current_time=$(date +%s)
         if [[ $current_time > $deadline ]]; then
             echo "Timeout. Killing apt, apt-get, and dpkg processes."
-        pkill -x "apt|apt-get|dpkg"
+            pkill -x "apt|apt-get|dpkg"
             break
         fi
     done
