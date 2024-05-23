@@ -13,11 +13,11 @@ is_file_used() {
 }
 
 is_resource_busy() {
-    if \
-        is_process_running apt || \
-        is_process_running dpkg || \
-        is_file_used /var/lib/apt/lists/lock || \
-        is_file_used /var/lib/dpkg/lock || \
+    if
+        is_process_running apt ||
+        is_process_running dpkg ||
+        is_file_used /var/lib/apt/lists/lock ||
+        is_file_used /var/lib/dpkg/lock ||
         is_file_used /var/cache/debconf/config.dat;
     then
         return 0
