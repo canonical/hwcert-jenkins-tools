@@ -7,10 +7,11 @@ specified then we install that one instead.
 """
 import argparse
 import logging
+import shlex
+import subprocess
 import sys
 from dataclasses import dataclass
 from typing import List, Optional
-import paramiko
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,30 +29,16 @@ class SSHClient:
     def __init__(self, host: str, username: str):
         self.host: str = host
         self.username: str = username
-        self.ssh: paramiko.SSHClient = paramiko.SSHClient()
-        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-    def connect(self) -> None:
-        logging.info("Connecting to %s as %s", self.host, self.username)
-        try:
-            self.ssh.connect(self.host, username=self.username)
-        except TimeoutError as e:
-            sys.exit(f"Timeout error connecting to {self.host}: {e}")
-        except paramiko.SSHException as e:
-            sys.exit(f"SSH error connecting to {self.host}: {e}")
 
     def execute_command(self, command: str):
         logging.info("Executing command on %s: %s", self.host, command)
         try:
-            self.ssh.exec_command(command)
-        except TimeoutError as e:
-            sys.exit(f"Timeout error executing command on {self.host}: {e}")
-        except paramiko.SSHException as e:
+            ssh_command = (
+                f"ssh {self.username}@{self.host} {shlex.quote(command)}"
+            )
+            subprocess.check_output(ssh_command, shell=True)
+        except subprocess.SubprocessError as e:
             sys.exit(f"SSH error executing command on {self.host}: {e}")
-
-    def close(self) -> None:
-        logging.info("Closing connection to %s", self.host)
-        self.ssh.close()
 
 
 class RemoteCheckboxInstaller:
@@ -65,7 +52,6 @@ class RemoteCheckboxInstaller:
 
     def install_snaps(self) -> None:
         """Install the checkbox snaps on the remote host"""
-        self.ssh_client.connect()
 
         runtime_install_cmd = self.get_checkbox_runtime_install_cmd()
         logging.info(
@@ -78,8 +64,6 @@ class RemoteCheckboxInstaller:
             "Running '%s' on %s", checkbox_install_cmd, self.ssh_client.host
         )
         self.ssh_client.execute_command(checkbox_install_cmd)
-
-        self.ssh_client.close()
 
     def get_checkbox_runtime(self) -> str:
         """Get the name of the checkbox runtime snap for the given track"""
