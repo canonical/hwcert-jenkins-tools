@@ -77,5 +77,6 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+TOOLS_REPO=https://github.com/canonical/hwcert-jenkins-tools.git
 TOOLS_PATH=${TOOLS_PATH:-$TOOLS_PATH_DEFAULT}
 fetch $TOOLS_PATH $BRANCH || (rm -rf $TOOLS_PATH && clone $TOOLS_REPO $TOOLS_PATH $BRANCH)
