@@ -18,7 +18,7 @@ wait_for_ssh_function() {
     local max_attempts=${1:-20} # If no argument is passed, default to 20
     source "$(dirname "$BASH_SOURCE")/set-ssh-options"
     loopcnt=0
-    until timeout 10 ssh $SSH_OPTS $DEVICE_IP /bin/true
+    until timeout 10 ssh $SSH_OPTS $DEVICE_IP systemctl is-system-running
     do
         echo "Testing to see if system is back up"
         loopcnt=$((loopcnt+1))
