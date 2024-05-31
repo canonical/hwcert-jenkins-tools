@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# Copyright 2024 Canonical Ltd.
+#
+# Reboot the DUT and wait until it can accept ssh connections again
+#
+# Dependencies:
+#     Uses the `_run` and `wait_for_ssh` scriptlets
+
+warm_reboot_function() {
+    _run sudo reboot
+    wait_for_ssh
+}
+
+# Check if the script is being sourced or executed
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  warm_reboot_function "$@"
+fi
