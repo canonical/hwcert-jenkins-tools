@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# Install Checkbox from repo, matching a specific version
+#
+# Dependencies:
+# - git
+# - tools repo available, containing `checkout_to_version.py`
+
+install_checkbox_from_source_function() {
+    # this is the Checkbox version to match
+    local VERSION=$1
+    local TOOLS_PATH=$2
+    # clone Checkbox repo
+    git clone --filter=tree:0 https://github.com/canonical/checkbox.git > /dev/null
+    # checkout commit to match the required version
+    $TOOLS_PATH/version-published/checkout_to_version.py ~/checkbox "$VERSION"
+    # install checkbox from source
+    (cd checkbox/checkbox-ng; sudo python3 setup.py install > /dev/null)
+    sudo rm -rf checkbox
+}
+
+# Check if the script is being sourced or executed
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  install_checkbox_from_source_function "$@"
+fi
