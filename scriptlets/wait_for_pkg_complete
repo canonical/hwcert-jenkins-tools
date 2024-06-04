@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+# Wait until there is no apt or dpkg process running
+# On timeout, kill relevant processes
+
+
+is_process_running() {
+    # The arg is the process name
+    pgrep "$1" > /dev/null 2>&1
+}
+
+is_file_used() {
+    # The arg is the file name
+    fuser -s "$1"
+}
+
+is_resource_busy() {
+    is_process_running apt || \
+    is_process_running dpkg || \
+    is_file_used /var/lib/apt/lists/lock || \
+    is_file_used /var/lib/dpkg/lock || \
+    is_file_used /var/cache/debconf/config.dat
+}
+
+wait_for_pkg_complete() {
+  while is_resource_busy; do
+    echo 'Waiting to complete package update'
+    sleep 1
+  done
+}
+
+wait_for_pkg_complete_function() {
+    # export functions so they can be used with timeout subshell
+    export -f is_process_running
+    export -f is_file_used
+    export -f is_resource_busy
+    export -f wait_for_pkg_complete
+    timeout 10m bash -c "wait_for_pkg_complete"
+    if [ $? -eq 124 ]; then
+      echo "Timeout. Killing apt, apt-get, and dpkg processes."
+      sudo pkill -x "apt|apt-get|dpkg"
+    fi
+}
+
+# Check if the script is being sourced or executed
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  wait_for_pkg_complete_function "$@"
+fi
