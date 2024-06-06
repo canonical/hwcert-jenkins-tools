@@ -17,6 +17,7 @@
 
 wait_for_snap_complete_function() {
     source "$(dirname "$BASH_SOURCE")/set-ssh-options"
+    sleep 2
     set +x
     loopcnt=0
     until [ $loopcnt -gt 40 ]
