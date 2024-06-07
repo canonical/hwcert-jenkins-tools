@@ -1,28 +1,25 @@
 #!/usr/bin/env bash
+
+# Wait until SSH is available on a remote device.
 #
-# Copyright 2023 Canonical Ltd.
-#
-# This script provides a mechanism for waiting until SSH is available on a remote device.
-# It uses the `set-ssh-options` script to set SSH options and then repeatedly attempts to
-# connect to the device via SSH until successful or until a timeout is reached.
+# This works by repeated attempts to connect to the device via SSH
+# until successful or until a timeout is reached.
 #
 # Dependencies:
-#     This script depends on the `set-ssh-options` script to set SSH options.
-#     DEVICE_IP and DEVICE_USER must be set in the environment.
+#   This script depends on the `_run` scriptlet
 #
 # Usage:
-#     Source it in another script and call
-#     `wait_for_ssh_function`
+#   `wait_for_ssh [attempts]`
 
 wait_for_ssh_function() {
-    local max_attempts=${1:-20} # If no argument is passed, default to 20
-    source "$(dirname "$BASH_SOURCE")/set-ssh-options"
-    loopcnt=0
-    until timeout 10 ssh $SSH_OPTS $DEVICE_IP /bin/true
+    local base=$(dirname "$BASH_SOURCE")
+    local attempts=${1:-20} # If no argument is passed, default to 20
+    local loopcnt=0
+    until timeout 10 $base/_run /bin/true
     do
         echo "Testing to see if system is back up"
         loopcnt=$((loopcnt+1))
-        if [ $loopcnt -gt $max_attempts ]; then
+        if [ $loopcnt -gt $attempts ]; then
             echo "ERROR: Timeout waiting for ssh!"
             return 1
         fi
@@ -33,5 +30,5 @@ wait_for_ssh_function() {
 
 # Check if the script is being sourced or executed
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  wait_for_ssh_function "$@"
+    wait_for_ssh_function "$@"
 fi

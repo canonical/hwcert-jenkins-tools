@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+# Export SSH_OPTS to the environment (and subsequent scripts).
+# Include options to make ssh more automation-friendly.
+
+if [ -z "${SSH_OPTS}" ]; then
+    export SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=3"
+fi
