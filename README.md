@@ -2,6 +2,24 @@
 
 Utility scripts and tools authored by the Certification Team to enhance and automate CI/CD pipelines.
 
+## Downloadable installer
+
+Certification jobs that need to make use of the tools in this repo can use the downloadable installer:
+
+```
+curl -Ls -o installer.sh https://raw.githubusercontent.com/canonical/hwcert-jenkins-tools/main/installer.sh
+source installer.sh tools --branch LM-1580-sru-refactor
+```
+
+The installer clones this repo in a readable, consistent manner.
+It can also clone from branches, useful in cases where new tools are being developed and tested.
+
+Note that sourcing the installer script instead of executing it also defines an `add_to_path` function:
+
+```
+add_to_path tools/scriptlets
+```
+
 ## provision_checkbox.sh
 
 Tool for provisioning Checkbox from source. The provisioned Checkbox does not
@@ -30,20 +48,3 @@ Example:
 
 * `_run reboot  # reboots the DUT`
 
-## Downloadable installer
-
-Certification jobs that need to make use of the tools in this repo can use the downloadable installer:
-
-```
-curl -Ls -o installer.sh https://raw.githubusercontent.com/canonical/hwcert-jenkins-tools/main/installer.sh
-source installer.sh tools --branch LM-1580-sru-refactor
-```
-
-The installer clones this repo in a readable, consistent manner.
-It can also clone from branches, useful in cases where new tools are being developed and tested.
-
-Note that sourcing the installer script instead of executing it also defines an `add_to_path` function:
-
-```
-add_to_path tools/scriptlets
-```
