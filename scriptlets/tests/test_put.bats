@@ -22,5 +22,5 @@ setup() {
 @test "put_function should call scp with correct arguments" {
   run put_function "local_file" "remote_file"
   [ "$status" -eq 0 ]
-  [ "$output" == "scp -o MockOption=value local_file 192.168.1.1:remote_file" ]
+  [ "$output" == "scp -o MockOption=value local_file ubuntu@192.168.1.1:remote_file" ]
 }
