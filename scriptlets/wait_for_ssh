@@ -12,10 +12,9 @@
 #   `wait_for_ssh [attempts]`
 
 wait_for_ssh_function() {
-    local base=$(dirname "$BASH_SOURCE")
     local attempts=${1:-20} # If no argument is passed, default to 20
     local loopcnt=0
-    until timeout 10 $base/_run /bin/true
+    until timeout 10 _run /bin/true
     do
         echo "Testing to see if system is back up"
         loopcnt=$((loopcnt+1))
