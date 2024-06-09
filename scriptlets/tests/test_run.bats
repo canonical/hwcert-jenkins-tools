@@ -22,5 +22,5 @@ setup() {
 @test "run_function should call ssh with correct arguments" {
   run run_function "some_command"
   [ "$status" -eq 0 ]
-  [ "$output" == "ssh -o MockOption=value 192.168.1.1 some_command" ]
+  [ "$output" == "ssh -o MockOption=value ubuntu@192.168.1.1 some_command" ]
 }
