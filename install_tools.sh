@@ -70,3 +70,6 @@ add_to_path() {
 
 parse_args $@
 fetch || (rm -rf $TOOLS_PATH && clone)
+
+# install scriptlets (i.e. add them to path)
+add_to_path $TOOLS_PATH/scriptlets
