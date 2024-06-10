@@ -47,12 +47,12 @@ parse_args() {
 fetch() {
     git -C "$TOOLS_PATH" fetch -q --update-head-ok origin $BRANCH:$BRANCH 2> /dev/null && \
     git -C "$TOOLS_PATH" checkout -q $BRANCH && \
-    echo "Fetched branch $BRANCH into local repo: $TOOLS_PATH"
+    echo "Fetched $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
 }
 
 clone() {
     git clone -q --depth=1 --branch $BRANCH $TOOLS_REPO $TOOLS_PATH > /dev/null && \
-    echo "Cloned $REPO\@$BRANCH into local repo $TOOLS_PATH"
+    echo "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
 }
 
 add_to_path() {
