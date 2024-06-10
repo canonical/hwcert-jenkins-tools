@@ -4,32 +4,55 @@
 # If the repo is already available locally, fetch the latest version.
 # Use the --branch option to specify a specific branch
 
+TOOLS_REPO=https://github.com/canonical/hwcert-jenkins-tools.git
+TOOLS_PATH_DEFAULT=$(basename $TOOLS_REPO .git)
 
-fetch() {
-    if [ "$#" -lt 1 ]; then
-        echo "Usage: ${FUNCNAME[0]} <path> [<branch>]"
-        echo "Error: You need to provide a path to a local git repo."
-        return 1
-    fi
-    local LOCAL=$1
-    local BRANCH=${2:-main}
-    git -C "$LOCAL" fetch -q --update-head-ok origin $BRANCH:$BRANCH 2> /dev/null && \
-    git -C "$LOCAL" checkout -q $BRANCH && \
-    echo "Fetched branch $BRANCH into local repo $LOCAL"
+usage() {
+    echo "Usage: $0 [<path>] [--branch <value>]"
+    exit 1
 }
 
+parse_args() {
+    TOOLS_PATH=""
+    BRANCH=""
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --branch)
+                if [ -n "$2" ]; then
+                    BRANCH=$2
+                    shift
+                else
+                    echo "Error: value required for --branch"
+                    exit 1
+                fi
+                ;;
+            *)
+                if [ -z "$TOOLS_PATH" ]; then
+                    TOOLS_PATH=$1
+                else
+                    echo "Error: Invalid argument $1"
+                    usage
+                fi
+                ;;
+        esac
+        shift
+    done
+    # assign default values if command-line arguments have not been provided
+    TOOLS_PATH=${TOOLS_PATH:-$TOOLS_PATH_DEFAULT}
+    BRANCH=${BRANCH:-main}
+    export TOOLS_PATH
+    export BRANCH
+}
+
+fetch() {
+    git -C "$TOOLS_PATH" fetch -q --update-head-ok origin $BRANCH:$BRANCH 2> /dev/null && \
+    git -C "$TOOLS_PATH" checkout -q $BRANCH && \
+    echo "Fetched branch $BRANCH into local repo: $TOOLS_PATH"
+}
 
 clone() {
-    if [ "$#" -lt 2 ]; then
-        echo "Usage: ${FUNCNAME[0]} <repo> <path> [<branch>]"
-        echo "Error: You need to provide a git repo and a path to clone into."
-        return 1
-    fi
-    local REPO=$1
-    local LOCAL=$2
-    local BRANCH=${3:-main}
-    git clone -q --depth=1 --branch $BRANCH $REPO $LOCAL > /dev/null && \
-    echo "Cloned $REPO\@$BRANCH into local repo $LOCAL"
+    git clone -q --depth=1 --branch $BRANCH $TOOLS_REPO $TOOLS_PATH > /dev/null && \
+    echo "Cloned $REPO\@$BRANCH into local repo $TOOLS_PATH"
 }
 
 add_to_path() {
@@ -45,38 +68,5 @@ add_to_path() {
     fi
 }
 
-usage() {
-    echo "Usage: $0 [<path>] [--branch <value>]"
-    exit 1
-}
-
-# Parse command-line arguments
-TOOLS_PATH=""
-BRANCH=""
-while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        --branch)
-            if [ -n "$2" ]; then
-                BRANCH=$2
-                shift
-            else
-                echo "Error: value required for --branch"
-                exit 1
-            fi
-            ;;
-        *)
-            if [ -z "$TOOLS_PATH" ]; then
-                TOOLS_PATH=$1
-            else
-                echo "Error: Invalid argument $1"
-                usage
-            fi
-            ;;
-    esac
-    shift
-done
-
-TOOLS_REPO=https://github.com/canonical/hwcert-jenkins-tools.git
-TOOLS_PATH_DEFAULT=$(basename $TOOLS_REPO .git)
-TOOLS_PATH=${TOOLS_PATH:-$TOOLS_PATH_DEFAULT}
-fetch $TOOLS_PATH $BRANCH || (rm -rf $TOOLS_PATH && clone $TOOLS_REPO $TOOLS_PATH $BRANCH)
+parse_args $@
+fetch || (rm -rf $TOOLS_PATH && clone)
