@@ -61,7 +61,7 @@ add_to_path() {
         echo "Usage: ${FUNCNAME[0]} <path>"
         return 1
     fi
-    local PATH_TO_ADD=$(readlink -f $1)
+    local PATH_TO_ADD=$(readlink -m $1)
     if [[ ":$PATH:" != *":$PATH_TO_ADD:"* ]]; then
         export PATH="$PATH:$PATH_TO_ADD"
         echo "Added $PATH_TO_ADD to PATH"
