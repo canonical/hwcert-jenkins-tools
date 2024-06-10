@@ -13,7 +13,7 @@ concurrency:
 jobs:
   test-launcher-tools:
     name: Test certification tools
-    runs-on: [self-hosted]
+    runs-on: [self-hosted, jammy, x64]
     defaults:
       run:
         working-directory: cert-tools/launcher
