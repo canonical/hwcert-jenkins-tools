@@ -1,0 +1,25 @@
+name: Test certification tools
+on:
+  push:
+    branches-ignore:
+      - 'main'
+    paths:
+      - 'cert-tools/**'
+      - '.github/workflows/test_cert_tools.yaml'
+# Cancel inprogress runs if new commit pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test-launcher-tools:
+    runs-on: [self-hosted, linux, large, jammy, x64]
+    defaults:
+      run:
+        working-directory: cert-tools/launcher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - run: pip install .[]
+      - run: pytest
