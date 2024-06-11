@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+# Check if a specific snap change on a remote device is complete
+#
+# Description:
+#
+# The script processes the output of `snap change` for the provided change ID
+# on the remote device.
+#
+# See https://snapcraft.io/docs/snapd-api#heading--changes for the possible
+# status of a change step in the output of `snap change`.
+#
+# Note that on hybrid images, a change may be waiting for a manual reboot.
+# If this is the case, the reboot will be performed and the result of this
+# script will come from an additional check after rebooting
+#
+# Return value:
+#
+# 0 is the specified snap change is complete or 1 otherwise
+
+usage() {
+    echo "Usage: $(basename $0) <change-id>"
+}
+
+if [ $# -ne 1 ]; then
+    usage
+    echo "Error: <change-id> not specified"
+    exit 1
+fi
+
+is_complete() {
+    # tail -n +2: removes the header
+    # awk 'NF {print $1}': prints the first column on non-empty lines
+    # grep -q -E "Doing|Undoing|Wait": succeeds when the change is still ongoing
+    # the function succeeds when `grep` fails, i.e. when the change is complete
+    _run snap change $1 | tail -n +2 | awk 'NF {print $1}' | grep -q -E "Doing|Undoing|Wait" && return 1 || return 0
+}
+
+CHANGE_ID=$1
+is_complete $CHANGE_ID
+result=$?
+if [ ! $result -eq 0 ] && _run '[ -f /run/reboot-required ]'; then
+    echo "Snap change $CHANGE_ID is waiting for a manual reboot, restarting now..."
+    _run sudo reboot
+    wait_for_ssh
+    is_complete $CHANGE_ID
+    result=$?
+fi
+exit $result

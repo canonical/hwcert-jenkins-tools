@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# Wait for a specific snap change on a remote device to complete
+# 
+# See `check_for_snap_complete_id` (which is repeatedly called here)
+# for details
+#
+# Return value:
+# 
+# 0 if `check_for_snap_change_id` is successful or 1 otherwise
+# https://manpages.ubuntu.com/manpages/focal/man1/retry.1.html
+
+usage() {
+    echo "Usage: $(basename $0) <change-id>"
+}
+
+if [ $# -ne 1 ]; then
+    usage
+    echo "Error: <change-id> not specified"
+    exit 1
+fi
+
+CHANGE_ID=$1
+retry --times 20 --delay 10 -- \
+check_for_snap_change_id $CHANGE_ID
+
+result=$?
+if [ $result -gt 0 ]; then
+    echo "Error: unable to complete $(basename $0) for change ID: $CHANGE_ID"
+fi
+exit $result

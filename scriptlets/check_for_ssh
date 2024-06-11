@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# Check if a remote device is fully up and running
+#
+# Description:
+#
+# The script runs `systemctl is-system-running` on the remote device,
+# so it succeeds: "when the system is fully up and running, meaning
+# not in startup, shutdown or maintainance mode."
+#
+# Return value:
+# 
+# The return value of `systemctl is-system-running`
+# https://www.man7.org/linux/man-pages/man1/systemctl.1.html
+# or 255 in case of an ssh failure
+
+echo "Checking if ${DEVICE_IP:-device} is fully up and running"
+_run systemctl is-system-running

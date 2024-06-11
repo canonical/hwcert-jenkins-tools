@@ -2,21 +2,32 @@
 
 # Transfer a file to a remote device via SCP.
 #
-# Dependencies:
-#   This script depends on the `set_ssh_options` script to set SSH options.
-#   DEVICE_IP and DEVICE_USER must be set in the environment.
+# Description:
 #
-# Usage:
-#   `_put <local_file> <remote_file>`
-#   Or source it in another script and call
-#   `put_function <local_file> <remote_file>`
+# The IP of the device is provided by the environment variable DEVICE_IP,
+# which must be set. The user name on the remote device is `ubuntu`
+# by default, unless provided by the environment variable DEVICE_USER.
+#
+# This script depends on the `set_ssh_options` script to set SSH options.
+#
+# Return value:
+#
+# 0 if the copy operation is successful or >0 in case of an error.
 
-put_function() {
-    source "$(dirname "$BASH_SOURCE")/set_ssh_options"
-    scp $SSH_OPTS $1 ${DEVICE_USER:-ubuntu}@$DEVICE_IP:$2
+usage() {
+    echo "Usage: $(basename $0) <local_file> <remote_file>"
 }
 
-# Check if the script is being sourced or executed
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    put_function "$@"
+if [ -z $DEVICE_IP ]; then
+    echo "Error: Environment variable DEVICE_IP not set"
+    exit 1
 fi
+
+if [ $# -lt 2 ]; then
+    usage
+    echo "Error: <local_file> and/or <remote_file> not specified"
+    exit 1
+fi
+
+source "$(dirname "$BASH_SOURCE")/set_ssh_options"
+scp $SSH_OPTS $1 ${DEVICE_USER:-ubuntu}@$DEVICE_IP:$2
