@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
-# Mock ssh to simulate snap changes
-ssh() {
-  # this if simulates the confirmation that's dome by the
+# Mock _run to simulate snap changes
+_run() {
+  # this if simulates the confirmation that's done by the
   # wait_for_snap_complete_function
   if [ ${@: -1} == "true" ]; then
     echo true

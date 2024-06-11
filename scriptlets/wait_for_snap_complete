@@ -1,33 +1,28 @@
 #!/usr/bin/env bash
 
-# Copyright 2023 Canonical Ltd.
+# Wait for all snap operations on a remote device to complete.
 #
-# This script waits for all snap operations on a remote device to complete.
-# It uses SSH to query the snap changes on the device and checks for any ongoing operations.
-# The script will retry up to 40 times, with a 30-second sleep between each attempt.
+# This works by using SSH to query the snap changes on the device and check
+# for any ongoing operations.
+# The script will retry up to 40 times, with a 30-second sleep between attempts.
 #
 # Dependencies:
-#     This script depends on SSH and assumes that SSH options and DEVICE_IP are set.
+#   This script depends on the `_run` scriptlet
 #
 # Usage:
-#     Run directly:
-#     `wait_for_snap_complete <command> [command_args ...]`
-#     Or source it in another script and call
-#     `wait_for_snap_complete_function`
+#   `wait_for_snap_complete <command> [command_args ...]`
 
 wait_for_snap_complete_function() {
-    source "$(dirname "$BASH_SOURCE")/set-ssh-options"
-    set +x
-    loopcnt=0
+    local loopcnt=0
     until [ $loopcnt -gt 40 ]
     do
         loopcnt=$((loopcnt+1))
-        changes="$(ssh $SSH_OPTS $DEVICE_IP 'sudo snap changes')"
+        changes="$(_run 'sudo snap changes')"
         echo Checking for all snap operations to complete...
         echo $changes
         if [ -n "$changes" ] &&
             [[ "$changes" != *"Doing"* ]] &&
-            [ "$(ssh $SSH_OPTS $DEVICE_IP echo true)" = "true" ]; then
+            [ "$(_run echo true)" = "true" ]; then
             done="true"
             break
         fi
