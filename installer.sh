@@ -80,3 +80,6 @@ TOOLS_REPO=https://github.com/canonical/hwcert-jenkins-tools.git
 TOOLS_PATH_DEFAULT=$(basename $TOOLS_REPO .git)
 TOOLS_PATH=${TOOLS_PATH:-$TOOLS_PATH_DEFAULT}
 fetch $TOOLS_PATH $BRANCH || (rm -rf $TOOLS_PATH && clone $TOOLS_REPO $TOOLS_PATH $BRANCH)
+
+pip -q install $TOOLS_PATH/cert-tools/launcher
+add_to_path ~/.local/bin
