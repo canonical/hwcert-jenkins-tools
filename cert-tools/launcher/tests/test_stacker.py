@@ -22,23 +22,23 @@ def config_files(tmp_path):
     configs = {
         'config1': """
         [section_1]
-        key_11 = value_1
-        key_12 = value_2
+        key_11 = config1_value_11
+        key_12 = config1_value_12
         """,
         'config2': """
         [section_2]
-        key_21 = value_1
-        key_22 = value_2
+        key_21 = config2_value_21
+        key_22 = config2_value_22
         """,
         'config12': """
         [section_1]
-        key_11 = value_3
+        key_11 = config12_value_11
         [section_2]
-        key_22 = value_4
+        key_22 = config12_value_22
         [launcher]
-        key_l1 = value_1
+        key_l1 = launcher_value
         """,
-        'config_l': """
+        'config_launcher': """
         [launcher]
         session_desc = placeholder
         """
@@ -80,8 +80,8 @@ def test_stack_no_overlap(config_files):
     stacked = CheckBoxConfiguration()
     stacked.read('stacked.conf')
 
-    assert stacked['section_1']['key_11'] == 'value_1'
-    assert stacked['section_2']['key_22'] == 'value_2'
+    assert stacked['section_1']['key_11'] == 'config1_value_11'
+    assert stacked['section_2']['key_22'] == 'config2_value_22'
 
 
 def test_stack_overlap(config_files):
@@ -101,9 +101,9 @@ def test_stack_overlap(config_files):
     stacked.read('stacked.conf')
 
     # config_12 overrides section_1 -> key_11 from config_1
-    assert stacked['section_1']['key_11'] == 'value_3'
+    assert stacked['section_1']['key_11'] == 'config12_value_11'
     # config_2 overrides section_1 -> key_11 from config_12
-    assert stacked['section_2']['key_22'] == 'value_2'
+    assert stacked['section_2']['key_22'] == 'config2_value_22'
 
 
 def test_description_without_launcher(config_files):
@@ -148,7 +148,7 @@ def test_description_with_description(config_files):
     """
     CheckBoxConfiguration().stack(
         paths=[
-            config_files['config_l'],
+            config_files['config_launcher'],
         ],
         output='stacked.conf',
         description="description"
