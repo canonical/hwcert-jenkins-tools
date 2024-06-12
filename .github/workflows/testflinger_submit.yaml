@@ -1,0 +1,25 @@
+name: Submit a job to Testflinger
+on:
+    push:
+        branches: [CERTTF-330-test-testflinger-submit]
+    workflow_dispatch:
+
+jobs:
+  testflinger-submit:
+    runs-on: [self-hosted, testflinger]
+    steps:
+    - name: Checkout tools repo
+      uses: actions/checkout@v4
+    - name: Submit job
+      uses: canonical/testflinger/.github/actions/submit@main
+      with:
+        poll: true
+        job: |
+          job_queue: hp-elitebook-850-g7-notebook-pc
+          test_data:
+            test_cmds: |
+              #!/usr/bin/env bash
+
+              set -x
+              ls -alR
+          
