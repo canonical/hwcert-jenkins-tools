@@ -73,3 +73,7 @@ fetch || (rm -rf $TOOLS_PATH && clone)
 
 # install scriptlets (i.e. add them to path)
 add_to_path $TOOLS_PATH/scriptlets
+
+# install launcher
+pip -q install $TOOLS_PATH/cert-tools/launcher
+add_to_path ~/.local/bin

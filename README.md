@@ -4,7 +4,7 @@ Utility scripts and tools authored by the Certification Team to enhance and auto
 
 ## Downloadable installer
 
-Certification jobs that need to make use of the tools in this repo can use the downloadable installer:
+Certification tasks that need to make use of the tools in this repo can use the downloadable installer:
 
 ```bash
 curl -Ls -o install_tools.sh https://raw.githubusercontent.com/canonical/hwcert-jenkins-tools/main/install_tools.sh
@@ -16,8 +16,18 @@ It can also clone from branches, useful in cases where new tools are being devel
 
 Note that sourcing the installer script instead of executing it also defines an `add_to_path` function:
 
-```
+```bash
 add_to_path tools/scriptlets
+```
+
+## A "stacker" for Checkbox configuration files
+
+Certification tasks need to assemble several Checkbox configuration files (e.g. a common "head", a test plan, a manifest, environment variables) into a single file, also adding a description to it.
+
+This repo contains `stacker`, a purpose-built Python tool that offers this functionality.
+
+```bash
+stacker --output checkbox.conf launcher.conf manifest.conf --description "A description"
 ```
 
 ## provision_checkbox.sh
