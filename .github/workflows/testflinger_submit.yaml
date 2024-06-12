@@ -6,7 +6,7 @@ on:
 
 jobs:
   testflinger-submit:
-    runs-on: [self-hosted, testflinger]
+    runs-on: [self-hosted]
     steps:
     - name: Checkout tools repo
       uses: actions/checkout@v4
