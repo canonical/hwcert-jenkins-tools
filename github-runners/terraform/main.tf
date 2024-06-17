@@ -45,7 +45,7 @@ resource "juju_application" "github-runner" {
         labels = "testflinger"
         token = var.github_personal_access_token
         virtual-machines = 1
-        vm-cpu = 8
+        vm-cpu = 4
         vm-memory = "4GiB"
         vm-disk = "8GiB"
         # denylist = local.denylist_testflinger
