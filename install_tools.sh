@@ -72,6 +72,8 @@ parse_args $@
 fetch || (rm -rf $TOOLS_PATH && clone)
 
 # install scriptlets (i.e. add them to path)
+sudo DEBIAN_FRONTEND=noninteractive apt-get -qq update
+sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install -y psmisc retry
 add_to_path $TOOLS_PATH/scriptlets
 
 # install launcher
