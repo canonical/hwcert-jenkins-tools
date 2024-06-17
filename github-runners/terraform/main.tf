@@ -38,11 +38,7 @@ terraform {
 }
 # provider "juju" {}
 
-resource "juju_application" "github-runner" {
-    name        = "github-runner"
-    model       = "prod-hwcert-github-runners"
-    constraints = "arch=amd64 cores=8 mem=32768M root-disk=51200M"
-    
+resource "juju_application" "github-runner" { 
     name  = "testflinger-github-runner"
     model = "stg-self-hosted-runners-testflinger-action-testing"
     constraints = "arch=amd64 cores=4 mem=32768M root-disk=51200M"
