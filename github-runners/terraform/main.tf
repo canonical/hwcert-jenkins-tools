@@ -27,19 +27,10 @@ locals {
     EOT
 }
 
-terraform {
-  required_version = ">= 1.6.6"
-  required_providers {
-    juju = {
-      source  = "juju/juju"
-      version = "0.11.0"
-    }
-  }
-}
-# provider "juju" {}
+provider "juju" {}
 
-resource "juju_application" "github-runner" { 
-    name  = "testflinger-github-runner"
+resource "juju_application" "github-runner" {
+    name  = "github-runner-testflinger"
     model = "stg-self-hosted-runners-testflinger-action-testing"
     constraints = "arch=amd64 cores=4 mem=32768M root-disk=51200M"
 
@@ -48,7 +39,7 @@ resource "juju_application" "github-runner" {
         channel = local.charm_channel
         base = local.charm_base
     }
-    
+
     config = {
         path = "canonical/hwcert-jenkins-tools"
         labels = "testflinger"
@@ -62,6 +53,6 @@ resource "juju_application" "github-runner" {
         experimental-use-aproxy = local.experimental-use-aproxy
         runner-storage = "juju-storage"
     }
-    
+
     units = 1
 }
