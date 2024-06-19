@@ -15,7 +15,7 @@ jobs:
         hostname -I
         # if this works, better change the action
         curl -k -w "%{http_code}\n" -o /dev/null -s https://testflinger.canonical.com
-      - name: Submit job
+    - name: Submit job
       uses: canonical/testflinger/.github/actions/submit@main
       with:
         poll: true
