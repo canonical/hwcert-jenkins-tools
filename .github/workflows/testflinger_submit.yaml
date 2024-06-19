@@ -10,6 +10,10 @@ jobs:
     steps:
     - name: Checkout tools repo
       uses: actions/checkout@v4
+    - name: Diagnostic
+      run: |
+        # if this works, better change the action
+        curl -w "%{http_code}\n" -o /dev/null -s https://testflinger.canonical.com
     - name: Submit job
       uses: canonical/testflinger/.github/actions/submit@main
       with:
