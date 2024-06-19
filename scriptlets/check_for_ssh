@@ -18,25 +18,31 @@ usage() {
     echo "Usage: $(basename $0) [--allow-degraded]"
 }
 
-while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        --allow-degraded)
-            ALLOW_DEGRADED="(degraded allowed)"
-            ;;
-        *)
-            usage
-            echo "Error: Invalid argument $1"
-            exit 1
-            ;;
-    esac
-    shift
-done
+parse_args() {
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --allow-degraded)
+                export ALLOW_DEGRADED="(degraded allowed)"
+                ;;
+            *)
+                usage
+                echo "Error: Invalid argument $1"
+                exit 1
+                ;;
+        esac
+        shift
+    done
+}
 
-echo "Checking if ${DEVICE_IP:-device} is fully up and running"
+
+parse_args $@
+echo "Checking if ${DEVICE_IP:-device} is fully up and running $ALLOW_DEGRADED"
 RESULT=$(_run systemctl is-system-running)
-echo $RESULT $ALLOW_DEGRADED
+STATUS=$?
+[ -n "$RESULT" ] && echo $RESULT
+# check returned result and propagate `_run`'s exit status if not successful
 if [ -z "$ALLOW_DEGRADED" ]; then
-    [[ "$RESULT" = "running" ]]
+    [[ "$RESULT" = "running" ]] || exit $STATUS
 else
-    [[ "$RESULT" =~ ^(running|degraded)$ ]]
+    [[ "$RESULT" =~ ^(running|degraded)$ ]] || exit $STATUS
 fi

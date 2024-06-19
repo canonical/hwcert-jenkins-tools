@@ -12,8 +12,29 @@
 # https://manpages.ubuntu.com/manpages/focal/man1/retry.1.html
 # https://man7.org/linux/man-pages/man1/timeout.1.html
 
+usage() {
+    echo "Usage: $(basename $0) [--allow-degraded]"
+}
+
+parse_args() {
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --allow-degraded)
+                export ALLOW_DEGRADED=$1
+                ;;
+            *)
+                usage
+                echo "Error: Invalid argument $1"
+                exit 1
+                ;;
+        esac
+        shift
+    done
+}
+
+parse_args $@
 retry --times 20 --delay 10 --message "check_for_ssh" -- \
-timeout 10s check_for_ssh
+timeout 10s check_for_ssh $ALLOW_DEGRADED
 
 result=$?
 if [ $result -gt 0 ]; then
