@@ -12,6 +12,7 @@ jobs:
       uses: actions/checkout@v4
     - name: Diagnostic
       continue-on-error: true
+      shell: bash {0}
       run: |
         status=$(curl -I -w "%{http_code}\n" -o /dev/null -s https://testflinger.canonical.com/agents)
         error=$?
