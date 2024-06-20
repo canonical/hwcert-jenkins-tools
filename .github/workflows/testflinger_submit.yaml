@@ -23,6 +23,7 @@ jobs:
           test_cmds: |
           ls -alR --ignore ".*"
         EOF
+        sudo snap install testflinger-cli
         testflinger submit job.yaml
     - name: Submit job
       uses: canonical/testflinger/.github/actions/submit@main
