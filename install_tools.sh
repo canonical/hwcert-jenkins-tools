@@ -71,11 +71,20 @@ add_to_path() {
 parse_args $@
 fetch || (rm -rf $TOOLS_PATH && clone)
 
-# install scriptlets (i.e. add them to path)
+# install scriptlets on agent
+# - install pre-requisites (psmisc provides `fuser`, used in `check_for_packages_complete`)
+# - add scriptlets to path
 sudo DEBIAN_FRONTEND=noninteractive apt-get -qq update
 sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install -y psmisc retry
 add_to_path $TOOLS_PATH/scriptlets
 
+# install select scriptlets on device
+# - install pre-requisites (psmisc provides `fuser`, used in `check_for_packages_complete`)
+# - copy select scriptlets to device
+_run sudo DEBIAN_FRONTEND=noninteractive apt-get -qq update
+_run sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install -y psmisc retry
+_put $TOOLS_PATH/scriptlets/check_for_packages_complete
+
 # install launcher
-pip -q install $TOOLS_PATH/cert-tools/launcher
 add_to_path ~/.local/bin
+pip -q install $TOOLS_PATH/cert-tools/launcher
