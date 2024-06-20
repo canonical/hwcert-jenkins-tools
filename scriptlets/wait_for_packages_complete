@@ -54,7 +54,8 @@ assert() {
 
 parse_args $@
 
-[ -n "$REMOTE" ] && assert "check_for_packages_complete"
+CMD="check_for_packages_complete"
+[ -n "$REMOTE" ] && assert $CMD
 
 $REMOTE timeout 10m retry --delay 1 -- $CMD
 
