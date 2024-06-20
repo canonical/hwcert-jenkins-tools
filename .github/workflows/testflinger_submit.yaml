@@ -14,7 +14,7 @@ jobs:
       run: |
         hostname -I
         # if this works, better change the action
-        status=$(curl -k -w "%{http_code}\n" -o /dev/null -s https://testflinger.canonical.com)
+        status=$(curl -k -o /dev/null -s https://testflinger.canonical.com)
         error=$?
         [ $error -eq 0 ] && echo status=$status || echo error=$error
     - name: Submit job
