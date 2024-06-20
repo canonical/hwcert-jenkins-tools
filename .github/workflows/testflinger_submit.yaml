@@ -21,7 +21,7 @@ jobs:
         job_queue: rpi4b1g-001
         test_data:
           test_cmds: |
-          ls -alR --ignore ".*"
+            ls -alR
         EOF
         sudo snap install testflinger-cli
         testflinger submit ${{ github.workspace }}/job.yaml
