@@ -10,22 +10,8 @@ jobs:
     steps:
     - name: Checkout tools repo
       uses: actions/checkout@v4
-    - name: Diagnostic
-      shell: bash {0}
-      run: |
-        status=$(curl -I -w "%{http_code}\n" -o /dev/null -s https://testflinger.canonical.com/jobs)
-        error=$?
-        if [ ! $error -eq 0 ]; then
-          echo "Unable to ping Testflinger server at https://testflinger.canonical.com"
-          exit $error
-        elif [ ! $status -eq 200 ]; then
-          echo "Failed server ping at https://testflinger.canonical.com, error status: $status"
-          exit $status
-        else
-          echo "Successful server ping at https://testflinger.canonical.com, status: $status"
-        fi
     - name: Submit job
-      uses: canonical/testflinger/.github/actions/submit@main
+      uses: canonical/testflinger/.github/actions/submit@refine-submit-action-check
       with:
         poll: true
         job: |
