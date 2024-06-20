@@ -17,14 +17,14 @@ jobs:
         #status=$(curl -k -w "%{http_code}\n" -o /dev/null -s https://testflinger.canonical.com)
         #error=$?
         #[ $error -eq 0 ] && echo status=$status || echo error=$error
-        cat << EOF > job.jaml
+        cat > ${{ github.workspace }}/job.yaml << EOF
         job_queue: rpi4b1g-001
         test_data:
           test_cmds: |
           ls -alR --ignore ".*"
         EOF
         sudo snap install testflinger-cli
-        testflinger submit job.yaml
+        testflinger submit ${{ github.workspace }}/job.yaml
     - name: Submit job
       uses: canonical/testflinger/.github/actions/submit@main
       with:
