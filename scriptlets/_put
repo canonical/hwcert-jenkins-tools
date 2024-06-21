@@ -15,19 +15,31 @@
 # 0 if the copy operation is successful or >0 in case of an error.
 
 usage() {
-    echo "Usage: $(basename $0) <local_file> [<remote_file>]"
+    echo "Usage: $(basename $0) <source> ... <target>"
 }
 
+parse_args() {
+    if [ $# -lt 2 ]; then
+        usage
+        echo "Error: <source> and/or <target> not specified"
+        exit 1
+    fi
+
+    # The target is the last argument
+    export TARGET=${@: -1}
+    [[ "$TARGET" != "--" ]] || unset TARGET
+
+    # Remove the target from the list by slicing the arguments array
+    SOURCES_ARRAY=("${@:1:$#-1}")
+    export SOURCES="${SOURCES_ARRAY[@]}"
+}
+
+
 if [ -z $DEVICE_IP ]; then
-    echo "Error: Environment variable DEVICE_IP not set"
+    echo "Error $(basename $0): Environment variable DEVICE_IP not set"
     exit 1
 fi
 
-if [ $# -lt 1 ]; then
-    usage
-    echo "Error: <local_file> not specified"
-    exit 1
-fi
-
+parse_args $@
 source "$(dirname "$BASH_SOURCE")/set_ssh_options"
-scp $SSH_OPTS $1 ${DEVICE_USER:-ubuntu}@$DEVICE_IP:$2
+scp $SSH_OPTS $SOURCES ${DEVICE_USER:-ubuntu}@$DEVICE_IP:$TARGET
