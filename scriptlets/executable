@@ -1,0 +1,53 @@
+#! /usr/bin/env bash
+
+usage() {
+    echo "Usage: $(basename $0) <command> [--device]"
+}
+
+
+parse_args() {
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --device)
+                export REMOTE="_run"
+                export REMOTE_MESSAGE=" on the device"
+                ;;
+            -*|--*)
+                usage
+                echo "Error: Invalid argument $1"
+                exit 1
+                ;;
+            *)
+                if [ -z "$COMMAND" ]; then
+                    export COMMAND=$1
+                else
+                    usage
+                    echo "Error: Invalid command $1, command is $COMMAND"
+                    exit 1
+                fi
+                ;;
+        esac
+        shift
+    done
+    if [ -z "$COMMAND" ]; then
+        usage
+        echo "Error: No <command> specified"
+        exit 1
+    fi
+}
+
+
+parse_args $@
+
+# make sure that you can execute $CMD (or ./$CMD)
+COMMAND=$1
+$REMOTE which $COMMAND > /dev/null
+if [ ! $? -eq 0 ]; then
+    COMMAND="./$COMMAND"
+    $REMOTE which $COMMAND > /dev/null
+    if [ ! $? -eq 0 ]; then
+        echo "$(basename $COMMAND) is not present $REMOTE_MESSAGE"
+        exit 1
+    fi
+fi
+echo $COMMAND
