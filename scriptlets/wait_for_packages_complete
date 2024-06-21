@@ -18,51 +18,25 @@
 # https://man7.org/linux/man-pages/man1/timeout.1.html
 
 usage() {
-    echo "Usage: $(basename $0) [--device]"
+    echo "Usage: $(basename $0)"
 }
 
 parse_args() {
-    while [[ "$#" -gt 0 ]]; do
-        case $1 in
-            --device)
-                export REMOTE="_run"
-                ;;
-            *)
-                usage
-                echo "Error: Invalid argument $1"
-                exit 1
-                ;;
-        esac
-        shift
-    done
+    if [ $# -gt 0 ]; then
+        usage
+        echo "Error: invalid arguments $@"
+        exit 1
+    fi
 }
 
-assert() {
-    CMD=$1
-    # make sure that you can execute $CMD (or ./$CMD) on the device
-    _run which $CMD
-    if [ ! $? -eq 0 ]; then
-        CMD="./$CMD"
-        _run which $CMD
-        if [ ! $? -eq 0 ]; then
-            echo "$(basename $CMD) is not present on the device"
-            exit 1
-        fi
-    fi
-    export CMD
-}
 
 parse_args $@
 
-CMD="check_for_packages_complete"
-[ -n "$REMOTE" ] && assert $CMD
-
-$REMOTE timeout 10m retry --delay 1 -- $CMD
+timeout 10m retry --delay 5 -- $(executable "check_for_packages_complete")
 
 result=$?
 if [ $result -ge 124 ]; then
-    [ -n "$REMOTE" ] && REMOTE_MESSAGE=" on the device"
-    echo "Unable to complete $(basename $0)$REMOTE_MESSAGE. Killing apt, apt-get, and dpkg processes."
+    echo "Unable to complete $(basename $0)$REMOTE_MESSAGE (timeout). Killing apt, apt-get, and dpkg processes."
     sudo pkill -x "apt|apt-get|dpkg"
 fi
 exit $result
