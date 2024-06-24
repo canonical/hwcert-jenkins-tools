@@ -1,0 +1,4 @@
+if [ -z $DEVICE_IP ]; then
+    echo "Error $(basename "${BASH_SOURCE[-1]}"): Environment variable DEVICE_IP not set"
+    exit 1
+fi

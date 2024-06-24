@@ -15,7 +15,7 @@
 # 0 if the copy operation is successful or >0 in case of an error.
 
 usage() {
-    echo "Usage: $(basename $0) <source> ... <target>"
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) <source> ... <target>"
 }
 
 parse_args() {
@@ -35,11 +35,8 @@ parse_args() {
 }
 
 
-if [ -z $DEVICE_IP ]; then
-    echo "Error $(basename $0): Environment variable DEVICE_IP not set"
-    exit 1
-fi
-
 parse_args $@
-source "$(dirname "$BASH_SOURCE")/defs/ssh_options"
+
+source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_device_ip"
+source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"
 scp $SSH_OPTS $SOURCES ${DEVICE_USER:-ubuntu}@$DEVICE_IP:$TARGET

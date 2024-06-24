@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # Export SSH_OPTS to the environment (and subsequent scripts).
 # Include options to make ssh more automation-friendly.
 
