@@ -15,7 +15,7 @@
 # or 255 in case of an ssh failure
 
 usage() {
-    echo "Usage: $(basename $0) [--allow-degraded]"
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--allow-degraded]"
 }
 
 parse_args() {
@@ -36,6 +36,7 @@ parse_args() {
 
 
 parse_args $@
+
 echo "Checking if ${DEVICE_IP:-device} is fully up and running $ALLOW_DEGRADED"
 RESULT=$(_run systemctl is-system-running)
 STATUS=$?

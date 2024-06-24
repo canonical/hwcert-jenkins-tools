@@ -13,7 +13,7 @@
 # https://man7.org/linux/man-pages/man1/timeout.1.html
 
 usage() {
-    echo "Usage: $(basename $0) [--allow-degraded]"
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--allow-degraded]"
 }
 
 parse_args() {
@@ -32,12 +32,15 @@ parse_args() {
     done
 }
 
+
 parse_args $@
-retry --times 20 --delay 10 --message "check_for_ssh" -- \
-timeout 10s check_for_ssh $ALLOW_DEGRADED
+
+CHECK=check_for_ssh
+retry --times 20 --delay 10 --message $CHECK -- \
+timeout 10s $CHECK $ALLOW_DEGRADED
 
 result=$?
 if [ $result -gt 0 ]; then
-    echo "Error: unable to complete $(basename $0)"
+    echo "Error: unable to complete $(basename ${BASH_SOURCE[0]})"
 fi
 exit $result
