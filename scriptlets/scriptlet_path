@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+DIRECTORIES=(/usr/local/bin /opt/bin /bin)
+for DIRECTORY in "${DIRECTORIES[@]}"; do
+    if [[ ":$PATH:" = *":$DIRECTORY:"* ]]; then
+        echo $DIRECTORY
+        exit 0
+    fi
+done
+exit 1
