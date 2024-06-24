@@ -29,10 +29,10 @@ locals {
 
 provider "juju" {}
 
-resource "juju_application" "github-runner" {
+resource "juju_application" "github-runner-testflinger" {
     name  = "github-runner-testflinger"
     model = "stg-self-hosted-runners-testflinger-action-testing"
-    constraints = "arch=amd64 cores=4 mem=32768M root-disk=51200M"
+    constraints = "arch=amd64 cores=8 mem=16384M root-disk=20480M"
 
     charm {
         name = local.charm_name
@@ -46,13 +46,12 @@ resource "juju_application" "github-runner" {
         token = var.github_personal_access_token
         virtual-machines = 1
         vm-cpu = 4
-        vm-memory = "4GiB"
-        vm-disk = "8GiB"
+        vm-memory = "8GiB"
+        vm-disk = "18GiB"
         # denylist = local.denylist_testflinger
         dockerhub-mirror = local.dockerhub_mirror
-        experimental-use-aproxy = local.experimental-use-aproxy
         runner-storage = "juju-storage"
     }
 
-    units = 1
+    units = 2
 }
