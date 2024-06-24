@@ -55,35 +55,28 @@ clone() {
     echo "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
 }
 
-add_to_path() {
-    if [ "$#" -lt 1 ]; then
-        echo "Error: You need to provide a path."
-        echo "Usage: ${FUNCNAME[0]} <path>"
-        return 1
-    fi
-    local PATH_TO_ADD=$(readlink -m $1)
-    if [[ ":$PATH:" != *":$PATH_TO_ADD:"* ]]; then
-        export PATH="$PATH:$PATH_TO_ADD"
-        echo "Added $PATH_TO_ADD to PATH"
-    fi
-}
-
 parse_args $@
 fetch || (rm -rf $TOOLS_PATH && clone)
 
 # install scriptlets on agent
 # - install pre-requisites (psmisc provides `fuser`, used in `check_for_packages_complete`)
 # - add scriptlets to path
-sudo DEBIAN_FRONTEND=noninteractive apt-get -qq update
-sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install -y psmisc retry
+source "$(dirname "$BASH_SOURCE")/defs/add_to_path"
 add_to_path $TOOLS_PATH/scriptlets
+_put $TOOLS_PATH/scriptlets/check_for_packages_complete check_for_packages_complete
+_put $TOOLS_PATH/scriptlets/wait_for_packages_complete wait_for_packages_complete
+_put $TOOLS_PATH/scriptlets/install_packages install_packages
+_run install_packages pmisc retry
+
+#sudo DEBIAN_FRONTEND=noninteractive apt-get -qq update
+#sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install -y psmisc retry
+#add_to_path $TOOLS_PATH/scriptlets
 
 # install select scriptlets on device
 # - install pre-requisites (psmisc provides `fuser`, used in `check_for_packages_complete`)
 # - copy select scriptlets to device
-_run sudo DEBIAN_FRONTEND=noninteractive apt-get -qq update
-_run sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install -y psmisc retry
-_put $TOOLS_PATH/scriptlets/check_for_packages_complete
+#_run sudo DEBIAN_FRONTEND=noninteractive apt-get -qq update
+#_run sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install -y psmisc retry
 
 # install launcher
 add_to_path ~/.local/bin

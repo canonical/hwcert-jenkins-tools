@@ -29,14 +29,17 @@ parse_args() {
     fi
 }
 
-
 parse_args $@
 
-timeout 10m retry --delay 5 -- $(executable "check_for_packages_complete")
+source "$(dirname "$BASH_SOURCE")/defs/executable"
+executable "check_for_packages_complete"
 
-result=$?
-if [ $result -ge 124 ]; then
-    echo "Unable to complete $(basename $0)$REMOTE_MESSAGE (timeout). Killing apt, apt-get, and dpkg processes."
-    sudo pkill -x "apt|apt-get|dpkg"
-fi
-exit $result
+echo $BASH_SOURCE
+# timeout 10m retry --delay 5 -- $(executable "check_for_packages_complete")
+
+#result=$?
+#if [ $result -ge 124 ]; then
+#    echo "Unable to complete $(basename $0)$REMOTE_MESSAGE (timeout). Killing apt, apt-get, and dpkg processes."
+#    sudo pkill -x "apt|apt-get|dpkg"
+#fi
+#exit $result

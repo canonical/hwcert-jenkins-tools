@@ -28,6 +28,7 @@ parse_args() {
 
 parse_args $@
 
+source "$(dirname "$BASH_SOURCE")/defs/ssh_options"
 $(executable "wait_for_packages_complete")
 
 [ -n "$NO_UPDATE" ] || sudo apt-get -qq update

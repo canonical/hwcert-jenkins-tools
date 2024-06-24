@@ -1,0 +1,51 @@
+#! /usr/bin/env bash
+
+executable() {
+    local REMOTE
+    local REMOTE_MESSAGE
+    local COMMAND
+
+    # parse arguments
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --device)
+                REMOTE="_run"
+                REMOTE_MESSAGE=" on the device"
+                ;;
+            -*|--*)
+                echo "Usage: ${FUNCNAME[0]} <command> [--device]"
+                echo "Error: Invalid argument $1"
+                return 1
+                ;;
+            *)
+                if [ -z "$COMMAND" ]; then
+                    COMMAND=$1
+                else
+                    echo "Usage: ${FUNCNAME[0]} <command> [--device]"
+                    echo "Error: Invalid command $1, command is $COMMAND"
+                    return 1
+                fi
+                ;;
+        esac
+        shift
+    done
+    if [ -z "$COMMAND" ]; then
+        echo "Usage: ${FUNCNAME[0]} <command> [--device]"
+        echo "Error: No <command> specified"
+        return 1
+    fi
+
+    # make sure that you can execute $CMD (or ./$CMD)
+    $REMOTE which $COMMAND > /dev/null
+    if [ ! $? -eq 0 ]; then
+        COMMAND="./$COMMAND"
+        $REMOTE which $COMMAND > /dev/null
+        if [ ! $? -eq 0 ]; then
+            echo "$(basename $COMMAND) is not present $REMOTE_MESSAGE"
+            return 1
+        fi
+    fi
+
+    echo $COMMAND
+}
+

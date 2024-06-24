@@ -30,5 +30,5 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 
-source "$(dirname "$BASH_SOURCE")/set_ssh_options"
+source "$(dirname "$BASH_SOURCE")/defs/ssh_options"
 ssh $SSH_OPTS ${DEVICE_USER:-ubuntu}@$DEVICE_IP "$@"

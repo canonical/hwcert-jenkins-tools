@@ -41,5 +41,5 @@ if [ -z $DEVICE_IP ]; then
 fi
 
 parse_args $@
-source "$(dirname "$BASH_SOURCE")/set_ssh_options"
+source "$(dirname "$BASH_SOURCE")/defs/ssh_options"
 scp $SSH_OPTS $SOURCES ${DEVICE_USER:-ubuntu}@$DEVICE_IP:$TARGET
