@@ -1,36 +1,37 @@
 #!/usr/bin/env bash
-#
-# Copyright 2023 Canonical Ltd.
-#
-# This script provides a retry mechanism for running a command.
-# It uses the `_run` function to execute the command and checks the return
-# code. If the command fails, it will retry up to 20 times,
-# with a 30-second sleep between each attempt.
-#
-# Usage:
-#     `_retry_run <command> [command_args ...]`
-#     Or source it in another script and call
-#     `retry_run <command> [command_args ...]`
 
-retry_run() {
-  loopcnt=0
-  _run "$@"
-  RC="$?"
-  while [ $RC -ne 0 ]
-  do
-    loopcnt=$((loopcnt+1))
-    if [ $loopcnt -gt 20 ]; then
-      echo "ERROR: retry limit reached!"
-      return 1
-    fi
-    sleep 30
-    _run "$@"
-    RC="$?"
-  done
-  return 0
+# Run a command on a remote device via SSH, retrying in case of errors
+#
+# Description:
+#
+# This script is identical to `_run`, only it retries the <command>
+# up to 20 times with a 30-second delay.
+#
+# Return value:
+#
+# The value returned by the command on the remote device, or 255 in case
+# of an ssh error
+
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) <command>"
 }
 
-# Check if the script is being sourced or executed
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  retry_run "$@"
+parse_args() {
+    if [ $# -lt 1 ]; then
+        usage
+        echo "Error: <command> not specified"
+        exit 1
+    fi
+}
+
+
+parse_args $@
+
+retry --times 20 --delay 30 -- \
+    _run "$@"
+
+result=$?
+if [ $result -gt 0 ]; then
+    echo "Error: unable to complete $(basename ${BASH_SOURCE[0]}) $@"
 fi
+exit $result
