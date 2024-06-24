@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 usage() {
-    echo $@
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--no-update] -- <apt-get install arguments>"
 }
 
 parse_args() {
@@ -28,8 +28,12 @@ parse_args() {
 
 parse_args $@
 
-source "$(dirname "$BASH_SOURCE")/defs/ssh_options"
-$(executable "wait_for_packages_complete")
+wait_for_packages_complete
+result=$?
+if [ $result -gt 0 ]; then
+    echo "Error: unable to complete $(basename ${BASH_SOURCE[0]})"
+    exit $result
+fi
 
 [ -n "$NO_UPDATE" ] || sudo apt-get -qq update
 sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install -o Dpkg::Options::="--force-confdef" $INSTALL_ARGS

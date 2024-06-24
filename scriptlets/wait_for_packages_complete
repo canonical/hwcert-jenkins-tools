@@ -18,7 +18,7 @@
 # https://man7.org/linux/man-pages/man1/timeout.1.html
 
 usage() {
-    echo "Usage: $(basename $0)"
+    echo "Usage: $(basename ${BASH_SOURCE[0]})"
 }
 
 parse_args() {
@@ -31,15 +31,11 @@ parse_args() {
 
 parse_args $@
 
-source "$(dirname "$BASH_SOURCE")/defs/executable"
-executable "check_for_packages_complete"
+timeout 10m retry --delay 5 -- check_for_packages_complete
 
-echo $BASH_SOURCE
-# timeout 10m retry --delay 5 -- $(executable "check_for_packages_complete")
-
-#result=$?
-#if [ $result -ge 124 ]; then
-#    echo "Unable to complete $(basename $0)$REMOTE_MESSAGE (timeout). Killing apt, apt-get, and dpkg processes."
-#    sudo pkill -x "apt|apt-get|dpkg"
-#fi
-#exit $result
+result=$?
+if [ $result -ge 124 ]; then
+    echo "Unable to complete $(basename ${BASH_SOURCE[0]}) (timeout). Killing apt, apt-get, and dpkg processes."
+    sudo pkill -x "apt|apt-get|dpkg"
+fi
+exit $result
