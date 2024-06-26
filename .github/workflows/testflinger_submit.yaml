@@ -11,7 +11,7 @@ jobs:
     - name: Checkout tools repo
       uses: actions/checkout@v4
     - name: Submit job
-      uses: canonical/testflinger/.github/actions/submit@refine-submit-action-check
+      uses: canonical/testflinger/.github/actions/submit@main
       with:
         poll: true
         job: |
