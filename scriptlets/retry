@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 usage() {
-    echo "Usage: $(basename ${BASH_SOURCE[0]}) [<options>] <command> ..."
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [<options>] -- <command> ..."
     echo "Options:"
     echo "  -d seconds, --delay=seconds   The number of seconds to back off after each attempt."
     echo "  -m message, --message=message A message to include in the notification when repeat has backed off. Defaults to the command name."
@@ -29,14 +29,15 @@ parse_args() {
                 usage
                 exit 0
                 ;;
-            -*|--*)
+            --)
+                shift
+                # end of options
+                break
+                ;;
+            *)
                 usage
                 echo "Unknown option: $1"
                 exit 1
-                ;;
-            *)
-                # end of options
-                break
                 ;;
         esac
         shift
