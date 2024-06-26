@@ -73,9 +73,9 @@ fi
 ATTEMPTS=0
 while :; do
     if [ -s "$STDIN_FILE" ]; then
-        cat "$STDIN_FILE" | "$COMMAND" >output.log 2>error.log
+        cat "$STDIN_FILE" | eval "$COMMAND" >output.log 2>error.log
     else
-        "$COMMAND" >output.log 2>error.log
+        eval "$COMMAND" >output.log 2>error.log
     fi
     EXIT_CODE=$?
     if [[ $EXIT_CODE -eq 0 ]]; then
