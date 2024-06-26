@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [<options>] <command> ..."
+    echo "Options:"
+    echo "  -d seconds, --delay=seconds   The number of seconds to back off after each attempt."
+    echo "  -m message, --message=message A message to include in the notification when repeat has backed off. Defaults to the command name."
+    echo "  -t times, --times=times       The number of times to retry the command. By default we try forever."
+}
+
+parse_args() {
+    DELAY=0
+    TIMES=-1
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            -d|--delay)
+                DELAY="$2"
+                shift
+                ;;
+            -m|--message)
+                MESSAGE="$2"
+                shift
+                ;;
+            -t|--times)
+                TIMES="$2"
+                shift
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            -*|--*)
+                usage
+                echo "Unknown option: $1"
+                exit 1
+                ;;
+            *)
+                # end of options
+                break
+                ;;
+        esac
+        shift
+    done
+
+    if [[ "$#" -lt 1 ]]; then
+        usage
+        echo "Error: <command> not provided."
+        exit 1
+    fi
+
+    COMMAND="$@"
+    if [[ -z "$MESSAGE" ]]; then
+        MESSAGE="$COMMAND"
+    fi
+
+    export COMMAND
+    export MESSAGE
+    export DELAY
+    export TIMES
+}
+
+
+parse_args $@
+
+# Capture stdin if available
+STDIN_FILE=$(mktemp)
+if [ ! -t 0 ]; then
+    # Capture stdin to the temporary file if input is piped
+    cat <&0 > "$STDIN_FILE"
+fi
+
+ATTEMPTS=0
+while :; do
+    if [ -s "$STDIN_FILE" ]; then
+        cat "$STDIN_FILE" | "$COMMAND" >output.log 2>error.log
+    else
+        "$COMMAND" >output.log 2>error.log
+    fi
+    EXIT_CODE=$?
+    if [[ $EXIT_CODE -eq 0 ]]; then
+        cat output.log
+        rm output.log error.log
+        exit 0
+    else
+        ((ATTEMPTS++))
+        if [[ $TIMES -gt 0 && $ATTEMPTS -ge $TIMES ]]; then
+            cat error.log >&2
+            rm output.log error.log
+            exit $EXIT_CODE
+        fi
+        echo "retry: '$MESSAGE' returned $EXIT_CODE, backing off for $DELAY seconds and trying again..." >&2
+        sleep "$DELAY"
+    fi
+done
