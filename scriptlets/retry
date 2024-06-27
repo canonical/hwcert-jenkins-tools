@@ -8,75 +8,54 @@ usage() {
     echo "  -t times, --times=times       The number of times to retry the command. By default we try forever."
 }
 
-parse_args() {
-    DELAY=0
-    TIMES=-1
-    while [[ "$#" -gt 0 ]]; do
-        case $1 in
-            -d|--delay)
-                DELAY="$2"
-                shift
-                ;;
-            -m|--message)
-                MESSAGE="$2"
-                shift
-                ;;
-            -t|--times)
-                TIMES="$2"
-                shift
-                ;;
-            -h|--help)
-                usage
-                exit 0
-                ;;
-            --)
-                shift
-                # end of options
-                break
-                ;;
-            *)
-                usage
-                echo "Unknown option: $1"
-                exit 1
-                ;;
-        esac
-        shift
-    done
+DELAY=0
+TIMES=-1
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -d|--delay)
+            DELAY="$2"
+            shift
+            ;;
+        -m|--message)
+            MESSAGE="$2"
+            shift
+            ;;
+        -t|--times)
+            TIMES="$2"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            # end of options
+            break
+            ;;
+        *)
+            usage
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+    shift
+done
 
-    if [[ "$#" -lt 1 ]]; then
-        usage
-        echo "Error: <command> not provided."
-        exit 1
-    fi
+if [[ "$#" -lt 1 ]]; then
+    usage
+    echo "Error: <command> not provided."
+    exit 1
+fi
 
-    COMMAND="$@"
-    if [[ -z "$MESSAGE" ]]; then
-        MESSAGE="$COMMAND"
-    fi
-
-    export COMMAND
-    export MESSAGE
-    export DELAY
-    export TIMES
-}
-
-
-parse_args $@
-
-# Capture stdin if available
-STDIN_FILE=$(mktemp)
-if [ ! -t 0 ]; then
-    # Capture stdin to the temporary file if input is piped
-    cat <&0 > "$STDIN_FILE"
+COMMAND="$@"
+if [[ -z "$MESSAGE" ]]; then
+    MESSAGE="$COMMAND"
 fi
 
 ATTEMPTS=0
 while :; do
-    if [ -s "$STDIN_FILE" ]; then
-        cat "$STDIN_FILE" | eval "$COMMAND" >output.log 2>error.log
-    else
-        eval "$COMMAND" >output.log 2>error.log
-    fi
+    "$@" >output.log 2>error.log
     EXIT_CODE=$?
     if [[ $EXIT_CODE -eq 0 ]]; then
         cat output.log
