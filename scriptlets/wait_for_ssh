@@ -37,7 +37,7 @@ parse_args $@
 
 CHECK=check_for_ssh
 retry --times 20 --delay 10 --message $CHECK -- \
-timeout 10s $CHECK $ALLOW_DEGRADED
+$CHECK $ALLOW_DEGRADED
 
 result=$?
 if [ $result -gt 0 ]; then
