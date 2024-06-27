@@ -58,25 +58,33 @@ clone() {
 parse_args $@
 fetch || (rm -rf $TOOLS_PATH && clone)
 
-# install scriptlets on agent
-# - install pre-requisites (psmisc provides `fuser`, used in `check_for_packages_complete`)
-# - add scriptlets to path
-source "$(dirname "$BASH_SOURCE")/defs/add_to_path"
-add_to_path $TOOLS_PATH/scriptlets
-_put $TOOLS_PATH/scriptlets/check_for_packages_complete check_for_packages_complete
-_put $TOOLS_PATH/scriptlets/wait_for_packages_complete wait_for_packages_complete
-_put $TOOLS_PATH/scriptlets/install_packages install_packages
-_run install_packages pmisc retry
+# add scriptlets to agent's PATH
+SCRIPTLETS_PATH=$TOOLS_PATH/scriptlets
+source "$SCRIPTLETS_PATH/defs/add_to_path"
+add_to_path $SCRIPTLETS_PATH
 
-#sudo DEBIAN_FRONTEND=noninteractive apt-get -qq update
-#sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install -y psmisc retry
-#add_to_path $TOOLS_PATH/scriptlets
+# figure out where to place the scriptlets on the device
+REMOTE_PATH=$(cat $SCRIPTLETS_PATH/scriptlet_path | _run bash)
+[ $? -eq 0 ] || exit 1
 
-# install select scriptlets on device
-# - install pre-requisites (psmisc provides `fuser`, used in `check_for_packages_complete`)
-# - copy select scriptlets to device
-#_run sudo DEBIAN_FRONTEND=noninteractive apt-get -qq update
-#_run sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install -y psmisc retry
+# copy the scriptlets over to the device...
+_put \
+    $SCRIPTLETS_PATH/retry \
+    $SCRIPTLETS_PATH/check_for_packages_complete \
+    $SCRIPTLETS_PATH/wait_for_packages_complete \
+    $SCRIPTLETS_PATH/install_packages \
+    --
+
+# ... and move them somewhere in the device's PATH
+_run sudo mv \
+    retry \
+    check_for_packages_complete \
+    wait_for_packages_complete \
+    install_packages \
+    $REMOTE_PATH
+
+# fuser is required by `check_for_packages_complete`
+_run bash -c "which fuser || install_packages -- psmisc"
 
 # install launcher
 add_to_path ~/.local/bin
