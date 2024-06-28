@@ -62,6 +62,7 @@ fetch || (rm -rf $TOOLS_PATH && clone)
 SCRIPTLETS_PATH=$TOOLS_PATH/scriptlets
 source "$SCRIPTLETS_PATH/defs/add_to_path"
 add_to_path $SCRIPTLETS_PATH
+add_to_path $SCRIPTLETS_PATH/sru-helpers
 
 # figure out where to place the scriptlets on the device
 REMOTE_PATH=$(cat $SCRIPTLETS_PATH/scriptlet_path | _run bash)

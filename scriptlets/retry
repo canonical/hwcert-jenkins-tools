@@ -8,10 +8,14 @@ usage() {
     echo "  -t times, --times=times       The number of times to retry the command. By default we try forever."
 }
 
+CAPTURE=""
 DELAY=0
 TIMES=-1
 while [[ "$#" -gt 0 ]]; do
     case $1 in
+        -c|--capture)
+            CAPTURE="true"
+            ;;
         -d|--delay)
             DELAY="$2"
             shift
@@ -53,22 +57,40 @@ if [[ -z "$MESSAGE" ]]; then
     MESSAGE="$COMMAND"
 fi
 
-ATTEMPTS=0
-while :; do
-    "$@" >output.log 2>error.log
-    EXIT_CODE=$?
-    if [[ $EXIT_CODE -eq 0 ]]; then
-        cat output.log
-        rm output.log error.log
-        exit 0
-    else
-        ((ATTEMPTS++))
-        if [[ $TIMES -gt 0 && $ATTEMPTS -ge $TIMES ]]; then
-            cat error.log >&2
+if [ -n "$CAPTURE" ]; then
+    ATTEMPTS=0
+    while :; do
+        "$@" >output.log 2>error.log
+        EXIT_CODE=$?
+        if [[ $EXIT_CODE -eq 0 ]]; then
+            cat output.log
             rm output.log error.log
-            exit $EXIT_CODE
+            exit 0
+        else
+            ((ATTEMPTS++))
+            if [[ $TIMES -gt 0 && $ATTEMPTS -ge $TIMES ]]; then
+                cat error.log >&2
+                rm output.log error.log
+                exit $EXIT_CODE
+            fi
+            echo "retry: '$MESSAGE' returned $EXIT_CODE, backing off for $DELAY seconds and trying again..." >&2
+            sleep "$DELAY"
         fi
-        echo "retry: '$MESSAGE' returned $EXIT_CODE, backing off for $DELAY seconds and trying again..." >&2
-        sleep "$DELAY"
-    fi
-done
+    done
+else
+    ATTEMPTS=0
+    while :; do
+        "$@"
+        EXIT_CODE=$?
+        if [[ $EXIT_CODE -eq 0 ]]; then
+            exit 0
+        else
+            ((ATTEMPTS++))
+            if [[ $TIMES -gt 0 && $ATTEMPTS -ge $TIMES ]]; then
+                exit $EXIT_CODE
+            fi
+            echo "retry: '$MESSAGE' returned $EXIT_CODE, backing off for $DELAY seconds and trying again..." >&2
+            sleep "$DELAY"
+        fi
+    done
+fi
