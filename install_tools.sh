@@ -85,6 +85,7 @@ _run sudo mv \
     $REMOTE_PATH
 
 # fuser is required by `check_for_packages_complete`
+which fuser || install_packages -- psmisc
 _run bash -c "which fuser || install_packages -- psmisc"
 
 # install launcher
