@@ -28,12 +28,5 @@ parse_args() {
 
 parse_args $@
 
-wait_for_packages_complete
-result=$?
-if [ $result -gt 0 ]; then
-    echo "Error: unable to complete $(basename ${BASH_SOURCE[0]})"
-    exit $result
-fi
-
 [ -n "$NO_UPDATE" ] || sudo apt-get -qq update
 sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install -o Dpkg::Options::="--force-confdef" $INSTALL_ARGS
