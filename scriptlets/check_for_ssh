@@ -43,7 +43,7 @@ STATUS=$?
 [ -n "$RESULT" ] && echo $RESULT
 # check returned result and propagate `_run`'s exit status if not successful
 if [ -z "$ALLOW_DEGRADED" ]; then
-    [[ "$RESULT" = "running" ]] || exit $STATUS
+    [[ "$RESULT" =~ ^running ]] || exit $STATUS
 else
-    [[ "$RESULT" =~ ^(running|degraded)$ ]] || exit $STATUS
+    [[ "$RESULT" =~ ^(running|degraded) ]] || exit $STATUS
 fi
