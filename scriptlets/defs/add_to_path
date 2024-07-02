@@ -1,10 +1,16 @@
+# Define function `add_to_path`
+#
+# This file is meant to be sourced.
+
 add_to_path() {
     if [ "$#" -lt 1 ]; then
         echo "Usage: ${FUNCNAME[0]} <path>"
         echo "Error: You need to provide a path."
         return 1
     fi
+    # readlink makes the path absolute
     local PATH_TO_ADD=$(readlink -m $1)
+    # only add the path if it is not already in $PATH
     if [[ ":$PATH:" != *":$PATH_TO_ADD:"* ]]; then
         export PATH="$PATH:$PATH_TO_ADD"
         echo "Added $PATH_TO_ADD to PATH"

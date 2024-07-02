@@ -8,7 +8,8 @@
 # which must be set. The user name on the remote device is `ubuntu`
 # by default, unless provided by the environment variable DEVICE_USER.
 #
-# This script depends on the `set_ssh_options` script to set SSH options.
+# This script sources `defs/set_ssh_options` to set SSH_OPTS.
+# This script soures `defs/check_for_device_ip` to check that DEVICE_IP is set.
 #
 # Return value:
 #
@@ -19,16 +20,12 @@ usage() {
     echo "Usage: $(basename ${BASH_SOURCE[0]}) <command>"
 }
 
-parse_args() {
-    if [ $# -lt 1 ]; then
-        usage
-        echo "Error: <command> not specified"
-        exit 1
-    fi
-}
 
-
-parse_args $@
+if [ $# -lt 1 ]; then
+    usage
+    echo "Error: <command> not specified"
+    exit 1
+fi
 
 source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_device_ip"
 source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"

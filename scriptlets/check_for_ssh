@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 
-# Check if a remote device is fully up and running
+# Check if a remote device is fully up and running.
 #
 # Description:
 #
-# The script runs `systemctl is-system-running` on the remote device,
-# so it succeeds: "when the system is fully up and running, meaning
+# The script runs `systemctl is-system-running` on the remote device.
+# It succeeds "when the system is fully up and running, meaning
 # not in startup, shutdown or maintainance mode."
+#
+# There are cases when `degraded` (rather than `running`), which signifies
+# a failure to start certain services, is also acceptable as a state, in
+# which case the `--allow-degraded` command-line flag should be provided.
 #
 # Return value:
 # 
@@ -18,24 +22,19 @@ usage() {
     echo "Usage: $(basename ${BASH_SOURCE[0]}) [--allow-degraded]"
 }
 
-parse_args() {
-    while [[ "$#" -gt 0 ]]; do
-        case $1 in
-            --allow-degraded)
-                export ALLOW_DEGRADED="(degraded allowed)"
-                ;;
-            *)
-                usage
-                echo "Error: Invalid argument $1"
-                exit 1
-                ;;
-        esac
-        shift
-    done
-}
-
-
-parse_args $@
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --allow-degraded)
+            ALLOW_DEGRADED="(degraded allowed)"
+            ;;
+        *)
+            usage
+            echo "Error: Invalid argument $1"
+            exit 1
+            ;;
+    esac
+    shift
+done
 
 echo "Checking if ${DEVICE_IP:-device} is fully up and running $ALLOW_DEGRADED"
 RESULT=$(_run systemctl is-system-running)

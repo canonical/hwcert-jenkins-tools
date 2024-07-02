@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+#
+# Determine if any path in a set of predefined paths is in PATH and display it.
+#
+# Description:
+# 
+# This script is meant to be run on the device, in order to determine where
+# to place a small set of scripts that need to be accessible from the PATH.
 
 DIRECTORIES=(/usr/local/bin /opt/bin /bin)
 for DIRECTORY in "${DIRECTORIES[@]}"; do

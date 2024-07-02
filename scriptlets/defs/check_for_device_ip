@@ -1,3 +1,9 @@
+#!/usr/bin/env bash
+
+# Check if the environment variable $DEVICE_IP is set
+#
+# This file is primarily meant to be sourced.
+
 if [ -z $DEVICE_IP ]; then
     echo "Error $(basename "${BASH_SOURCE[-1]}"): Environment variable DEVICE_IP not set"
     exit 1

@@ -1,5 +1,30 @@
 #!/usr/bin/env bash
 
+# Repeats the given command until the command is successful, backing off
+# with a configurable delay between each attempt.
+#
+# Description:
+#
+# This tool is meant to implement a subset of what the `retry` package offers
+# (https://packages.ubuntu.com/focal/retry), while avoiding the dependency.
+#
+# The `--delay`, `--message` and `--times` arguments are similar to the
+# corresponding arguments for the original `retry` util.
+#
+# There is a feature of the original `retry` util that is optional (and indeed
+# not the default) in this implementation:
+# 
+# > Retry captures stdout into memory, and if the command was successful
+# > stdout is passed on to stdout as normal, while if the command was repeated
+# > stdout is passed to stderr instead. This ensures that output is passed to
+# > stdout once and once only.
+# 
+# It is likely that the output of the <command> is of interest to us regardless
+# of whether or not it succeeded or failed (e.g. for debugging), but `stderr` is
+# not captured when we `_run` commands remotely. So the default behaviour of the
+# original `retry` may be undesirable and it is only activated if the `--capture`
+# flag is provided on the command line.
+
 usage() {
     echo "Usage: $(basename ${BASH_SOURCE[0]}) [<options>] -- <command> ..."
     echo "Options:"

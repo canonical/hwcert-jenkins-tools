@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Install Checkbox from repo, matching a specific version
+# Install Checkbox from repo, matching a specific version.
 #
 # Description:
 #
@@ -8,22 +8,35 @@
 # tool in order to checkout and install a version of Checkbox that matches
 # a specific version provided as an argument.
 #
-# The second argument, the `tools_path` is only necessary in order to locate
-# the `checkout_to_version` tool. It can be removed if that tool is installed
-# (it is currently not).
+# The second argument, the `tools_path` is necessary in order to locate the
+# `checkout_to_version` tool. It can be removed if that tool is installed (it
+# is currently not). The argument is also not required if TOOLS_PATH is set.
 
 usage() {
-    echo "Usage: $(basename $0) <version> <tools_path>"
+    echo "Usage: $(basename $0) <version> [<tools_path>]"
 }
 
-if [ $# -ne 2 ]; then
+if [ $# -gt 2 ]; then
     usage
-    echo "Error: incorrect number of arguments"
+    echo "Error: Too many arguments"
+    exit 1
+fi
+
+if [ $# -lt 1 ]; then
+    usage
+    echo "Error: <version> not specified"
     exit 1
 fi
 
 VERSION=$1
-TOOLS_PATH=$2
+
+if [ $# -eq 2 ]; then
+    TOOLS_PATH=$2
+elif [ -z "$TOOLS_PATH" ]; then
+    usage
+    echo "Error: <tools_path> not specified and TOOLS_PATH not set"
+    exit 1
+fi
 
 # clone Checkbox repo
 git clone --filter=tree:0 https://github.com/canonical/checkbox.git > /dev/null

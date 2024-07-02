@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Wait until a remote device is fully up and running
+# Wait until a remote device is fully up and running.
 # 
 # See `check_for_ssh` (which is repeatedly called here) for details
 #
@@ -16,27 +16,32 @@ usage() {
     echo "Usage: $(basename ${BASH_SOURCE[0]}) [--allow-degraded]"
 }
 
-parse_args() {
-    while [[ "$#" -gt 0 ]]; do
-        case $1 in
-            --allow-degraded)
-                export ALLOW_DEGRADED=$1
-                ;;
-            *)
-                usage
-                echo "Error: Invalid argument $1"
-                exit 1
-                ;;
-        esac
-        shift
-    done
-}
-
-
-parse_args $@
+TIMES=20
+DELAY=10
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --allow-degraded)
+            ALLOW_DEGRADED=$1
+            ;;
+        --times)
+            TIMES=$2
+            shift
+            ;;
+        --delay)
+            DELAY=$2
+            shift
+        *)
+            usage
+            echo "Error: Invalid argument $1"
+            exit 1
+            ;;
+    esac
+    shift
+done
 
 CHECK=check_for_ssh
-retry --times 20 --delay 10 --message $CHECK -- \
+# use `retry` to call `check_for_ssh` repeatedly
+retry --times $TIMES --delay $DELAY --message $CHECK -- \
 $CHECK $ALLOW_DEGRADED
 
 result=$?

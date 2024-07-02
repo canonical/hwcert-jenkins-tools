@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Wait until package operations (apt, dpkg) are complete
+# Wait until package operations (apt, dpkg) are complete.
 #
 # See `check_for_packages_complete` (which is repeatedly called here)
 # for details.
@@ -21,17 +21,13 @@ usage() {
     echo "Usage: $(basename ${BASH_SOURCE[0]})"
 }
 
-parse_args() {
-    if [ $# -gt 0 ]; then
-        usage
-        echo "Error: invalid arguments $@"
-        exit 1
-    fi
-}
+if [ $# -gt 0 ]; then
+    usage
+    echo "Error: invalid arguments $@"
+    exit 1
+fi
 
-parse_args $@
-
-timeout 10m retry --delay 5 -- check_for_packages_complete
+timeout 10m retry --delay 10 -- check_for_packages_complete
 
 result=$?
 if [ $result -ge 124 ]; then

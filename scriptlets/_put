@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Transfer a file to a remote device via SCP.
+# Transfer files to a remote device via SCP.
 #
 # Description:
 #
@@ -8,34 +8,35 @@
 # which must be set. The user name on the remote device is `ubuntu`
 # by default, unless provided by the environment variable DEVICE_USER.
 #
-# This script depends on the `set_ssh_options` script to set SSH options.
+# The last argument provided is considered to be the "target", i.e. where
+# on the remote device the file(s) will be copied. If the last argument is
+# `--`, then the file(s) will be copied on the home directory of DEVICE_USER
+# (defaults to `ubuntu`)
+#
+# This script sources `defs/set_ssh_options` to set SSH_OPTS.
+# This script soures `defs/check_for_device_ip` to check that DEVICE_IP is set.
 #
 # Return value:
 #
 # 0 if the copy operation is successful or >0 in case of an error.
 
 usage() {
-    echo "Usage: $(basename ${BASH_SOURCE[0]}) <source> ... <target>"
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) <source> ... -- | <target>"
 }
 
-parse_args() {
-    if [ $# -lt 2 ]; then
-        usage
-        echo "Error: <source> and/or <target> not specified"
-        exit 1
-    fi
+if [ $# -lt 2 ]; then
+    usage
+    echo "Error: <source> and/or <target> not specified"
+    exit 1
+fi
 
-    # The target is the last argument
-    export TARGET=${@: -1}
-    [[ "$TARGET" != "--" ]] || unset TARGET
+# The target is the last argument (unless the last argument is `--`)
+TARGET=${@: -1}
+[[ "$TARGET" != "--" ]] || unset TARGET
 
-    # Remove the target from the list by slicing the arguments array
-    SOURCES_ARRAY=("${@:1:$#-1}")
-    export SOURCES="${SOURCES_ARRAY[@]}"
-}
-
-
-parse_args $@
+# Remove the target from the list by slicing the arguments array
+SOURCES_ARRAY=("${@:1:$#-1}")
+SOURCES="${SOURCES_ARRAY[@]}"
 
 source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_device_ip"
 source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"

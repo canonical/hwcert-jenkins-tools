@@ -85,9 +85,10 @@ _run sudo mv \
     $REMOTE_PATH
 
 # fuser is required by `check_for_packages_complete`
+# (so install it on both the agent and the device)
 which fuser || install_packages -- psmisc
 _run bash -c "which fuser || install_packages -- psmisc"
 
-# install launcher
+# install launcher tool on the agent
 add_to_path ~/.local/bin
 pip -q install $TOOLS_PATH/cert-tools/launcher

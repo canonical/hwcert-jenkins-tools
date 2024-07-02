@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-#
-# Check if package operations (apt, dpkg) are complete
+
+# Check if package operations (apt, dpkg) are complete.
 #
 # Description:
 #
