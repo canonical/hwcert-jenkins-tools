@@ -30,6 +30,7 @@ while [[ "$#" -gt 0 ]]; do
         --delay)
             DELAY=$2
             shift
+            ;;
         *)
             usage
             echo "Error: Invalid argument $1"
