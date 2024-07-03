@@ -20,13 +20,14 @@ import logging
 import os
 import subprocess
 import textwrap
+from typing import List
 from urllib.parse import urlparse
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger().name = os.path.basename(__file__)
 
 
-def neatly_run_command(cmd: list[str]) -> str:
+def neatly_run_command(cmd: List[str]) -> str:
     """
     This command tries to run command and if the command fails it will log the
     error and exit the program.
