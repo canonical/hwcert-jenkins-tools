@@ -112,7 +112,7 @@ def create_apt_auth_file(ppa: str, login: str, password: str) -> None:
         login {}
         password {}
         """
-    ).format(host, login, password)
+    ).format(f"{host}/{path}", login, password)
 
     auth_file_path = "/etc/apt/auth.conf.d/ppa-{}.conf".format(ppa_name)
     if os.path.exists(auth_file_path):
