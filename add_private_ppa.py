@@ -18,6 +18,7 @@ Finally, the PPA's key is added to the system.
 import argparse
 import logging
 import os
+import re
 import subprocess
 import textwrap
 from typing import List
@@ -93,18 +94,7 @@ def slugify_name(name: str) -> str:
     >>> slugify_name(r"a/b\\:*?\\"<>| ")
     'a-b----------'
     """
-    return (
-        name.replace("/", "-")
-        .replace("\\", "-")
-        .replace(":", "-")
-        .replace("*", "-")
-        .replace("?", "-")
-        .replace('"', "-")
-        .replace("<", "-")
-        .replace(">", "-")
-        .replace("|", "-")
-        .replace(" ", "-")
-    )
+    return re.sub(r'[\/\\:*?"<>| ]', '-', name)
 
 
 def create_apt_auth_file(ppa: str, login: str, password: str) -> None:
