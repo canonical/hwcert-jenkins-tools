@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+
+# Repeats the given command until the command is successful, backing off
+# with a configurable delay between each attempt.
+#
+# Description:
+#
+# This tool is meant to implement a subset of what the `retry` package offers
+# (https://packages.ubuntu.com/focal/retry), while avoiding the dependency.
+#
+# The `--delay`, `--message` and `--times` arguments are similar to the
+# corresponding arguments for the original `retry` util.
+#
+# There is a feature of the original `retry` util that is optional (and indeed
+# not the default) in this implementation:
+# 
+# > Retry captures stdout into memory, and if the command was successful
+# > stdout is passed on to stdout as normal, while if the command was repeated
+# > stdout is passed to stderr instead. This ensures that output is passed to
+# > stdout once and once only.
+# 
+# It is likely that the output of the <command> is of interest to us regardless
+# of whether or not it succeeded or failed (e.g. for debugging), but `stderr` is
+# not captured when we `_run` commands remotely. So the default behaviour of the
+# original `retry` may be undesirable and it is only activated if the `--capture`
+# flag is provided on the command line.
+
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [<options>] -- <command> ..."
+    echo "Options:"
+    echo "  -d seconds, --delay=seconds   The number of seconds to back off after each attempt."
+    echo "  -m message, --message=message A message to include in the notification when repeat has backed off. Defaults to the command name."
+    echo "  -t times, --times=times       The number of times to retry the command. By default we try forever."
+}
+
+CAPTURE=""
+DELAY=0
+TIMES=-1
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -c|--capture)
+            CAPTURE="true"
+            ;;
+        -d|--delay)
+            DELAY="$2"
+            shift
+            ;;
+        -m|--message)
+            MESSAGE="$2"
+            shift
+            ;;
+        -t|--times)
+            TIMES="$2"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            # end of options
+            break
+            ;;
+        *)
+            usage
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+if [[ "$#" -lt 1 ]]; then
+    usage
+    echo "Error: <command> not provided."
+    exit 1
+fi
+
+COMMAND="$@"
+if [[ -z "$MESSAGE" ]]; then
+    MESSAGE="$COMMAND"
+fi
+
+if [ -n "$CAPTURE" ]; then
+    ATTEMPTS=0
+    while :; do
+        "$@" >output.log 2>error.log
+        EXIT_CODE=$?
+        if [[ $EXIT_CODE -eq 0 ]]; then
+            cat output.log
+            rm output.log error.log
+            exit 0
+        else
+            ((ATTEMPTS++))
+            if [[ $TIMES -gt 0 && $ATTEMPTS -ge $TIMES ]]; then
+                cat error.log >&2
+                rm output.log error.log
+                exit $EXIT_CODE
+            fi
+            echo "retry: '$MESSAGE' returned $EXIT_CODE, backing off for $DELAY seconds and trying again..." >&2
+            sleep "$DELAY"
+        fi
+    done
+else
+    ATTEMPTS=0
+    while :; do
+        "$@"
+        EXIT_CODE=$?
+        if [[ $EXIT_CODE -eq 0 ]]; then
+            exit 0
+        else
+            ((ATTEMPTS++))
+            if [[ $TIMES -gt 0 && $ATTEMPTS -ge $TIMES ]]; then
+                exit $EXIT_CODE
+            fi
+            echo "retry: '$MESSAGE' returned $EXIT_CODE, backing off for $DELAY seconds and trying again..." >&2
+            sleep "$DELAY"
+        fi
+    done
+fi

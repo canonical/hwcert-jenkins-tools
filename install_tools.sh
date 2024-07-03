@@ -55,25 +55,40 @@ clone() {
     echo "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
 }
 
-add_to_path() {
-    if [ "$#" -lt 1 ]; then
-        echo "Error: You need to provide a path."
-        echo "Usage: ${FUNCNAME[0]} <path>"
-        return 1
-    fi
-    local PATH_TO_ADD=$(readlink -m $1)
-    if [[ ":$PATH:" != *":$PATH_TO_ADD:"* ]]; then
-        export PATH="$PATH:$PATH_TO_ADD"
-        echo "Added $PATH_TO_ADD to PATH"
-    fi
-}
-
 parse_args $@
 fetch || (rm -rf $TOOLS_PATH && clone)
 
-# install scriptlets (i.e. add them to path)
-add_to_path $TOOLS_PATH/scriptlets
+# add scriptlets to agent's PATH
+SCRIPTLETS_PATH=$TOOLS_PATH/scriptlets
+source "$SCRIPTLETS_PATH/defs/add_to_path"
+add_to_path $SCRIPTLETS_PATH
+add_to_path $SCRIPTLETS_PATH/sru-helpers
 
-# install launcher
-pip -q install $TOOLS_PATH/cert-tools/launcher
+# figure out where to place the scriptlets on the device
+REMOTE_PATH=$(cat $SCRIPTLETS_PATH/scriptlet_path | _run bash)
+[ $? -eq 0 ] || exit 1
+
+# copy the scriptlets over to the device...
+_put \
+    $SCRIPTLETS_PATH/retry \
+    $SCRIPTLETS_PATH/check_for_packages_complete \
+    $SCRIPTLETS_PATH/wait_for_packages_complete \
+    $SCRIPTLETS_PATH/install_packages \
+    --
+
+# ... and move them somewhere in the device's PATH
+_run sudo mv \
+    retry \
+    check_for_packages_complete \
+    wait_for_packages_complete \
+    install_packages \
+    $REMOTE_PATH
+
+# fuser is required by `check_for_packages_complete`
+# (so install it on both the agent and the device)
+which fuser || install_packages -- psmisc
+_run bash -c "which fuser || install_packages -- psmisc"
+
+# install launcher tool on the agent
 add_to_path ~/.local/bin
+pip -q install $TOOLS_PATH/cert-tools/launcher

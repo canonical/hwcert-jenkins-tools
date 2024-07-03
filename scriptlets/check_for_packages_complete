@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+# Check if package operations (apt, dpkg) are complete.
+#
+# Description:
+#
+# The script uses `pgrep` to check if `apt` or `pkg` processes are running
+# as well as `fuser` to check if certain lock files are in use.
+#
+# Return value:
+#
+# 0 if no package operations are ongoing or 1 otherwise
+
+is_process_running() {
+    # The arg is the process name
+    pgrep "$1" > /dev/null 2>&1
+}
+
+is_file_used() {
+    # The arg is the file name
+    fuser -s "$1"
+}
+
+is_resource_busy() {
+    is_process_running apt || \
+    is_process_running dpkg || \
+    is_file_used /var/lib/apt/lists/lock || \
+    is_file_used /var/lib/dpkg/lock || \
+    is_file_used /var/cache/debconf/config.dat
+}
+
+echo "Checking if package handling (apt, dpkg) is ongoing"
+is_resource_busy && exit 1 || exit 0
