@@ -61,40 +61,40 @@ def guess_ubuntu_codename() -> str:
     return codename
 
 
-def slugify_name(name: str) -> str:
+def slugify(string: str) -> str:
     """
-    Slugify a name, so it can be used as a filename.
+    Slugify a string, so it can be used as a filename.
     The characters that are not allowed in filenames are replaced with a dash.
     The characters being replaced are: '/', '\', ':', '*', '?', '"', '<', '>', '|', and space.
 
-    >>> slugify_name("")
+    >>> slugify("")
     ''
-    >>> slugify_name("a")
+    >>> slugify("a")
     'a'
-    >>> slugify_name("a/b")
+    >>> slugify("a/b")
     'a-b'
-    >>> slugify_name("a\\\\b") # double escaping because of doctest
+    >>> slugify("a\\\\b") # double escaping because of doctest
     'a-b'
-    >>> slugify_name("a:b")
+    >>> slugify("a:b")
     'a-b'
-    >>> slugify_name("a*b")
+    >>> slugify("a*b")
     'a-b'
-    >>> slugify_name("a?b")
+    >>> slugify("a?b")
     'a-b'
-    >>> slugify_name('a"b')
+    >>> slugify('a"b')
     'a-b'
-    >>> slugify_name("a<b")
+    >>> slugify("a<b")
     'a-b'
-    >>> slugify_name("a>b")
+    >>> slugify("a>b")
     'a-b'
-    >>> slugify_name("a|b")
+    >>> slugify("a|b")
     'a-b'
-    >>> slugify_name("a b")
+    >>> slugify("a b")
     'a-b'
-    >>> slugify_name(r"a/b\\:*?\\"<>| ")
+    >>> slugify(r"a/b\\:*?\\"<>| ")
     'a-b----------'
     """
-    return re.sub(r'[\/\\:*?"<>| ]', '-', name)
+    return re.sub(r'[\/\\:*?"<>| ]', '-', string)
 
 
 def create_apt_auth_file(ppa: str, login: str, password: str) -> None:
@@ -104,14 +104,15 @@ def create_apt_auth_file(ppa: str, login: str, password: str) -> None:
     The file will be named after the PPA's name, with the login and password
     appended to it, and will be placed in the /etc/apt/auth.conf.d/ directory.
     """
-    ppa_name = slugify_name(extract_ppa_name(ppa))
+    host, path = parse_ppa_url(ppa)
+    ppa_name = slugify(path)
     contents = textwrap.dedent(
         """
         machine {}
         login {}
         password {}
         """
-    ).format(ppa, login, password)
+    ).format(host, login, password)
 
     auth_file_path = "/etc/apt/auth.conf.d/ppa-{}.conf".format(ppa_name)
     if os.path.exists(auth_file_path):
@@ -123,34 +124,35 @@ def create_apt_auth_file(ppa: str, login: str, password: str) -> None:
         logging.info("Created credentials file: %s", auth_file_path)
 
 
-def extract_ppa_name(url: str) -> str:
+def parse_ppa_url(url: str) -> str:
     """
     Extracts the PPA address from a URL.
 
-    >>> extract_ppa_name('https://private-ppa.launchpadcontent.net/test/test-path')
-    'test/test-path'
+    >>> parse_ppa_url('https://private-ppa.launchpadcontent.net/test/test-path')
+    ('private-ppa.launchpadcontent.net', 'test/test-path')
 
-    >>> extract_ppa_name('https://private-ppa.launchpadcontent.net/singlepath')
-    'singlepath'
+    >>> parse_ppa_url('https://private-ppa.launchpadcontent.net/singlepath')
+    ('private-ppa.launchpadcontent.net', 'singlepath')
 
-    >>> extract_ppa_name('https://private-ppa.launchpadcontent.net/')
-    ''
+    >>> parse_ppa_url('https://private-ppa.launchpadcontent.net/')
+    ('private-ppa.launchpadcontent.net', '')
 
-    >>> extract_ppa_name('https://private-ppa.launchpadcontent.net')
+    >>> parse_ppa_url('https://private-ppa.launchpadcontent.net')
     Traceback (most recent call last):
         ...
     ValueError: URL is not a PPA address: https://private-ppa.launchpadcontent.net
 
-    >>> extract_ppa_name('not-a-url')
+    >>> parse_ppa_url('not-a-url')
     Traceback (most recent call last):
         ...
     ValueError: URL is not a PPA address: not-a-url
     """
     parsed_url = urlparse(url)
+    host = parsed_url.netloc
     path = parsed_url.path
     if not path.startswith("/"):
         raise ValueError("URL is not a PPA address: {}".format(url))
-    return path[1:]
+    return host, path[1:]
 
 
 def add_ppa_to_sources_list(ppa: str) -> None:
@@ -160,7 +162,8 @@ def add_ppa_to_sources_list(ppa: str) -> None:
     The PPA's URL will be added to the sources.list file, with the login and
     password replaced with the name of the credentials file.
     """
-    ppa_name = slugify_name(extract_ppa_name(ppa))
+    _, ppa_path = parse_ppa_url(ppa)
+    ppa_name = slugify(ppa_path)
     sources_list_file = "/etc/apt/sources.list.d/{}.list".format(ppa_name)
     release_codename = guess_ubuntu_codename()
     contents = textwrap.dedent(
