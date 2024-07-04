@@ -86,8 +86,8 @@ _run sudo mv \
 
 # fuser is required by `check_for_packages_complete`
 # (so install it on both the agent and the device)
-sudo which fuser || (wait_for_packages_complete --no-check-files && install_packages -- psmisc)
-_run bash -c "sudo which fuser || (wait_for_packages_complete --no-check-files && install_packages -- psmisc)"
+sudo which fuser || (wait_for_packages_complete --no-files-check && install_packages -- psmisc)
+_run bash -c "sudo which fuser || (wait_for_packages_complete --no-files-check && install_packages -- psmisc)"
 
 # install launcher tool on the agent
 add_to_path ~/.local/bin
