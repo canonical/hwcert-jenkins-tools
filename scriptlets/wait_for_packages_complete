@@ -11,27 +11,48 @@
 #
 # Return value:
 # 
-# 0 if `check_for_packages_complete` is successful
+# 0 if `check_for_packages_complete` is successful, or a timeout has occurred
 # 1 if `check_for_packages_complete` cannot be executed or is unsuccesful on the last retry
-# >=124 in case of a timeout
-# https://manpages.ubuntu.com/manpages/focal/man1/retry.1.html
-# https://man7.org/linux/man-pages/man1/timeout.1.html
 
 usage() {
-    echo "Usage: $(basename ${BASH_SOURCE[0]})"
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--no-files-check]"
 }
 
-if [ $# -gt 0 ]; then
-    usage
-    echo "Error: invalid arguments $@"
-    exit 1
-fi
+NO_FILES_CHECK=""
+TIMEOUT="10m"
+DELAY=10
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --no-files-check)
+            NO_FILES_CHECK=$1
+            ;;
+        --timeout)
+            TIMEOUT=$2
+            shift
+            ;;
+        --delay)
+            DELAY=$2
+            shift
+            ;;
+        *)
+            usage
+            echo "Error: Invalid argument $1"
+            exit 1
+            ;;
+    esac
+    shift
+done
 
-timeout 10m retry --delay 10 -- check_for_packages_complete
+timeout "$TIMEOUT" retry --delay "$DELAY" -- check_for_packages_complete $NO_FILES_CHECK
 
 result=$?
 if [ $result -ge 124 ]; then
-    echo "Unable to complete $(basename ${BASH_SOURCE[0]}) (timeout). Killing apt, apt-get, and dpkg processes."
-    sudo pkill -x "apt|apt-get|dpkg"
+    # the `retry` has timed out
+    echo "$(basename ${BASH_SOURCE[0]}) has timed out".
+    echo "Killing apt, apt-get, and dpkg processes:"
+    sudo pkill --echo -x "apt|apt-get|dpkg"
+    # indicate success:
+    # since the processes have been killed, package handling is no longer ongoing
+    exit 0
 fi
 exit $result
