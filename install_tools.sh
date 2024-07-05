@@ -64,25 +64,15 @@ source "$SCRIPTLETS_PATH/defs/add_to_path"
 add_to_path $SCRIPTLETS_PATH
 add_to_path $SCRIPTLETS_PATH/sru-helpers
 
-# figure out where to place the scriptlets on the device
+# figure out where to place scriptlets on the device
 REMOTE_PATH=$(cat $SCRIPTLETS_PATH/defs/scriptlet_path | _run bash)
 [ $? -eq 0 ] || exit 1
 
-# copy the scriptlets over to the device...
-_put \
-    $SCRIPTLETS_PATH/retry \
-    $SCRIPTLETS_PATH/check_for_packages_complete \
-    $SCRIPTLETS_PATH/wait_for_packages_complete \
-    $SCRIPTLETS_PATH/install_packages \
-    --
-
-# ... and move them somewhere in the device's PATH
-_run sudo mv \
-    retry \
-    check_for_packages_complete \
-    wait_for_packages_complete \
-    install_packages \
-    $REMOTE_PATH
+# copy selected scriptlets over to the device
+# and then move them somewhere in the device's PATH
+DEVICE_SCRIPTLETS=(retry check_for_packages_complete wait_for_packages_complete install_packages)
+_put "${DEVICE_SCRIPTLETS[@]/#/$SCRIPTLETS_PATH/}" --
+_run sudo mv "${DEVICE_SCRIPTLETS[@]}" $REMOTE_PATH
 
 # fuser is required by `check_for_packages_complete`
 # (so install it on both the agent and the device)
