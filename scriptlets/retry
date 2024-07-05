@@ -34,7 +34,7 @@ usage() {
 }
 
 CAPTURE=""
-DELAY=0
+DELAY=10
 TIMES=-1
 while [[ "$#" -gt 0 ]]; do
     case $1 in
