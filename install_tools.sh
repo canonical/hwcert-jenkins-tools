@@ -65,7 +65,7 @@ add_to_path $SCRIPTLETS_PATH
 add_to_path $SCRIPTLETS_PATH/sru-helpers
 
 # figure out where to place the scriptlets on the device
-REMOTE_PATH=$(cat $SCRIPTLETS_PATH/scriptlet_path | _run bash)
+REMOTE_PATH=$(cat $SCRIPTLETS_PATH/defs/scriptlet_path | _run bash)
 [ $? -eq 0 ] || exit 1
 
 # copy the scriptlets over to the device...
