@@ -77,7 +77,7 @@ _run sudo mv "${DEVICE_SCRIPTLETS[@]}" $REMOTE_PATH
 # fuser is required by `check_for_packages_complete`
 # (so install it on both the agent and the device)
 $SCRIPTLETS_PATH/defs/install_psmisc
-cat $SCRIPTLETS_PATH/defs/psmisc | _run bash
+cat $SCRIPTLETS_PATH/defs/install_psmisc | _run bash
 [ $? -eq 0 ] || exit 1
 
 # install launcher tool on the agent
