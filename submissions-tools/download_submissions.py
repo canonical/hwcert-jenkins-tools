@@ -15,7 +15,6 @@ import argparse
 from requests import get
 import os
 import pathlib
-import pandas as pd
 import tarfile
 import tempfile
 

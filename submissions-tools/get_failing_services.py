@@ -8,7 +8,6 @@
 
 import argparse
 import os
-import pandas as pd
 import pathlib
 
 from download_submissions import get_submissions_list, download_submissions
@@ -54,10 +53,14 @@ def get_failing_services_post_reboot(submissions, test="post-warm-reboot"):
 
                     failing_services.append(row)
 
-        # Create a dataframe to store the failing services
-        df = pd.DataFrame(failing_services)
-        csv_path = pathlib.Path(f"{test}_failing_services.csv")
-        df.to_csv(csv_path, index=False)
+        # Create a CSV file with the failing services
+        with open(f"failing_services_{test}.csv", "w") as file:
+            file.write("device_id,submission_id,service\n")
+            for row in failing_services:
+                device_id = row["device_id"]
+                submission_id = row["submission_id"]
+                service = row["service"]
+                file.write(f"{device_id},{submission_id},{service}\n")
 
 
 def main():
