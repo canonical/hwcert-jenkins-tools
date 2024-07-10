@@ -7,6 +7,7 @@
 # https://certification.canonical.com/hardware/202312-33291/submission/360841/
 
 import argparse
+import csv
 import os
 import pathlib
 
@@ -54,13 +55,13 @@ def get_failing_services_post_reboot(submissions, test="post-warm-reboot"):
                     failing_services.append(row)
 
         # Create a CSV file with the failing services
-        with open(f"failing_services_{test}.csv", "w") as file:
-            file.write("device_id,submission_id,service\n")
-            for row in failing_services:
-                device_id = row["device_id"]
-                submission_id = row["submission_id"]
-                service = row["service"]
-                file.write(f"{device_id},{submission_id},{service}\n")
+        with open(f"failing_services_{test}.csv", "w") as csv_file:
+            fieldnames = ["device_id", "submission_id", "service"]
+
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+            writer.writeheader()
+            writer.writerows(failing_services)
 
 
 def main():
