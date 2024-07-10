@@ -3,7 +3,7 @@
 This folder contains some tools designed to interact with the certification
 website, specifically for downloading submissions and analyzing them.
 
-These script can be really useful when trying to investigate a test failure in 
+These scripts can be really useful when trying to investigate a test failure in 
 a large set of devices, since it allows you to automate the process of going
 through the submission files and manually check the results.
 
@@ -30,7 +30,7 @@ C3 API.
 
 ## Usage
 
-## Prerequisites
+### Prerequisites
 
 You will need a session ID to authenticate with the certification website. You
 can obtain this by logging into the certification website, opening 
@@ -56,7 +56,7 @@ https://certification.canonical.com/hardware/202212-30927/submission/371010/
 ```
 
 3. The script will download the submissions and save them in a local directory
-   structure.
+   structure. Submissions that have already been downloaded will be skipped.
 
 ### Analyzing Failing Services
 
