@@ -30,6 +30,13 @@ C3 API.
 
 ## Usage
 
+## Prerequisites
+
+You will need a session ID to authenticate with the certification website. You
+can obtain this by logging into the certification website, opening 
+[your profile](https://certification.canonical.com/me/), and copying the value
+of the `Session ID`.   
+
 ### Downloading Submissions
 
 1. Prepare a text file containing the URLs of the submissions you wish to
@@ -66,10 +73,3 @@ https://certification.canonical.com/hardware/202212-30927/submission/371010/
 
 3. The script will download the submissions, analyze the test output files, and
    generate a CSV file listing the failing services. 
-
-
-## Contributing
-
-Contributions to improve these tools are welcome. If you have an idea for a new
-script or an improvement to an existing one, please open an issue or submit a
-pull request.
