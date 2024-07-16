@@ -11,7 +11,8 @@ jobs:
     - name: Checkout tools repo
       uses: actions/checkout@v4
     - name: Submit job
-      uses: canonical/testflinger/.github/actions/submit@main
+      id: submit
+      uses: canonical/testflinger/.github/actions/submit@CERTTF-344-submit-action-output-id
       with:
         poll: true
         job: |
@@ -19,7 +20,9 @@ jobs:
           test_data:
             test_cmds: |
               #!/usr/bin/env bash
-
               set -x
-              ls -alR
+              ls -al
+    - name: Display job id
+      run: |
+        echo "The ID of the submitted job was ${{ steps.submit.outputs.id }}"
           
