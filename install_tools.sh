@@ -71,7 +71,7 @@ REMOTE_PATH=$(cat $SCRIPTLETS_PATH/defs/scriptlet_path | _run bash)
 # copy selected scriptlets over to the device
 # and then move them somewhere in the device's PATH
 DEVICE_SCRIPTLETS=(retry check_for_packages_complete wait_for_packages_complete install_packages)
-_put "${DEVICE_SCRIPTLETS[@]/#/$SCRIPTLETS_PATH/}" --
+_put "${DEVICE_SCRIPTLETS[@]/#/$SCRIPTLETS_PATH/}" :
 _run sudo mv "${DEVICE_SCRIPTLETS[@]}" $REMOTE_PATH
 
 # fuser is required by `check_for_packages_complete`
