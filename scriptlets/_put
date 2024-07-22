@@ -21,7 +21,7 @@
 # 0 if the copy operation is successful or >0 in case of an error.
 
 usage() {
-    echo "Usage: $(basename ${BASH_SOURCE[0]}) <source> ... -- | <target>"
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) <source> ... :[<target>]"
 }
 
 if [ $# -lt 2 ]; then
@@ -30,9 +30,13 @@ if [ $# -lt 2 ]; then
     exit 1
 fi
 
-# The target is the last argument (unless the last argument is `--`)
+# The target is the last argument (and it must start with ':')
 TARGET=${@: -1}
-[[ "$TARGET" != "--" ]] || unset TARGET
+if [[ "${TARGET:0:1}" != ":" ]]; then
+    usage
+    echo "Error: the <target> must start with ':'"
+    exit 1
+fi
 
 # Remove the target from the list by slicing the arguments array
 SOURCES_ARRAY=("${@:1:$#-1}")
@@ -40,4 +44,4 @@ SOURCES="${SOURCES_ARRAY[@]}"
 
 source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_device_ip"
 source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"
-scp $SSH_OPTS $SOURCES ${DEVICE_USER:-ubuntu}@$DEVICE_IP:$TARGET
+scp $SSH_OPTS $SOURCES ${DEVICE_USER:-ubuntu}@${DEVICE_IP}${TARGET}
