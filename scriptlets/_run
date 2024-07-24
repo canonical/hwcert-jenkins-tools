@@ -29,4 +29,4 @@ fi
 
 source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_device_ip"
 source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"
-ssh -t $SSH_OPTS ${DEVICE_USER:-ubuntu}@$DEVICE_IP "$@"
+ssh $SSH_OPTS ${DEVICE_USER:-ubuntu}@$DEVICE_IP "$@"
