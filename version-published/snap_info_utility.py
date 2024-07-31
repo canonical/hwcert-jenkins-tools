@@ -64,7 +64,6 @@ def get_previous_tag(base_version: str, repo_path: str):
     # Filter the list of tags to only include the ones that match the version
     # pattern
     tags = [tag for tag in tags if re.match(r"^v\d+\.\d+\.\d+$", tag)]
-    print(tags)
 
     # Get the previous tag corresponding to the base version. We have to do it
     # this way because the tags are only created once the version is published.
@@ -72,9 +71,7 @@ def get_previous_tag(base_version: str, repo_path: str):
     # the offset, not v4.0.0. The versions after 4.0.0 will use v4.0.0.
     previous_tag = None
     for t in tags:
-        print(f"Comparing {t} with {base_version}")
         if version.parse(t) < version.parse(base_version):
-            print(f"Found previous tag: {t}")
             previous_tag = t
             break
 
