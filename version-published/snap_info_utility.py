@@ -6,7 +6,11 @@ scripts that fetches information about snaps
 import re
 import requests
 
-from packaging import version
+try:
+    from packaging.version import Version
+except ImportError:
+    from distutils.version import LooseVersion as Version
+
 from subprocess import check_output
 
 
@@ -71,7 +75,7 @@ def get_previous_tag(base_version: str, repo_path: str):
     # the offset, not v4.0.0. The versions after 4.0.0 will use v4.0.0.
     previous_tag = None
     for t in tags:
-        if version.parse(t) < version.parse(base_version):
+        if Version(t) < Version(base_version):
             previous_tag = t
             break
 
