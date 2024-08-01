@@ -10,25 +10,26 @@ class TestSnapInfoUtility(unittest.TestCase):
     def test_get_version_and_offset(self):
         version = "v1.2.3-dev45"
         b_version, offset = snap_info_utility.get_version_and_offset(version)
-        self.assertEqual(b_version, "v1.2.3")
+        self.assertEqual(b_version, "1.2.3")
         self.assertEqual(offset, 45)
 
         version = "1.2.3"
         b_version, offset = snap_info_utility.get_version_and_offset(version)
-        self.assertEqual(b_version, "v1.2.3")
+        self.assertEqual(b_version, "1.2.3")
         self.assertEqual(offset, 0)
 
         version = "1.2.3.dev45"
         b_version, offset = snap_info_utility.get_version_and_offset(version)
-        self.assertEqual(b_version, "v1.2.3")
+        self.assertEqual(b_version, "1.2.3")
         self.assertEqual(offset, 45)
 
         version = "v1.2"
-        with self.assertRaises(ValueError):
-            snap_info_utility.get_version_and_offset(version)
+        b_version, offset = snap_info_utility.get_version_and_offset(version)
+        self.assertEqual(b_version, "1.2")
+        self.assertEqual(offset, 0)
 
         version = "1.2.3-dv25"
-        with self.assertRaises(ValueError):
+        with self.assertRaises(SystemExit):
             snap_info_utility.get_version_and_offset(version)
 
     @patch("snap_info_utility.check_output")

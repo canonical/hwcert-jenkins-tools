@@ -3,7 +3,6 @@ This module contains every utility function shared among multiple
 scripts that fetches information about snaps
 """
 
-import re
 import requests
 
 try:
@@ -47,16 +46,29 @@ def get_history_since(tag: str, repo_path: str):
 
 
 def get_version_and_offset(version_str: str):
-    # Use regex to match the version pattern and extract the base version
-    # and dev number if present (e.g. v1.2.3-dev45, 1.2.3.dev45, 1.2.3)
-    # the v at the beginning is optional
-    match = re.match(r"^v?(\d+\.\d+\.\d+).?(?:dev(\d+))?$", version_str)
-    if match:
-        base_version = f"v{match.group(1)}"
-        dev_number = match.group(2) if match.group(2) else "0"
-        return base_version, int(dev_number)
+    # Extract the base version and dev number if present
+    # (e.g. v1.2.3-dev45, 1.2.3.dev45, 1.2.3)
+
+    # Remove the 'v' prefix if it exists
+    if version_str.startswith("v"):
+        version_str = version_str[1:]
+
+    # Split the version string by '-dev' or '.dev' to handle different formats
+    if "-dev" in version_str:
+        base_version, dev_number = version_str.split("-dev")
+    elif ".dev" in version_str:
+        base_version, dev_number = version_str.split(".dev")
     else:
-        raise ValueError(f"Invalid version format: {version_str}")
+        base_version = version_str
+        dev_number = 0
+
+    # Try to parse the version and dev number
+    try:
+        Version(base_version)
+    except ValueError:
+        raise SystemExit(f"Invalid version format: {version_str}")
+
+    return base_version, int(dev_number)
 
 
 def get_previous_tag(base_version: str, repo_path: str):
@@ -65,9 +77,8 @@ def get_previous_tag(base_version: str, repo_path: str):
         ["git", "tag", "--sort=-creatordate"], cwd=repo_path, text=True
     ).splitlines()
 
-    # Filter the list of tags to only include the ones that match the version
-    # pattern
-    tags = [tag for tag in tags if re.match(r"^v\d+\.\d+\.\d+$", tag)]
+    # Filter the list of tags to only include the ones that start with 'v'
+    tags = [t for t in tags if t.startswith("v")]
 
     # Get the previous tag corresponding to the base version. We have to do it
     # this way because the tags are only created once the version is published.
@@ -75,9 +86,12 @@ def get_previous_tag(base_version: str, repo_path: str):
     # the offset, not v4.0.0. The versions after 4.0.0 will use v4.0.0.
     previous_tag = None
     for t in tags:
-        if Version(t) < Version(base_version):
-            previous_tag = t
-            break
+        try:
+            if Version(t) < Version(base_version):
+                previous_tag = t
+                break
+        except ValueError:
+            print(f"Invalid version tag: {t}")
 
     if not previous_tag:
         raise SystemExit(
