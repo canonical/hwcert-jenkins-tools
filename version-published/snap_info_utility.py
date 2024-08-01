@@ -84,21 +84,12 @@ def get_previous_tag(base_version: str, repo_path: str):
     # this way because the tags are only created once the version is published.
     # For example, 4.0.0.dev333 will use the previous tag v3.3.0 to calculate
     # the offset, not v4.0.0. The versions after 4.0.0 will use v4.0.0.
-    previous_tag = None
-    for t in tags:
-        try:
-            if Version(t) < Version(base_version):
-                previous_tag = t
-                break
-        except ValueError:
-            print(f"Invalid version tag: {t}")
-
-    if not previous_tag:
+    try:
+        return next(t for t in tags if Version(t) < Version(base_version))
+    except StopIteration:
         raise SystemExit(
             f"Unable to locate a previous tag for the version: {base_version}"
         )
-
-    return previous_tag
 
 
 def get_revision_at_offset(version_str: str, repo_path: str):
