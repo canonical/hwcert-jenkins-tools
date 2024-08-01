@@ -1,0 +1,29 @@
+name: Test published version tools
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'version-published/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'version-published/**'
+      - '.github/workflows/test_version_published.yaml'
+
+jobs:
+  tox_test_version_published:
+    name: Test version-published with tox
+    defaults:
+      run:
+        working-directory: version-published
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - name: Install tox
+        run: pip install tox
+      - name: Run tox
+        run: tox -e py38
