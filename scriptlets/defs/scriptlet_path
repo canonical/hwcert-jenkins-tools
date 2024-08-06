@@ -14,4 +14,8 @@ for DIRECTORY in "${DIRECTORIES[@]}"; do
         exit 0
     fi
 done
-exit 1
+
+# none of the predefined paths is in PATH, use DEFAULT
+DEFAULT="/usr/local/bin"
+sudo mkdir -p $DEFAULT
+echo $DEFAULT
