@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+# Check if the Checkbox service is active on a remote device
+#
+# Return value:
+#
+# 255 in case of an ssh failure
+# 0 if the Checkbox service is active
+# Non-zero otherwise
+# https://www.man7.org/linux/man-pages/man1/systemctl.1.html
+
+usage() {
+    echo "Usage: $(basename $0) [--debug]"
+}
+
+if [ $# -gt 1 ] || [ $# -eq 1 ] && [ "$1" != "--debug" ] ; then
+    usage
+    echo "Error: invalid argument(s)"
+    exit 1
+fi
+
+echo "Checking if the Checkbox service is active on ${DEVICE_IP:-device}"
+STATUS=$(_run 'systemctl is-active *checkbox*.service')
+
+# exit code 255 in case of an ssh error
+[ $? -eq 255 ] && exit 255
+
+# exit code 0 if the checkbox service is active
+[[ "$STATUS" =~ ^active ]] && exit 0
+
+# display services to facilitate diagnostics
+if [ $# -eq 1 ]; then
+    echo "The Checkbox service is not active on ${DEVICE_IP:-device}"
+    _run systemctl list-units --type=service
+fi
+exit 1
