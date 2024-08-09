@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--no-update] -- <apt-get install arguments>"
+}
+
+# separate command-line arguments into the ones for the script and the ones for apt-get
+local_args=()
+package_args=()
+found_separator=false
+for arg in "$@"; do
+    if [[ $arg == "--" ]]; then
+        found_separator=true
+    elif [[ $found_separator == true ]]; then
+        package_args+=("$arg")
+    else
+        local_args+=("$arg")
+    fi
+done
+
+# if no `--` was found then all arguments are apt-get arguments
+if [[ $found_separator == false ]]; then
+    package_args=("${local_args[@]}")
+    local_args=()
+fi
+
+for arg in "${local_args[@]}"; do
+    case $arg in
+        --no-update)
+            NO_UPDATE="true"
+            ;;
+        *)
+            usage
+            echo "Error: Invalid argument $arg"
+            exit 1
+            ;;
+    esac
+done
+
+if [ ${#package_args[@]} -eq 0 ]; then
+    usage
+    echo "Error: no arguments provided for 'apt-get install'"
+    exit 1
+fi
+
+([ -n "$NO_UPDATE" ] || sudo apt-get -qq update) && \
+sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install -o Dpkg::Options::="--force-confdef" "${package_args[@]}"

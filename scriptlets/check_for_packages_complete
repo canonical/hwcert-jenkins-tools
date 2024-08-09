@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+# Check if package operations (apt, dpkg) are complete.
+#
+# Description:
+#
+# The script uses `pgrep` to check if `apt` or `dpkg` processes are running
+# as well as `fuser` to check if certain lock files are in use. If it
+# determines that package-handling operations are ongoing, it displays
+# information about the processes and files that are implicated.
+#
+# `fuser` may not be available on some systems. In these cases, please
+# use the `--no-files-check` command-line flag.
+#
+# Return value:
+#
+# 0 if no package operations are ongoing or 1 otherwise
+
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--no-files-check]"
+}
+
+NO_FILES_CHECK=""
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --no-files-check)
+            NO_FILES_CHECK=", no checking of lock files"
+            ;;
+        *)
+            usage
+            echo "Error: Invalid argument $1"
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+echo "Checking if package handling is ongoing (apt, dpkg$NO_FILES_CHECK)"
+PROCESSES=$(pgrep --list-full "^apt|dpkg")
+PROCESSES_RESULT=$?
+if [ -z "$NO_FILES_CHECK" ]; then
+    FILES=$(sudo fuser /var/lib/apt/lists/lock /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend /var/cache/debconf/config.dat 2>&1)
+    FILES_RESULT=$?
+else
+    FILES=""
+    FILES_RESULT=1
+fi
+if [ $PROCESSES_RESULT -eq 0 ] || [ $FILES_RESULT -eq 0 ]; then
+    echo Package handling is ongoing
+    echo -e "Processes:\n$PROCESSES"
+    [ -n "$FILES" ] && echo -e "Files:\n$FILES"
+    exit 1
+else
+    echo No ongoing package handling
+    exit 0
+fi
