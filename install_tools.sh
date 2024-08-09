@@ -79,6 +79,9 @@ _run sudo mv "${DEVICE_SCRIPTLETS[@]}" $REMOTE_PATH
 _run bash < $SCRIPTLETS_PATH/defs/install_psmisc
 [ $? -eq 0 ] || exit 1
 
-# install launcher tool on the agent
+#
 add_to_path ~/.local/bin
-pip -q install $TOOLS_PATH/cert-tools/launcher
+install_packages pipx python3-venv
+
+# install launcher tool on the agent
+pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher
