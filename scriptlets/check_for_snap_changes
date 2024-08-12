@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 
-# Check if a specific snap change on a remote device is complete
+# Check if snap changes on a remote device are complete
 #
 # Description:
 #
-# The script processes the output of `snap change` for the provided change ID
-# on the remote device.
+# The script processes the output of `snap changes` on the remote device.
 #
 # See https://snapcraft.io/docs/snapd-api#heading--changes for the possible
-# status of a change step in the output of `snap change`.
+# status of a change step in the output of `snap changes`.
 #
 # Note that on hybrid images, a change may be waiting for a manual reboot.
 # If this is the case, the reboot will be performed and the result of this
@@ -16,31 +15,31 @@
 #
 # Return value:
 #
-# 0 if the specified snap change is complete or 1 otherwise
+# 0 if snap changes are complete or 1 otherwise
 
 usage() {
-    echo "Usage: $(basename $0) <change-id>"
+    echo "Usage: $(basename $0)"
 }
 
-if [ $# -ne 1 ]; then
+if [ $# -ne 0 ]; then
     usage
-    echo "Error: <change-id> not specified"
+    echo "Error: unknown arguments"
     exit 1
 fi
 
-is_complete() {
+all_complete() {
     # temporary file to store the output (if required, as a diagnostic)
     OUTPUT=$(mktemp)
 
-    # _run snap change $1: list the tasks asssociated with a snap change
+    # _run snap changes: list the snap changes
     # tail -n +2: remove the header
     # tee "$OUTPUT": save the output to the temporary file
-    # awk 'NF {print $1}': print the first column on non-empty lines
-    # grep -q -E "Doing|Undoing|Wait": succeed when the change is still ongoing
-    _run snap change $1 | \
+    # awk 'NF {print $2}': print the second column on non-empty lines (i.e. the status)
+    # grep -q -E "Doing|Undoing|Wait": succeed when changes are still ongoing
+    _run snap changes | \
     tail -n +2 | \
     tee "$OUTPUT" | \
-    awk 'NF {print $1}' | \
+    awk 'NF {print $2}' | \
     grep -q -E "Doing|Undoing|Wait"
 
     RESULT=$?
@@ -56,14 +55,13 @@ is_complete() {
     fi
 }
 
-CHANGE_ID=$1
-is_complete $CHANGE_ID
+all_complete
 RESULT=$?
 if [ ! $RESULT -eq 0 ] && _run '[ -f /run/reboot-required ]'; then
-    echo "Snap change $CHANGE_ID is waiting for a manual reboot, restarting now..."
+    echo "Snap changes are waiting for a manual reboot, restarting now..."
     _run sudo reboot
-    wait_for_ssh
-    is_complete $CHANGE_ID
+    wait_for_ssh --allow-degraded
+    all_complete
     RESULT=$?
 fi
 exit $RESULT

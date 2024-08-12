@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+# Wait for all snap changes on a remote device to complete
+# 
+# See `check_for_snap_changes` (which is repeatedly called here)
+# for details
+#
+# Return value:
+# 
+# 0 if `check_for_snap_changes` is successful or 1 otherwise
+
+usage() {
+    echo "Usage: $(basename $0) [--times TIMES] [--delay DELAY]"
+}
+
+TIMES=40
+DELAY=30
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --times)
+            TIMES=$2
+            shift
+            ;;
+        --delay)
+            DELAY=$2
+            shift
+            ;;
+        *)
+            usage
+            echo "Error: Invalid argument $1"
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+retry --times $TIMES --delay $DELAY -- \
+check_for_snap_changes
+
+RESULT=$?
+if [ $RESULT -gt 0 ]; then
+    echo "Error: unable to complete $(basename $0)"
+fi
+exit $RESULT
