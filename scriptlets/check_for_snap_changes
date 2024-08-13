@@ -28,17 +28,18 @@ if [ $# -ne 0 ]; then
 fi
 
 all_complete() {
-    # temporary file to store the output (if required, as a diagnostic)
+    # list the snap changes on the device and store the output in a temp file
     OUTPUT=$(mktemp)
+    _run snap changes > $OUTPUT
 
-    # _run snap changes: list the snap changes
+    RESULT=$?
+    if [ ! "$RESULT" -eq 0 ]; then exit $RESULT; fi
+
     # tail -n +2: remove the header
-    # tee "$OUTPUT": save the output to the temporary file
     # awk 'NF {print $2}': print the second column on non-empty lines (i.e. the status)
     # grep -q -E "Doing|Undoing|Wait": succeed when changes are still ongoing
-    _run snap changes | \
+    cat $OUTPUT | \
     tail -n +2 | \
-    tee "$OUTPUT" | \
     awk 'NF {print $2}' | \
     grep -q -E "Doing|Undoing|Wait"
 
