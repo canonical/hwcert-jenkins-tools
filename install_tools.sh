@@ -55,25 +55,33 @@ clone() {
     echo "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
 }
 
-add_to_path() {
-    if [ "$#" -lt 1 ]; then
-        echo "Error: You need to provide a path."
-        echo "Usage: ${FUNCNAME[0]} <path>"
-        return 1
-    fi
-    local PATH_TO_ADD=$(readlink -m $1)
-    if [[ ":$PATH:" != *":$PATH_TO_ADD:"* ]]; then
-        export PATH="$PATH:$PATH_TO_ADD"
-        echo "Added $PATH_TO_ADD to PATH"
-    fi
-}
-
 parse_args $@
 fetch || (rm -rf $TOOLS_PATH && clone)
 
-# install scriptlets (i.e. add them to path)
-add_to_path $TOOLS_PATH/scriptlets
+# add scriptlets to agent's PATH
+SCRIPTLETS_PATH=$TOOLS_PATH/scriptlets
+source "$SCRIPTLETS_PATH/defs/add_to_path"
+add_to_path $SCRIPTLETS_PATH
+add_to_path $SCRIPTLETS_PATH/sru-helpers
 
-# install launcher
-pip -q install $TOOLS_PATH/cert-tools/launcher
+# figure out where to place scriptlets on the device
+REMOTE_PATH=$(cat $SCRIPTLETS_PATH/defs/scriptlet_path | _run bash)
+[ $? -eq 0 ] || exit 1
+
+# copy selected scriptlets over to the device
+# and then move them somewhere in the device's PATH
+DEVICE_SCRIPTLETS=(retry check_for_packages_complete wait_for_packages_complete install_packages)
+_put "${DEVICE_SCRIPTLETS[@]/#/$SCRIPTLETS_PATH/}" :
+_run sudo mv "${DEVICE_SCRIPTLETS[@]}" $REMOTE_PATH
+
+# fuser is required by `check_for_packages_complete`
+# (so install it on the device, where it is used)
+_run bash < $SCRIPTLETS_PATH/defs/install_psmisc
+[ $? -eq 0 ] || exit 1
+
+#
 add_to_path ~/.local/bin
+install_packages pipx python3-venv
+
+# install launcher tool on the agent
+pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+# Install package `psmisc` if `fuser` is not already available
+
+# do nothing if package-handling is not even supported (Ubuntu Core)
+which apt-get || exit 0
+
+# determine if fuser is already available
+sudo which fuser > /dev/null 
+
+# install psmisc if required
+RESULT=$?
+if [ ! "$RESULT" -eq 0 ]; then
+    echo "Installing fuser (psmisc)"
+    wait_for_packages_complete --no-files-check && \
+    install_packages psmisc
+fi

@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+# Check if snap changes on a remote device are complete
+#
+# Description:
+#
+# The script processes the output of `snap changes` on the remote device.
+#
+# See https://snapcraft.io/docs/snapd-api#heading--changes for the possible
+# status of a change step in the output of `snap changes`.
+#
+# Note that on hybrid images, a change may be waiting for a manual reboot.
+# If this is the case, the reboot will be performed and the result of this
+# script will come from an additional check after rebooting
+#
+# Return value:
+#
+# 0 if snap changes are complete or 1 otherwise
+
+usage() {
+    echo "Usage: $(basename $0)"
+}
+
+if [ $# -ne 0 ]; then
+    usage
+    echo "Error: unknown arguments"
+    exit 1
+fi
+
+all_complete() {
+    # list the snap changes on the device and store the output in a temp file
+    OUTPUT=$(mktemp)
+    _run snap changes > $OUTPUT
+
+    RESULT=$?
+    if [ ! "$RESULT" -eq 0 ]; then exit $RESULT; fi
+
+    # tail -n +2: remove the header
+    # awk 'NF {print $2}': print the second column on non-empty lines (i.e. the status)
+    # grep -q -E "Doing|Undoing|Wait": succeed when changes are still ongoing
+    cat $OUTPUT | \
+    tail -n +2 | \
+    awk 'NF {print $2}' | \
+    grep -q -E "Doing|Undoing|Wait"
+
+    RESULT=$?
+    if [ "$RESULT" -eq 0 ]; then
+        # the change is still ongoing: display output as a diagnostic and return 1
+        cat "$OUTPUT"
+        rm "$OUTPUT"
+        return 1
+    else
+        # the change is done: return 0
+        rm "$OUTPUT"
+        return 0
+    fi
+}
+
+all_complete
+RESULT=$?
+if [ ! $RESULT -eq 0 ] && _run '[ -f /run/reboot-required ]'; then
+    echo "Snap changes are waiting for a manual reboot, restarting now..."
+    _run sudo reboot
+    wait_for_ssh --allow-degraded
+    all_complete
+    RESULT=$?
+fi
+exit $RESULT

@@ -2,21 +2,31 @@
 
 # Run a command on a remote device via SSH.
 #
-# Dependencies:
-#   This script depends on the `set_ssh_options` script to set SSH options.
-#   DEVICE_IP and DEVICE_USER must be set in the environment.
+# Description:
 #
-# Usage:
-#   `_run <command> [command_args ...]`
-#   Or source it in another script and call
-#   `run_function <command> [command_args ...]`
+# The IP of the device is provided by the environment variable DEVICE_IP,
+# which must be set. The user name on the remote device is `ubuntu`
+# by default, unless provided by the environment variable DEVICE_USER.
+#
+# This script sources `defs/set_ssh_options` to set SSH_OPTS.
+# This script soures `defs/check_for_device_ip` to check that DEVICE_IP is set.
+#
+# Return value:
+#
+# The value returned by the command on the remote device, or 255 in case
+# of an ssh error
 
-run_function() {
-    source "$(dirname "$BASH_SOURCE")/set_ssh_options"
-    ssh $SSH_OPTS ${DEVICE_USER:-ubuntu}@$DEVICE_IP "$@"
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) <command>"
 }
 
-# Check if the script is being sourced or executed
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    run_function "$@"
+
+if [ $# -lt 1 ]; then
+    usage
+    echo "Error: <command> not specified"
+    exit 1
 fi
+
+source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_device_ip"
+source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"
+ssh $SSH_OPTS ${DEVICE_USER:-ubuntu}@$DEVICE_IP "$@"
