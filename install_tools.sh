@@ -82,7 +82,7 @@ add_to_path $SCRIPTLETS_PATH
 add_to_path $SCRIPTLETS_PATH/sru-helpers
 add_to_path ~/.local/bin
 
-wait_for_ssh --allow-degraded && install_on_device || exit 1
+wait_for_ssh --times 3 --allow-degraded && install_on_device || exit 1
 
 # install launcher tool on the agent
 install_packages pipx python3-venv
