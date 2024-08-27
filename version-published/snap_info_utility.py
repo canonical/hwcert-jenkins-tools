@@ -65,6 +65,7 @@ def get_version_and_offset(version_str: str):
     # Try to parse the version and dev number
     try:
         Version(base_version)
+        dev_number = int(dev_number)
     except ValueError:
         raise SystemExit(f"Invalid version format: {version_str}")
 
@@ -78,14 +79,16 @@ def get_previous_tag(base_version: str, repo_path: str):
     ).splitlines()
 
     # Filter the list of tags to only include the ones that start with 'v'
-    tags = [t for t in tags if t.startswith("v")]
+    tags = [t[1:] for t in tags if t.startswith("v")]
 
     # Get the previous tag corresponding to the base version. We have to do it
     # this way because the tags are only created once the version is published.
     # For example, 4.0.0.dev333 will use the previous tag v3.3.0 to calculate
     # the offset, not v4.0.0. The versions after 4.0.0 will use v4.0.0.
     try:
-        return next(t for t in tags if Version(t) < Version(base_version))
+        return next(
+            f"v{t}" for t in tags if Version(t) < Version(base_version)
+        )
     except StopIteration:
         raise SystemExit(
             f"Unable to locate a previous tag for the version: {base_version}"
