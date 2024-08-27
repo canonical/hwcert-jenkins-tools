@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, call
+from unittest.mock import patch, MagicMock
 
 import textwrap
 
@@ -28,12 +28,12 @@ class TestSnapInfoUtility(unittest.TestCase):
         self.assertEqual(b_version, "1.2")
         self.assertEqual(offset, 0)
 
-        version = "1.2.3-dv25"
+        version = "bad.version.devbad"
         with self.assertRaises(SystemExit):
             snap_info_utility.get_version_and_offset(version)
 
     @patch("snap_info_utility.check_output")
-    def test_get_previous_tag(self, mock_check_output):
+    def test_get_list_of_tags(self, mock_check_output):
         mock_check_output.return_value = textwrap.dedent(
             """
             v1.2.3
@@ -41,15 +41,22 @@ class TestSnapInfoUtility(unittest.TestCase):
             v1.2.1
             """
         )
-        result = snap_info_utility.get_previous_tag("v1.2.3", "/path/to/repo")
+        result = snap_info_utility.get_list_of_tags("/path/to/repo")
+        self.assertEqual(result, ["v1.2.3", "v1.2.2", "v1.2.1"])
+
+    @patch("snap_info_utility.check_output")
+    def test_get_list_of_tags_error(self, mock_check_output):
+        mock_check_output.return_value = ""
+        with self.assertRaises(SystemExit):
+            snap_info_utility.get_list_of_tags("/path/to/repo")
+
+    @patch("snap_info_utility.check_output")
+    def test_get_previous_tag(self, mock_check_output):
+        tags = ["v1.2.3", "v1.2.2", "v1.2.1"]
+        result = snap_info_utility.get_previous_tag("1.2.3", tags)
         self.assertEqual(result, "v1.2.2")
 
-        result = snap_info_utility.get_previous_tag("v1.2.2", "/path/to/repo")
-        self.assertEqual(result, "v1.2.1")
-
-        with self.assertRaises(SystemExit):
-            snap_info_utility.get_previous_tag("v1.0.0", "/path/to/repo")
-
+    @patch("snap_info_utility.get_list_of_tags", MagicMock())
     @patch("snap_info_utility.get_previous_tag")
     @patch("snap_info_utility.get_history_since")
     def test_get_revision_at_offset(
@@ -69,6 +76,7 @@ class TestSnapInfoUtility(unittest.TestCase):
 
         self.assertEqual(result, "tag_hash + 2")
 
+    @patch("snap_info_utility.get_list_of_tags", MagicMock())
     @patch("snap_info_utility.get_previous_tag")
     @patch("snap_info_utility.get_history_since")
     def test_get_revision_at_offset_error(

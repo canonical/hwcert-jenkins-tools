@@ -65,13 +65,14 @@ def get_version_and_offset(version_str: str):
     # Try to parse the version and dev number
     try:
         Version(base_version)
+        dev_number = int(dev_number)
     except ValueError:
         raise SystemExit(f"Invalid version format: {version_str}")
 
     return base_version, int(dev_number)
 
 
-def get_previous_tag(base_version: str, repo_path: str):
+def get_list_of_tags(repo_path: str):
     # Get the list of tags sorted by creation date
     tags = check_output(
         ["git", "tag", "--sort=-creatordate"], cwd=repo_path, text=True
@@ -80,12 +81,19 @@ def get_previous_tag(base_version: str, repo_path: str):
     # Filter the list of tags to only include the ones that start with 'v'
     tags = [t for t in tags if t.startswith("v")]
 
+    if not tags:
+        raise SystemExit("No tags found in the repository")
+
+    return tags
+
+
+def get_previous_tag(base_version: str, tags: list):
     # Get the previous tag corresponding to the base version. We have to do it
     # this way because the tags are only created once the version is published.
     # For example, 4.0.0.dev333 will use the previous tag v3.3.0 to calculate
     # the offset, not v4.0.0. The versions after 4.0.0 will use v4.0.0.
     try:
-        return next(t for t in tags if Version(t) < Version(base_version))
+        return next(t for t in tags if Version(t[1:]) < Version(base_version))
     except StopIteration:
         raise SystemExit(
             f"Unable to locate a previous tag for the version: {base_version}"
@@ -94,7 +102,8 @@ def get_previous_tag(base_version: str, repo_path: str):
 
 def get_revision_at_offset(version_str: str, repo_path: str):
     base_version, offset = get_version_and_offset(version_str)
-    previous_tag = get_previous_tag(base_version, repo_path)
+    tag_list = get_list_of_tags(repo_path)
+    previous_tag = get_previous_tag(base_version, tag_list)
     history = get_history_since(previous_tag, repo_path)
     print(
         f"Checkout to {offset} commits after the preceding tag {previous_tag}"
