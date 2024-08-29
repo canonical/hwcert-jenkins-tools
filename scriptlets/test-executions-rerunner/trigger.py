@@ -37,7 +37,11 @@ import sys
 from typing import Dict, Optional
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 
 class Connection:
@@ -54,20 +58,17 @@ class Connection:
         try:
             self.jenkins_url = jenkins_url or os.environ['JENKINS_URL']
         except KeyError:
-            print("Error: Jenkins URL not provided", file=sys.stderr)
+            logging.error("Jenkins URL not provided")
             sys.exit(1)
         try:
             username = username or os.environ['JENKINS_USERNAME']
         except KeyError:
-            print("Error: Jenkins username not provided", file=sys.stderr)
+            logging.error("Jenkins username not provided")
             sys.exit(1)
         try:
             token = token or os.environ['JENKINS_API_TOKEN']
         except KeyError:
-            print(
-                f"Error: Jenkins API token for {username} not provided",
-                file=sys.stderr
-            )
+            logging.error(f"Jenkins API token for {username} not provided")
             sys.exit(1)
         self.auth = HTTPBasicAuth(username, token)
 
@@ -102,7 +103,7 @@ class BuilderWithParameters:
         """
         trigger_url = f"{self.connection.jenkins_url}/job/{job}/buildWithParameters"
         parameters = self._strip(parameters)
-        print(f"Building {job=} with {parameters=}")
+        logging.info(f"Building {job=} with {parameters=}")
         response = requests.post(
             trigger_url, auth=self.connection.auth, data=parameters
         )
@@ -191,23 +192,23 @@ def main():
     if args.action == "deploy":
         builder = Deployer(connection)
         for job in args.jobs:
-            print(f"Deploying job: {job}")
+            logging.info(f"Deploying job: {job}")
             response = builder.deploy(
                 job, branch=args.branch, prefix=args.prefix
             )
-            print(response)
+            logging.info(f"{response.status_code=}")
     elif args.action == "sru":
         builder = SRU(connection)
         for job in args.jobs:
-            print(f"Triggering SRU job: {job}")
+            logging.info(f"Triggering SRU job: {job}")
             response = builder.run(
                 job, testplan=args.testplan, reporting=(not args.no_reporting)
             )
-            print(response)
+            logging.info(f"{response.status_code=}")
             if response.ok:
-                print(f"{builder.connection.jenkins_url}/job/{job}")
+                logging.info(f"{builder.connection.jenkins_url}/job/{job}")
                 queue_url = response.headers['Location']
-                print(f'Queue item URL: {queue_url}')
+                logging.info(f'Queue item URL: {queue_url}')
 
 
 if __name__ == "__main__":
