@@ -5,7 +5,7 @@
 # Use the --branch option to specify a specific branch
 
 # disable tracing (if previously enabled)
-[[ "$-" == *x* ]] && tracing_enabled=true && set +x || tracing_enabled=false
+[[ "$-" == *x* ]] && TRACING=true && set +x || TRACING=false
 
 TOOLS_REPO=https://github.com/canonical/hwcert-jenkins-tools.git
 TOOLS_PATH_DEFAULT=$(basename $TOOLS_REPO .git)
@@ -43,14 +43,6 @@ install_on_device() {
     # (so install it on the device, where it is used)
     _run bash < $SCRIPTLETS_PATH/defs/install_psmisc
 }
-
-# disable tracing (if previously enabled)
-if [[ "$-" == *x* ]]; then
-    tracing_enabled=true
-    set +x
-else
-    tracing_enabled=false
-fi
 
 TOOLS_PATH=""
 BRANCH=""
@@ -102,4 +94,4 @@ install_packages pipx python3-venv > /dev/null
 pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
 
 # restore tracing (if previously enabled)
-[ "$tracing_enabled" = true ] && set -x || exit 0
+[ "$TRACING" = true ] && set -x || true
