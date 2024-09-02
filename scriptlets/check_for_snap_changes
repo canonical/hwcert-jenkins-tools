@@ -51,6 +51,7 @@ all_complete() {
         return 1
     else
         # the change is done: return 0
+        echo "No ongoing snap changes"
         rm "$OUTPUT"
         return 0
     fi
