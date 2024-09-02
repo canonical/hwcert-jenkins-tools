@@ -41,6 +41,14 @@ install_on_device() {
     _run bash < $SCRIPTLETS_PATH/defs/install_psmisc
 }
 
+# disable tracing (if previously enabled)
+if [[ "$-" == *x* ]]; then
+    tracing_enabled=true
+    set +x
+else
+    tracing_enabled=false
+fi
+
 TOOLS_PATH=""
 BRANCH=""
 while [[ "$#" -gt 0 ]]; do
@@ -87,3 +95,8 @@ wait_for_ssh --times 3 --allow-degraded && install_on_device || exit 1
 # install launcher tool on the agent
 install_packages pipx python3-venv
 pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher
+
+# restore tracing (if previously enabled)
+[ "$tracing_enabled" = true ] && set -x
+
+exit 0
