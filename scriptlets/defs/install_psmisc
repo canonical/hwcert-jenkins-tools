@@ -3,7 +3,7 @@
 # Install package `psmisc` if `fuser` is not already available
 
 # do nothing if package-handling is not even supported (Ubuntu Core)
-which apt-get || exit 0
+which apt-get > /dev/null || exit 0
 
 # determine if fuser is already available
 sudo which fuser > /dev/null 

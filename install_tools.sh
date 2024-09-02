@@ -4,6 +4,9 @@
 # If the repo is already available locally, fetch the latest version.
 # Use the --branch option to specify a specific branch
 
+# disable tracing (if previously enabled)
+[[ "$-" == *x* ]] && tracing_enabled=true && set +x || tracing_enabled=false
+
 TOOLS_REPO=https://github.com/canonical/hwcert-jenkins-tools.git
 TOOLS_PATH_DEFAULT=$(basename $TOOLS_REPO .git)
 BRANCH_DEFAULT=main
@@ -27,7 +30,7 @@ clone() {
 install_on_device() {
     # figure out where to place scriptlets on the device
     REMOTE_PATH=$(cat $SCRIPTLETS_PATH/defs/scriptlet_path | _run bash)
-    RESULT=$?;
+    RESULT=$?
     [ "$RESULT" -eq 0 ] || return $RESULT
 
     # copy selected scriptlets over to the device
@@ -90,13 +93,13 @@ add_to_path $SCRIPTLETS_PATH
 add_to_path $SCRIPTLETS_PATH/sru-helpers
 add_to_path ~/.local/bin
 
+echo "Installing selected scriptlets on the device"
 wait_for_ssh --times 3 --allow-degraded && install_on_device || exit 1
 
 # install launcher tool on the agent
-install_packages pipx python3-venv
-pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher
+echo "Installing pipx"
+install_packages pipx python3-venv > /dev/null
+pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
 
 # restore tracing (if previously enabled)
-[ "$tracing_enabled" = true ] && set -x
-
-exit 0
+[ "$tracing_enabled" = true ] && set -x || exit 0
