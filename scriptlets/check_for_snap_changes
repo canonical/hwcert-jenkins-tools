@@ -46,7 +46,7 @@ all_complete() {
     RESULT=$?
     if [ "$RESULT" -eq 0 ]; then
         # the change is still ongoing: display output as a diagnostic and return 1
-        cat "$OUTPUT"
+        cat "$OUTPUT" | grep -E "Doing|Undoing|Wait"
         rm "$OUTPUT"
         return 1
     else
