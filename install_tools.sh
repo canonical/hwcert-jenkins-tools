@@ -85,8 +85,10 @@ add_to_path $SCRIPTLETS_PATH
 add_to_path $SCRIPTLETS_PATH/sru-helpers
 add_to_path ~/.local/bin
 
-echo "Installing selected scriptlets on the device"
-wait_for_ssh --times 3 --allow-degraded && install_on_device || exit 1
+wait_for_ssh --times 3 --allow-degraded \
+&& echo "Installing selected scriptlets on the device" \
+&& install_on_device \
+|| exit 1
 
 # install launcher tool on the agent
 echo "Installing pipx"
