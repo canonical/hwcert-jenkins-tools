@@ -37,21 +37,21 @@ all_complete() {
 
     # tail -n +2: remove the header
     # awk 'NF {print $2}': print the second column on non-empty lines (i.e. the status)
-    # grep -q -E "Doing|Undoing|Wait": succeed when changes are still ongoing
+    # grep -q -E "...": succeed when changes are still ongoing or pending
     cat $OUTPUT | \
     tail -n +2 | \
     awk 'NF {print $2}' | \
-    grep -q -E "Doing|Undoing|Wait"
+    grep -q -E "Doing|Undoing|Wait|Do|Undo"
 
     RESULT=$?
     if [ "$RESULT" -eq 0 ]; then
-        # the change is still ongoing: display output as a diagnostic and return 1
-        cat "$OUTPUT" | grep -E "Doing|Undoing|Wait"
+        # changes are still ongoing or pending: display output as a diagnostic and return 1
+        cat "$OUTPUT" | grep -E "Doing|Undoing|Wait|Do|Undo"
         rm "$OUTPUT"
         return 1
     else
         # the change is done: return 0
-        echo "No ongoing snap changes"
+        echo "No ongoing or pending snap changes"
         rm "$OUTPUT"
         return 0
     fi
