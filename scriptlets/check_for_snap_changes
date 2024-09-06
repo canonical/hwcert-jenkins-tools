@@ -41,12 +41,12 @@ all_complete() {
     cat $OUTPUT | \
     tail -n +2 | \
     awk 'NF {print $2}' | \
-    grep -q -E "Doing|Undoing|Wait|Do|Undo"
+    grep -q -E "\b(Doing|Undoing|Wait|Do|Undo)\b"
 
     RESULT=$?
     if [ "$RESULT" -eq 0 ]; then
         # changes are still ongoing or pending: display output as a diagnostic and return 1
-        cat "$OUTPUT" | grep -E "Doing|Undoing|Wait|Do|Undo"
+        cat "$OUTPUT" | grep -E "\b(Doing|Undoing|Wait|Do|Undo)\b"
         rm "$OUTPUT"
         return 1
     else
