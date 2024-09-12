@@ -85,7 +85,7 @@ add_to_path $SCRIPTLETS_PATH
 add_to_path $SCRIPTLETS_PATH/sru-helpers
 add_to_path ~/.local/bin
 
-wait_for_ssh --times 3 --allow-degraded \
+wait_for_ssh --allow-degraded \
 && echo "Installing selected scriptlets on the device" \
 && install_on_device \
 || exit 1
