@@ -19,12 +19,10 @@ jobs:
           poll: true
           job: |
             job_queue: 202405-34052
-            provision_data:
-              url: https://tel-image-cache.canonical.com/oem-share/limerick/kria-24.04/classic-24.04-x02-1/iot-limerick-kria-classic-server-2404-classic-24.04-x02-1-20240625-56.img.xz
             test_data:
                 test_cmds: |
                     echo Hello
-                    exit 1
+                    exit 0
       - name: Display Job
         run: |
           echo "The id of the submitted job was ${{ steps.submit.outputs.id }}"
