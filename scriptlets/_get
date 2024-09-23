@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Transfer files to a remote device via SCP.
+# Transfer files from a remote device via SCP.
 #
 # Description:
 #
@@ -9,12 +9,10 @@
 # by default, unless provided by the environment variable DEVICE_USER.
 #
 # The last argument provided is considered to be the "target", i.e. where
-# on the remote device the file(s) will be copied.
+# on the local device the file(s) will be copied.
 #
-# The target can start with `:` (as is also the case with programs like `scp`)
-# to explicitly denote a destination on the remote device. If the last argument
-# is a plain `:`, then the file(s) will be copied to the home directory of
-# DEVICE_USER.
+# The source(s) can start with `:` (as is also the case with programs like
+# `scp`) to explicitly denote a source on the remote device. 
 #
 # This script sources `defs/set_ssh_options` to set SSH_OPTS.
 # This script soures `defs/check_for_device_ip` to check that DEVICE_IP is set.
@@ -24,7 +22,7 @@
 # 0 if the copy operation is successful or >0 in case of an error.
 
 usage() {
-    echo "Usage: $(basename ${BASH_SOURCE[0]}) <source> ... :[<target>]"
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [:<source>]+ <target>"
 }
 
 if [ $# -lt 2 ]; then
@@ -36,14 +34,18 @@ fi
 source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_device_ip"
 source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"
 
-# The target is the last argument (prefixed appropriately)
-PREFIX=${DEVICE_USER:-ubuntu}@${DEVICE_IP}
+# The target is the last argument
 TARGET=${@: -1}
-[[ "${TARGET:0:1}" != ":" ]] && TARGET=":${TARGET}"
-TARGET=${PREFIX}${TARGET}
 
-# Extract the sources (remove the target) from the argument list
+# Extract the sources (remove the target) from the argument list...
 SOURCES_ARRAY=("${@:1:$#-1}")
-SOURCES="${SOURCES_ARRAY[@]}"
+# ... and prefix them appropriately
+PREFIX=${DEVICE_USER:-ubuntu}@${DEVICE_IP}
+SOURCES=()
+for SOURCE in "${SOURCES_ARRAY[@]}"; do
+    [[ ${SOURCE:0:1} != ":" ]] && SOURCE=":${SOURCE}"
+    SOURCES+=("${PREFIX}${SOURCE}")
+done
+SOURCES="${SOURCES[@]}"
 
 scp $SSH_OPTS $SOURCES $TARGET
