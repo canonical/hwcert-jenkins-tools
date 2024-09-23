@@ -76,10 +76,8 @@ BRANCH=${BRANCH:-$BRANCH_DEFAULT}
 # retrieve the tools from the repository
 fetch || (rm -rf $TOOLS_PATH && clone)
 
-# this is where the scriptlets are
-SCRIPTLETS_PATH=$TOOLS_PATH/scriptlets
-
 # add scriptlets to agent's PATH
+SCRIPTLETS_PATH=$TOOLS_PATH/scriptlets
 source "$SCRIPTLETS_PATH/defs/add_to_path"
 add_to_path $SCRIPTLETS_PATH
 add_to_path $SCRIPTLETS_PATH/sru-helpers

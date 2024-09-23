@@ -43,18 +43,17 @@ all_complete() {
     awk 'NF {print $2}' | \
     grep -q -E "\b(Doing|Undoing|Wait|Do|Undo)\b"
 
-    RESULT=$?
-    if [ "$RESULT" -eq 0 ]; then
+    if [ "$?" -eq 0 ]; then
         # changes are still ongoing or pending: display output as a diagnostic and return 1
         cat "$OUTPUT" | grep -E "\b(Doing|Undoing|Wait|Do|Undo)\b"
         rm "$OUTPUT"
         return 1
-    else
-        # the change is done: return 0
-        echo "No ongoing or pending snap changes"
-        rm "$OUTPUT"
-        return 0
     fi
+
+    # changes are all done: return 0
+    echo "No ongoing or pending snap changes"
+    rm "$OUTPUT"
+    return 0
 }
 
 all_complete
