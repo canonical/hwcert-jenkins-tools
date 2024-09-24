@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+# Run a command on a remote Zapper via SSH
+#
+# Description:
+#
+# The IP of the Zapper is provided by the environment variable ZAPPER_IP,
+# which must be set. The user name on the Zapper is `ubuntu`
+# and password is `insecure`. SSH authorization is password-based and
+# achieved via `sshpass`. 
+#
+# This script sources `defs/set_ssh_options` to set SSH_OPTS.
+# This script sources `defs/check_for_zapper_ip` to check that DEVICE_IP is set.
+#
+# Return value:
+#
+# The value returned by the command on the Zapper, or 255 in case
+# of an ssh error
+
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) <command>"
+}
+
+
+if [ $# -lt 1 ]; then
+    usage
+    echo "Error: <command> not specified"
+    exit 1
+fi
+
+source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_zapper_ip"
+source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"
+sshpass -p insecure ssh $SSH_OPTS ubuntu@$ZAPPER_IP "$@"
