@@ -88,9 +88,10 @@ wait_for_ssh --allow-degraded \
 && install_on_device \
 || exit 1
 
-# install launcher tool on the agent
-echo "Installing pipx"
-install_packages pipx python3-venv > /dev/null
+echo "Installing agent dependencies"
+install_packages pipx python3-venv sshpass > /dev/null
+
+echo "Installing agent tools"
 pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
 
 # restore tracing (if previously enabled)
