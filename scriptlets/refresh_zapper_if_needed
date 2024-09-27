@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+
+# Update the Zapper snap (and firmware) if needed
+#
+# Description:
+#
+# If a Zapper is part of the setup, refresh the snap
+# to the target channel (default is `beta`), upgrade firmware
+# and wait until the service is stable. 
+
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--channel]"
+}
+
+check_for_zapper () {
+    (
+        trap EXIT
+        source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_zapper_ip" > /dev/null
+    )
+}
+
+wait_zapper_service_stable() {
+    previous_addon_count=-1
+    stable_count=0
+    max_stable_checks=3
+    while true; do
+        current_addon_count=$(eval "_run_zapper zapper addon list 2> /dev/null" | wc -l)
+        if [[ "$current_addon_count" -eq "$previous_addon_count" ]]; then
+          ((stable_count++))
+        else
+          stable_count=0
+        fi
+
+        if [[ "$stable_count" -ge "$max_stable_checks" ]]; then
+          break
+        fi
+
+        previous_addon_count="$current_addon_count"
+    done
+}
+
+CHANNEL=beta
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --channel)
+            CHANNEL=$2
+            shift
+            ;;
+        *)
+            usage
+            echo "Error: Invalid argument $1"
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+check_for_zapper
+if [ $? -ne 0 ]; then
+    exit 0
+fi
+
+message=$(_run_zapper sudo snap refresh zapper --amend --channel $CHANNEL 2>&1)
+if echo "$message" | grep -q 'no updates available'; then
+    echo "Snap was up-to-date, restarting the service instead..."
+    _run_zapper sudo snap restart zapper
+fi
+wait_zapper_service_stable
+
+message=$(_run_zapper zapper firmware update -y --allow-older)
+if echo "$message" | grep -q 'update in progress'; then
+    echo "Firmware(s) got upgraded, waiting again for the service to stabilize..."
+    wait_zapper_service_stable
+fi
