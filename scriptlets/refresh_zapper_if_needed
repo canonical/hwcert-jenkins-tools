@@ -28,8 +28,7 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-# Running in a subshell to not exit with error like it normally would when failing
-(source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_zapper_ip" >> /dev/null)
+check_for_zapper_ip >> /dev/null || exit 0
 
 message=$(_run_zapper sudo snap refresh zapper --amend --channel $CHANNEL 2>&1)
 if echo "$message" | grep -q 'no updates available'; then
