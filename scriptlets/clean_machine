@@ -68,5 +68,7 @@ done
 CHECKBOX_SOURCE_CLONES=$(find /home/ -maxdepth 2 -name "*checkbox*" -type d)
 if [ -n "$CHECKBOX_SOURCE_CLONES" ]; then
   echo "Removing all clones of Checkbox on the machine"
+  echo "Removing the following clones:"
+  echo "$CHECKBOX_SOURCE_CLONES"
   sudo rm -rf $CHECKBOX_SOURCE_CLONES
 fi
