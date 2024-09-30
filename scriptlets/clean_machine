@@ -55,8 +55,8 @@ if [ -d "/var/tmp/checkbox-providers-develop/"]; then
 fi
 
 # remove all ppa repos pre-configured as they may make the installer install
-# from the wrong source
-# leave also /ppa and /testing, legacy names of /edge and /beta
+# from the wrong source. Also removing /ppa and /testing which are legacy names
+# of /edge and /beta that may still be used somewhere
 echo "Trying to remove all Checkbox ppas"
 add-apt-repository --remove -y ppa:checkbox-dev/ppa
 add-apt-repository --remove -y ppa:checkbox-dev/testing
