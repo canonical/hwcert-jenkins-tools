@@ -28,7 +28,7 @@ if [ -n "$CHECKBOX_SNAPS" ]; then
     echo "Found the following Checkbox snaps"
     echo "  " $CHECKBOX_SNAPS
     echo "Deleting them..."
-    snap remove $CHECKBOX_SNAPS
+    sudo snap remove $CHECKBOX_SNAPS
 fi
 
 # delete all installed Checkbox debian packages. This should also purge any
@@ -38,7 +38,7 @@ if [ -n "$CHECKBOX_DEBS" ]; then
     echo "Found the following Checkbox debs"
     echo "  " $CHECKBOX_DEBS
     echo "Deleting them..."
-    apt-get purge -y -qq $CHECKBOX_DEBS
+    sudo apt-get purge -y -qq $CHECKBOX_DEBS
 fi
 
 # delete old sessions, as Checkbox will try to resume them when started,
@@ -68,5 +68,5 @@ done
 CHECKBOX_SOURCE_CLONES=$(find /home/ -maxdepth 2 -name "*checkbox*" -type d)
 if [ -n "$CHECKBOX_SOURCE_CLONES" ]; then
   echo "Removing all clones of Checkbox on the machine"
-  rm -rf $CHECKBOX_SOURCE_CLONES
+  sudo rm -rf $CHECKBOX_SOURCE_CLONES
 fi
