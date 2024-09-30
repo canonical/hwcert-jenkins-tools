@@ -28,6 +28,7 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 
-source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_zapper_ip"
+check_for_zapper_ip || exit 1
+
 source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"
 sshpass -p insecure ssh $SSH_OPTS ubuntu@$ZAPPER_IP "$@"
