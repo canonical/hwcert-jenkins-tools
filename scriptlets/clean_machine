@@ -1,5 +1,5 @@
 #!/bin/bash
-# this is a generic clean script that deletes any thing that may break the
+# This is a generic clean script that deletes any thing that may break the
 # current test run due to a previous run. This is especially useful for
 # noprovision machines.
 
