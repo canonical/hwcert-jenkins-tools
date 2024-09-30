@@ -38,7 +38,7 @@ if [ -n "$CHECKBOX_DEBS" ]; then
     echo "Found the following Checkbox debs"
     echo "  " $CHECKBOX_DEBS
     echo "Deleting them..."
-    apt purge -y -qq $CHECKBOX_DEBS
+    apt-get purge -y -qq $CHECKBOX_DEBS
 fi
 
 # delete old sessions, as Checkbox will try to resume them when started,
@@ -58,11 +58,10 @@ fi
 # from the wrong source. Also removing /ppa and /testing which are legacy names
 # of /edge and /beta that may still be used somewhere
 echo "Trying to remove all Checkbox ppas"
-add-apt-repository --remove -y ppa:checkbox-dev/ppa
-add-apt-repository --remove -y ppa:checkbox-dev/testing
-add-apt-repository --remove -y ppa:checkbox-dev/edge
-add-apt-repository --remove -y ppa:checkbox-dev/beta
-add-apt-repository --remove -y ppa:checkbox-dev/stable
+RISKS="ppa testing edge beta stable"
+for risk in $RISKS; do
+  sudo add-apt-repository --remove -y ppa:checkbox-dev/$risk > /dev/null && echo "Removed ppa:checkbox-dev/$risk"
+done
 
 # Also remove any cloned version of Checkbox in any home, as this will clash
 # with anything trying to provision from source
