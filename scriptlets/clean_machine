@@ -1,0 +1,74 @@
+#!/bin/bash
+# This is a generic clean script that deletes any thing that may break the
+# current test run due to a previous run. This is especially useful for
+# noprovision machines.
+
+# We can do all these things without checking the result as we may be running
+# in any situation, so the previous run could have installed a snap, deb, source
+# etc.
+
+# First lets check that launching this was intentional
+
+if [ "$1" = "--im-sure" ]; then
+  echo "Cleaning the machine"
+else
+  echo "This is dangerous as it tries to purge an environment before running"
+  echo "the tests. You should not launch this on your own machine."
+  echo "if you are sure launch: `basename "$0"` --im-sure"
+  exit 1
+fi
+
+set +e
+
+# delete all checkbox snaps, this includes any frontend or custom frontend
+# (they all contain checkbox in their name). This should also purge any
+# running checkbox*agent service
+CHECKBOX_SNAPS=$(snap list | grep -E 'checkbox' | grep -P -o "^[\w-]+")
+if [ -n "$CHECKBOX_SNAPS" ]; then
+    echo "Found the following Checkbox snaps"
+    echo "  " $CHECKBOX_SNAPS
+    echo "Deleting them..."
+    sudo snap remove $CHECKBOX_SNAPS
+fi
+
+# delete all installed Checkbox debian packages. This should also purge any
+# previously installed provider
+CHECKBOX_DEBS=$(apt list --installed | grep checkbox | grep -P -o "^[\w-]+")
+if [ -n "$CHECKBOX_DEBS" ]; then
+    echo "Found the following Checkbox debs"
+    echo "  " $CHECKBOX_DEBS
+    echo "Deleting them..."
+    sudo apt-get purge -y -qq $CHECKBOX_DEBS
+fi
+
+# delete old sessions, as Checkbox will try to resume them when started,
+# but this is a new test session, so this is not desirable
+if [ -d "/var/tmp/checkbox-ng" ]; then
+  echo "Removing all old sessions still on the machine"
+  rm -rf /var/tmp/checkbox-ng
+fi
+
+# delete any provider that was globally "developed" (installed in editable mode)
+if [ -d "/var/tmp/checkbox-providers-develop/" ]; then
+  echo "Removing all developed providers"
+  rm -rf /var/tmp/checkbox-providers-develop
+fi
+
+# remove all ppa repos pre-configured as they may make the installer install
+# from the wrong source. Also removing /ppa and /testing which are legacy names
+# of /edge and /beta that may still be used somewhere
+echo "Trying to remove all Checkbox ppas"
+RISKS="ppa testing edge beta stable"
+for risk in $RISKS; do
+  sudo add-apt-repository --remove -y ppa:checkbox-dev/$risk > /dev/null && echo "Removed ppa:checkbox-dev/$risk"
+done
+
+# Also remove any cloned version of Checkbox in any home, as this will clash
+# with anything trying to provision from source
+CHECKBOX_SOURCE_CLONES=$(find /home/ -maxdepth 2 -name "*checkbox*" -type d)
+if [ -n "$CHECKBOX_SOURCE_CLONES" ]; then
+  echo "Removing all clones of Checkbox on the machine"
+  echo "Removing the following clones:"
+  echo "$CHECKBOX_SOURCE_CLONES"
+  sudo rm -rf $CHECKBOX_SOURCE_CLONES
+fi
