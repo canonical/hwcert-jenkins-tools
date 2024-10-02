@@ -45,6 +45,7 @@ while [[ "$#" -gt 0 ]]; do
                     shift
                 else
                     echo "Error: value required for branch"
+                    usage
                     exit 1
                 fi
             else
@@ -62,6 +63,7 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 COMMIT="${COMMIT:-$COMMIT_DEFAULT}"
+REPO_PATH=$(basename $REPO .git)
 
 if [ -z "$BRANCH" ]; then
     echo "Fetching $REPO@$COMMIT into $REPO_PATH"
@@ -70,10 +72,10 @@ if [ -z "$BRANCH" ]; then
     git -C "$REPO_PATH" fetch --quiet --depth 1 "$REPO" "$COMMIT"
     git -C checkbox reset --hard FETCH_HEAD
 else
-    echo "Fetching $REPO@$BRANCH into $REPO_PATH"
+    echo "Cloning $REPO@$BRANCH into $REPO_PATH"
     rm -rf $REPO_PATH \
-    && git clone --quiet --depth 1 --branch "$BRANCH" "$REPO" "$REPO_PATH" \
-    && git show --oneline -s HEAD
+    && git clone --quiet --depth 1 --branch "$BRANCH" "$REPO" \
+    && git -C "$REPO_PATH" show --oneline -s HEAD
 fi
 
 # restore tracing (if previously enabled)
