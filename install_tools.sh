@@ -35,7 +35,7 @@ install_on_device() {
 
     # copy selected scriptlets over to the device
     # and then move them somewhere in the device's PATH
-    DEVICE_SCRIPTLETS=(retry check_for_packages_complete wait_for_packages_complete install_packages clean_machine)
+    DEVICE_SCRIPTLETS=(retry check_for_packages_complete wait_for_packages_complete install_packages clean_machine git_get)
     _put "${DEVICE_SCRIPTLETS[@]/#/$SCRIPTLETS_PATH/}" :
     _run sudo mv "${DEVICE_SCRIPTLETS[@]}" $REMOTE_PATH
 
