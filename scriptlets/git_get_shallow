@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+
+# Perform a light, shallow fetch of a single commit or branch from a repo
+
+# disable tracing (if previously enabled)
+[[ "$-" == *x* ]] && TRACING=true && set +x || TRACING=false
+
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) <repository> [commit [<commit_ref>]]"
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) <repository> branch <branch>"
+}
+
+get_commit() {
+    echo "Fetching $REPO@$COMMIT into $REPO_PATH"
+    mkdir -p "$REPO_PATH"
+    git -C "$REPO_PATH" init --quiet
+    git -C "$REPO_PATH" fetch --quiet --depth 1 "$REPO" "$COMMIT" \
+    && git -C "$REPO_PATH" reset --hard FETCH_HEAD
+}
+
+get_branch() {
+    echo "Cloning $REPO@$BRANCH into $REPO_PATH"
+    rm -rf $REPO_PATH \
+    && git clone --quiet --depth 1 --branch "$BRANCH" "$REPO" $REPO_PATH \
+    && git -C "$REPO_PATH" show --oneline -s HEAD
+}
+
+# parse command-line arguments: repository
+if [[ "$#" -eq 0 ]]; then
+    echo "Error: no repository specified"
+    usage
+    exit 1
+fi
+
+REPO="$1"
+REPO_PATH=$(basename $REPO .git)
+shift
+
+# parse command-line arguments: mode commit or branch
+if [[ "$#" -eq 0 ]]; then
+    MODE="commit"
+else
+    MODE=$1
+    shift
+fi
+case $MODE in
+    commit)
+        if [ "$#" -gt 1 ]; then
+            shift
+            echo "Error: too many arguments for $MODE: $@"
+            usage
+            exit 1
+        elif [ "$#" -eq 1 ]; then
+            COMMIT=$1
+        else
+            COMMIT="HEAD"
+        fi
+        get_commit
+        ;;
+    branch)
+        if [ "$#" -gt 1 ]; then
+            shift
+            echo "Error: too many arguments for $MODE: $@"
+            usage
+            exit 1
+        elif [ "$#" -eq 1 ]; then
+            BRANCH=$1
+        else
+            echo "Error: value required for $MODE"
+            usage
+            exit 1
+        fi
+        get_branch
+        ;;
+    *)
+        echo "Error: Invalid mode $MODE";
+        usage
+        exit 1
+        ;;
+esac
+
+# restore tracing (if previously enabled)
+[ "$TRACING" = true ] && set -x || true
