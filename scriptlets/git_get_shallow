@@ -69,12 +69,12 @@ if [ -z "$BRANCH" ]; then
     echo "Fetching $REPO@$COMMIT into $REPO_PATH"
     mkdir -p "$REPO_PATH"
     git -C "$REPO_PATH" init --quiet
-    git -C "$REPO_PATH" fetch --quiet --depth 1 "$REPO" "$COMMIT"
-    git -C checkbox reset --hard FETCH_HEAD
+    git -C "$REPO_PATH" fetch --quiet --depth 1 "$REPO" "$COMMIT" \
+    && git -C "$REPO_PATH" reset --hard FETCH_HEAD
 else
     echo "Cloning $REPO@$BRANCH into $REPO_PATH"
     rm -rf $REPO_PATH \
-    && git clone --quiet --depth 1 --branch "$BRANCH" "$REPO" \
+    && git clone --quiet --depth 1 --branch "$BRANCH" "$REPO" $REPO_PATH \
     && git -C "$REPO_PATH" show --oneline -s HEAD
 fi
 
