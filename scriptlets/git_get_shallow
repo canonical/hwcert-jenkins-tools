@@ -10,6 +10,8 @@ usage() {
     echo "Usage: $(basename ${BASH_SOURCE[0]}) <repository> branch <branch>"
 }
 
+# parse command-line arguments
+
 if [[ "$#" -lt 1 ]]; then
     echo "Error: no repository specified"
     usage
@@ -62,6 +64,14 @@ while [[ "$#" -gt 0 ]]; do
     esac
     shift
 done
+if [ -n "$COMMIT" -a -n "$BRANCH" ]; then
+    echo "Error: cannot specify both a commit and a branch"
+    usage
+    exit 1
+fi
+
+# main functionality
+
 COMMIT="${COMMIT:-$COMMIT_DEFAULT}"
 REPO_PATH=$(basename $REPO .git)
 
