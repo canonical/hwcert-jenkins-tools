@@ -7,9 +7,10 @@
 # disable tracing (if previously enabled)
 [[ "$-" == *x* ]] && TRACING=true && set +x || TRACING=false
 
+BRANCH_DEFAULT=main
 TOOLS_REPO=https://github.com/canonical/hwcert-jenkins-tools.git
 TOOLS_PATH_DEFAULT=$(basename $TOOLS_REPO .git)
-BRANCH_DEFAULT=main
+export TOOLS_PATH_DEVICE=".scriptlets"
 
 usage() {
     echo "Usage: $0 [<path>] [--branch <value>]"
@@ -28,16 +29,10 @@ clone() {
 }
 
 install_on_device() {
-    # figure out where to place scriptlets on the device
-    REMOTE_PATH=$(cat $SCRIPTLETS_PATH/defs/scriptlet_path | _run bash)
-    RESULT=$?
-    [ "$RESULT" -eq 0 ] || return $RESULT
-
     # copy selected scriptlets over to the device
-    # and then move them somewhere in the device's PATH
     DEVICE_SCRIPTLETS=(retry check_for_packages_complete wait_for_packages_complete install_packages clean_machine git_get_shallow)
-    _put "${DEVICE_SCRIPTLETS[@]/#/$SCRIPTLETS_PATH/}" :
-    _run sudo mv "${DEVICE_SCRIPTLETS[@]}" $REMOTE_PATH
+    _run mkdir "$TOOLS_PATH_DEVICE" \
+    && _put "${DEVICE_SCRIPTLETS[@]/#/$SCRIPTLETS_PATH/}" :"$TOOLS_PATH_DEVICE"
 
     # fuser is required by `check_for_packages_complete`
     # (so install it on the device, where it is used)
