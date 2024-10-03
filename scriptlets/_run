@@ -29,4 +29,5 @@ fi
 
 source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_device_ip"
 source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"
-ssh $SSH_OPTS ${DEVICE_USER:-ubuntu}@$DEVICE_IP "$@"
+USER=${DEVICE_USER:-ubuntu}
+ssh $SSH_OPTS $USER@$DEVICE_IP "export PATH=\"\$PATH:/home/$USER/$TOOLS_PATH_DEVICE\"; $@"
