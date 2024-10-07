@@ -1,6 +1,6 @@
 #!/bin/bash
-# Installs Checkbox and exports the installed version on the DUT
-# to: CHECKBOX_VERSION
+# Installs Checkbox snap (runtime + frontend) on the DUT. Also installs
+# Checkbox on the agent from source matching the version on the DUT
 
 if [[ "$#" != "4" ]]; then
   echo "Usage: $(basename ${BASH_SOURCE[0]}) risk runtime_name frontend_name frontend_track"
@@ -18,9 +18,9 @@ shift
 FRONTEND_TRACK=$1
 shift
 
-wait_for_snap_complete
-_run sudo snap install $RUNTIME_NAME --channel=latest/$RISK
-wait_for_snap_complete
+wait_for_snap_changes
+_run sudo snap install --no-wait $RUNTIME_NAME --channel=latest/$RISK
+wait_for_snap_changes
 
 if [[ "$FRONTEND_TRACK" == uc* ]]; then
   echo "Frontend is a strict snap, using --devmode"
@@ -30,17 +30,20 @@ else
   EXTRA_SNAP_INSTALL_FLAG="--classic"
 fi
 
-_run sudo snap install $FRONTEND_NAME $EXTRA_SNAP_INSTALL_FLAG --channel=$FRONTEND_TRACK/$RISK
-wait_for_snap_complete
+_run sudo snap install --no-wait $FRONTEND_NAME $EXTRA_SNAP_INSTALL_FLAG --channel=$FRONTEND_TRACK/$RISK
+wait_for_snap_changes
 
 # some versions of snapd seem to force dependencies to be stable in some situation
 # but we want RISK risk, so lets force it by re-installing it
 # Note: this is done twice because if snapd doesn't force the stable dependency
 #       then this causes just 1 download
-_run sudo snap install $RUNTIME_NAME --channel=latest/$RISK
-wait_for_snap_complete
+_run sudo snap install --no-wait $RUNTIME_NAME --channel=latest/$RISK
+wait_for_snap_changes
 
 export CHECKBOX_VERSION=$(_run $FRONTEND_NAME.checkbox-cli --version)
 [ -z "$CHECKBOX_VERSION" ] && echo "Error: Unable to retrieve Checkbox version from device" && exit 1
 
 check_for_checkbox_service
+
+echo "Installing checkbox $CHECKBOX_VERSION on the agent container from source"
+install_checkbox_agent_source $CHECKBOX_VERSION
