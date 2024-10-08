@@ -19,13 +19,32 @@
 # or 255 in case of an ssh failure
 
 usage() {
-    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--allow-degraded]"
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--allow-degraded|--allow-starting]"
 }
 
+ALLOW_DEGRADED=False
+ALLOW_STARTING=False
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --allow-degraded)
-            ALLOW_DEGRADED="(degraded allowed)"
+            if [ -z "$ALLOW" ]; then
+                ALLOW="(degraded allowed)"
+                ALLOW_DEGRADED=True
+            else
+                usage
+                echo "Error: multiple --allow flags used"
+                exit 1
+            fi
+            ;;
+        --allow-starting)
+            if [ -z "$ALLOW" ]; then
+                ALLOW="(starting allowed)"
+                ALLOW_STARTING=True
+            else
+                usage
+                echo "Error: multiple --allow flags used"
+                exit 1
+            fi
             ;;
         *)
             usage
@@ -36,13 +55,15 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-echo "Checking if ${DEVICE_IP:-device} is fully up and running $ALLOW_DEGRADED"
+echo "Checking if ${DEVICE_IP:-device} is fully up and running $ALLOW"
 RESULT=$(_run systemctl is-system-running)
 STATUS=$?
 [ -n "$RESULT" ] && echo $RESULT
 # check returned result and propagate `_run`'s exit status if not successful
-if [ -z "$ALLOW_DEGRADED" ]; then
-    [[ "$RESULT" =~ ^running ]] || exit $STATUS
-else
+if [ "$ALLOW_DEGRADED" = "True" ]; then
     [[ "$RESULT" =~ ^(running|degraded) ]] || exit $STATUS
+elif [ "$ALLOW_STARTING" = "True" ]; then
+    [[ "$RESULT" =~ ^(running|starting) ]] || exit $STATUS
+else
+    [[ "$RESULT" =~ ^running ]] || exit $STATUS
 fi
