@@ -10,13 +10,9 @@ fi
 echo "Installing Checkbox snaps"
 
 RISK=$1
-shift
-RUNTIME_NAME=$1
-shift
-FRONTEND_NAME=$1
-shift
-FRONTEND_TRACK=$1
-shift
+RUNTIME_NAME=$2
+FRONTEND_NAME=$3
+FRONTEND_TRACK=$4
 
 wait_for_snap_changes
 _run sudo snap install --no-wait $RUNTIME_NAME --channel=latest/$RISK
