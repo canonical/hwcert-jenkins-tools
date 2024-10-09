@@ -1,0 +1,25 @@
+#!/bin/bash
+# Installs Checkbox snap (runtime + frontend) on the DUT. Also installs
+# Checkbox on the agent from source matching the version on the DUT
+
+if [[ "$#" != "1" ]]; then
+  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk"
+  exit 1
+fi
+
+echo "Installing Checkbox snaps"
+
+RISK=$1
+
+wait_for_packages_complete
+_run sudo add-apt-repository ppa:checkbox-dev/$RISK
+_run install_packages checkbox-ng python3-checkbox-ng checkbox-provider-base checkbox-provider-resource checkbox-provider-sru fswebcam obexftp wmctrl iperf mesa-utils vim pastebinit fwts xorg-dev gir1.2-clutter-1.0
+wait_for_packages_complete
+
+export CHECKBOX_VERSION=$(_run checkbox-cli --version)
+[ -z "$CHECKBOX_VERSION" ] && echo "Error: Unable to retrieve Checkbox version from device" && exit 1
+
+check_for_checkbox_service
+
+echo "Installing checkbox $CHECKBOX_VERSION on the agent container from source"
+install_checkbox_agent_source $CHECKBOX_VERSION
