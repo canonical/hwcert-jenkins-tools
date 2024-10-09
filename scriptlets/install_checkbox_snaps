@@ -33,7 +33,7 @@ wait_for_snap_changes
 # but we want RISK risk, so lets force it by re-installing it
 # Note: this is done twice because if snapd doesn't force the stable dependency
 #       then this causes just 1 download
-_run sudo snap install --no-wait $RUNTIME_NAME --channel=latest/$RISK
+_run sudo snap refresh --no-wait $RUNTIME_NAME --channel=latest/$RISK
 wait_for_snap_changes
 
 export CHECKBOX_VERSION=$(_run $FRONTEND_NAME.checkbox-cli --version)
