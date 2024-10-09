@@ -20,7 +20,7 @@ jobs:
           test_data:
             attachments:
               - local: install_tools.sh
-              - local: scriptlets
+              - local: scriptlets/check_for_ssh
             test_cmds: |
               #!/usr/bin/env bash
               set -x
