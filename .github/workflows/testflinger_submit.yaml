@@ -12,7 +12,7 @@ jobs:
       uses: actions/checkout@v4
     - name: Submit job
       id: submit
-      uses: canonical/testflinger/.github/actions/submit@CERTTF-424-attachments-reference-directory
+      uses: canonical/testflinger/.github/actions/submit@CERTTF-424-attachment-reference-directory
       with:
         poll: true
         job: |
