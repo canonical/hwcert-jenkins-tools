@@ -15,12 +15,12 @@ jobs:
       uses: canonical/testflinger/.github/actions/submit@CERTTF-424-attachment-reference-directory
       with:
         poll: true
+        attachments-relative-to: scriptlets
         job: |
           job_queue: hp-elitebook-850-g7-notebook-pc
           test_data:
             attachments:
-              - local: install_tools.sh
-              - local: scriptlets/check_for_ssh
+              - local: _run
             test_cmds: |
               #!/usr/bin/env bash
               set -x
