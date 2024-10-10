@@ -1,0 +1,25 @@
+name: Test TestObserver's TestExecutions Rerunner
+on:
+  push:
+    branches-ignore:
+      - 'main'
+    paths:
+      - 'scriptlets/test-executions-rerunner/**'
+      - '.github/workflows/test_test_executions_rerunner.yaml'
+# Cancel inprogress runs if new commit pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test-rerunner-script:
+    runs-on: [self-hosted, linux, large, jammy, x64]
+    defaults:
+      run:
+        working-directory: scriptlets/test-executions-rerunner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - run: pip install tox
+      - run: tox
