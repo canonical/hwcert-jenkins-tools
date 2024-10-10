@@ -8,13 +8,27 @@ Note also that jenkins uses python 3.8
 
 import logging
 import re
+from functools import partial
 from os import environ
 from typing import Optional
 
-import requests
+from requests import Session
+from requests.adapters import HTTPAdapter
 from requests.auth import HTTPBasicAuth
+from urllib3.util import Retry
 
 logging.basicConfig(level=logging.INFO)
+
+
+requests = Session()
+retries = Retry(
+    total=3,
+    backoff_factor=0.1,
+    status_forcelist=[408, 429, 502, 503, 504],
+    allowed_methods={"POST", "GET", "DELETE", "PUT"},
+)
+requests.mount("https://", HTTPAdapter(max_retries=retries))
+requests.request = partial(requests.request, timeout=30)  # type: ignore
 
 reruns_link = "https://test-observer-api.canonical.com/v1/test-executions/reruns"
 
