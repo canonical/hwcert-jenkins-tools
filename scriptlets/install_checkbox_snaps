@@ -2,6 +2,8 @@
 # Installs Checkbox snap (runtime + frontend) on the DUT. Also installs
 # Checkbox on the agent from source matching the version on the DUT
 
+set -e
+
 if [[ "$#" != "4" ]]; then
   echo "Usage: $(basename ${BASH_SOURCE[0]}) risk runtime_name frontend_name frontend_track"
   exit 1
@@ -18,7 +20,12 @@ wait_for_snap_changes
 _run sudo snap install --no-wait $RUNTIME_NAME --channel=latest/$RISK
 wait_for_snap_changes
 
-if [[ "$FRONTEND_TRACK" == uc* ]]; then
+# strict snaps need a different install flag and the connections to be made.
+# Checkbox Frontend snaps are strict on the tracks ucXX. Update
+# this regex to match more if alternative frontend need this as well
+[[ "$FRONTEND_TRACK" == uc* ]] && STRICT_FRONTEND=true || STRICT_FRONTEND=false
+
+if $STRICT_FRONTEND; then
   echo "Frontend is a strict snap, using --devmode"
   EXTRA_SNAP_INSTALL_FLAG="--devmode"
 else
@@ -28,6 +35,12 @@ fi
 
 _run sudo snap install --no-wait $FRONTEND_NAME $EXTRA_SNAP_INSTALL_FLAG --channel=$FRONTEND_TRACK/$RISK
 wait_for_snap_changes
+
+if $STRICT_FRONTEND; then
+  _run sudo snap connect $FRONTEND_NAME:network-manager network-manager:service
+  _run sudo snap connect $FRONTEND_NAME:bluez bluez:service
+  _run sudo snap connect $FRONTEND_NAME:bluetooth-control core:bluetooth-control
+fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
 # but we want RISK risk, so lets force it by re-installing it
