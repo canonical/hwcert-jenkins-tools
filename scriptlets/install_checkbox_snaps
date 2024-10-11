@@ -22,7 +22,7 @@ wait_for_snap_changes
 
 # strict snaps need a different install flag and the connections to be made.
 # Checkbox Frontend snaps are strict on the tracks ucXX. Update
-# this regex to match more if alternative frontend need this as well
+# this regex to match more if alternative frontends need this as well
 [[ "$FRONTEND_TRACK" == uc* ]] && STRICT_FRONTEND=true || STRICT_FRONTEND=false
 
 if $STRICT_FRONTEND; then
@@ -37,9 +37,20 @@ _run sudo snap install --no-wait $FRONTEND_NAME $EXTRA_SNAP_INSTALL_FLAG --chann
 wait_for_snap_changes
 
 if $STRICT_FRONTEND; then
-  _run sudo snap connect $FRONTEND_NAME:network-manager network-manager:service
-  _run sudo snap connect $FRONTEND_NAME:bluez bluez:service
-  _run sudo snap connect $FRONTEND_NAME:bluetooth-control core:bluetooth-control
+  # these plugs are not automatically connected but are necessary to run some
+  # tests. Namely:
+  # Network tests
+  _run sudo snap connect --no-wait $FRONTEND_NAME:network-manager network-manager:service
+  # bluetooth tests
+  _run sudo snap connect --no-wait $FRONTEND_NAME:bluez bluez:service
+  _run sudo snap connect --no-wait $FRONTEND_NAME:bluetooth-control core:bluetooth-control
+
+  # force connect also the default plugs. This is necessary on some machines but
+  # is effectively a no-op when it would not be needed
+  _run sudo snap connect --no-wait $FRONTEND_NAME:checkbox-runtime $RUNTIME_NAME:checkbox-runtime
+  _run sudo snap connect --no-wait $FRONTEND_NAME:provider-certification-client $RUNTIME_NAME:provider-certification-client
+  _run sudo snap connect --no-wait $FRONTEND_NAME:provider-checkbox $RUNTIME_NAME:provider-checkbox
+  _run sudo snap connect --no-wait $FRONTEND_NAME:provider-resource $RUNTIME_NAME:provider-resource
 fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
