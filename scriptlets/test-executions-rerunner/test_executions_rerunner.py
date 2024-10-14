@@ -23,7 +23,7 @@ logging.basicConfig(level=logging.INFO)
 requests = Session()
 retries = Retry(
     total=3,
-    backoff_factor=0.1,
+    backoff_factor=3,
     status_forcelist=[408, 429, 502, 503, 504],
     allowed_methods={"POST", "GET", "DELETE", "PUT"},
 )
