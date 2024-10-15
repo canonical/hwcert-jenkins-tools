@@ -30,7 +30,7 @@ clone() {
 
 install_on_device() {
     # copy selected scriptlets over to the device
-    DEVICE_SCRIPTLETS=(retry check_for_packages_complete wait_for_packages_complete install_packages clean_machine git_get_shallow install_checkbox_snaps)
+    DEVICE_SCRIPTLETS=(retry check_for_packages_complete wait_for_packages_complete install_packages clean_machine git_get_shallow)
     _run mkdir "$TOOLS_PATH_DEVICE" \
     && _put "${DEVICE_SCRIPTLETS[@]/#/$SCRIPTLETS_PATH/}" :"$TOOLS_PATH_DEVICE"
 
