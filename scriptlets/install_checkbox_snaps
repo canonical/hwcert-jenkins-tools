@@ -55,11 +55,25 @@ wait_for_snap_changes
 if $STRICT_FRONTEND; then
   # these plugs are not automatically connected but are necessary to run some
   # tests. Namely:
+  set +e
+  # Here we are handling results on a per-interface basis because we may not need
+  # these interfaces as we may not need to run the tests they are needed for
+
   # Network tests
   _run sudo snap connect $FRONTEND_NAME:network-manager network-manager:service
+  if [ $? -ne 0 ]; then
+    echo "CONNECTION FAILED. Networking (mostly wifi) tests may not work"
+  fi
   # bluetooth tests
   _run sudo snap connect $FRONTEND_NAME:bluez bluez:service
+  if [ $? -ne 0 ]; then
+    echo "CONNECTION FAILED. Bluetooth tests may not work"
+  fi
   _run sudo snap connect $FRONTEND_NAME:bluetooth-control core:bluetooth-control
+  if [ $? -ne 0 ]; then
+    echo "CONNECTION FAILED. Bluetooth tests may not work"
+  fi
+  set -e
 
   # force connect also the default plugs. This is necessary on some machines but
   # is effectively a no-op when it would not be needed
