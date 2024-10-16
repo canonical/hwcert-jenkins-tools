@@ -13,9 +13,15 @@
 dot_to_brackets() {
     # convert a simple dot-delimited filter like a.b.c
     # to a safer, quoted filter like .["a"]["b"]["c"]
-    # by replacing dots with "][" and adding .[" and "]
-    # to the beginning and end of the filter
-    echo "$1" | sed 's/\./\"\]\[\"/g; s/^/\.\[\"/; s/$/\"\]/'
+    # by (note the ;):
+    # 1. replacing all dots with "]["
+    # 2. adding .[" to the beginning (matching ^)
+    # 3. adding "] at the end (matching $)
+    echo "$1" | sed '
+        s/\./"]["/g;
+        s/^/.["/;
+        s/$/"]/
+    '
 }
 
 jq -r -e $(dot_to_brackets "$1") "$SCENARIO_FILE"
