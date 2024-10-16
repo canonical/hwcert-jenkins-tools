@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Access the SCENARIO_FILE and output the key specified
-# by the first argument, e.g. config job.artifact.series
+# by the first argument, e.g. scenario job.artifact.series
 #
 # If the key is not present in the SCENARIO_FILE, the output is "null"
 # 
