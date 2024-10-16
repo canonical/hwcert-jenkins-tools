@@ -62,16 +62,16 @@ if $STRICT_FRONTEND; then
   # Network tests
   _run sudo snap connect $FRONTEND_NAME:network-manager network-manager:service
   if [ $? -ne 0 ]; then
-    echo "CONNECTION FAILED. Networking (mostly wifi) tests may not work"
+    echo "Failed to connect plug. Networking (mostly wifi) tests may not work"
   fi
   # bluetooth tests
   _run sudo snap connect $FRONTEND_NAME:bluez bluez:service
   if [ $? -ne 0 ]; then
-    echo "CONNECTION FAILED. Bluetooth tests may not work"
+    echo "Failed to connect plug. Bluetooth tests may not work"
   fi
   _run sudo snap connect $FRONTEND_NAME:bluetooth-control core:bluetooth-control
   if [ $? -ne 0 ]; then
-    echo "CONNECTION FAILED. Bluetooth tests may not work"
+    echo "Failed to connect plug. Bluetooth tests may not work"
   fi
   set -e
 
