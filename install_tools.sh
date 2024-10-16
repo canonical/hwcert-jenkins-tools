@@ -86,7 +86,7 @@ add_to_path ~/.local/bin
 || exit 1
 
 echo "Installing agent dependencies"
-install_packages pipx python3-venv sshpass > /dev/null
+install_packages pipx python3-venv sshpass jq > /dev/null
 
 echo "Installing agent tools"
 pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null

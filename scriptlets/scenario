@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# Access the SCENARIO_FILE and output the key specified
+# by the first argument, e.g. scenario job.artifact.series
+#
+# If the key is not present in the SCENARIO_FILE, the output is "null"
+# 
+# Return value:
+#
+# 0 if the key is present in the SCENARIO_FILE
+# Non-zero otherwise (because of the -e option provided to jq)
+
+dot_to_brackets() {
+    # convert a simple dot-delimited filter like a.b.c
+    # to a safer, quoted filter like .["a"]["b"]["c"]
+    # by (note the ;):
+    # 1. replacing all dots with "]["
+    # 2. adding .[" to the beginning (matching ^)
+    # 3. adding "] at the end (matching $)
+    echo "$1" | sed '
+        s/\./"]["/g;
+        s/^/.["/;
+        s/$/"]/
+    '
+}
+
+jq -r -e $(dot_to_brackets "$1") "$SCENARIO_FILE"

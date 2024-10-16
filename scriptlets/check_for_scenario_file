@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# Check if the environment variable $SCENARIO_FILE is set
+# and points to a valid JSON file
+
+if [ -z "$SCENARIO_FILE" ]; then
+    echo "Error $(basename "${BASH_SOURCE[-1]}"): Environment variable SCENARIO_FILE not set"
+    exit 1
+fi
+
+if [ ! -f "$SCENARIO_FILE" ]; then
+    echo "Error $(basename "${BASH_SOURCE[-1]}"): SCENARIO_FILE set to $SCENARIO_FILE is not a file"
+    exit 1
+fi
+
+if ! jq empty "$SCENARIO_FILE"; then
+    echo "Error $(basename "${BASH_SOURCE[-1]}"): SCENARIO_FILE set to '$SCENARIO_FILE' is not a valid JSON file"
+    exit 1
+fi
