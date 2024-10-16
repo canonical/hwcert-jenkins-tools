@@ -1,6 +1,22 @@
 #!/bin/bash
+
+# Install Checkbox on the DUT and the agent
+#
+# Description:
+#
 # Installs Checkbox snap (runtime + frontend) on the DUT. Also installs
 # Checkbox on the agent from source matching the version on the DUT
+# Finally the installation on the DUT is verified to check that the machine is
+# ready to run tests.
+# The `risk` parameter can be either "stable", "beta", "edge" and is used for
+#   both runtime and frontend
+# The `runtime_name` can be any of the runtime snaps (eg. checkbox16,
+#   checkbox24 etc.)
+# The `frontend_name` can be any of the frontend snaps (eg. checkbox,
+#   checkbox-tillamook).
+# The `frontend_track` parameter can be any valid track name (eg. 22.04, uc16).
+#   It is also used to appropriately install the snap (decide if a snap is
+#   classic or strict)
 
 set -e
 
@@ -63,7 +79,7 @@ wait_for_snap_changes
 export CHECKBOX_VERSION=$(_run $FRONTEND_NAME.checkbox-cli --version)
 [ -z "$CHECKBOX_VERSION" ] && echo "Error: Unable to retrieve Checkbox version from device" && exit 1
 
-check_for_checkbox_service
-
 echo "Installing checkbox $CHECKBOX_VERSION on the agent container from source"
 install_checkbox_agent_source $CHECKBOX_VERSION
+
+check_for_checkbox_service
