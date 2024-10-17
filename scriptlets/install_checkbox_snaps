@@ -1,0 +1,99 @@
+#!/bin/bash
+
+# Install Checkbox on the DUT and the agent
+#
+# Description:
+#
+# Installs Checkbox snap (runtime + frontend) on the DUT. Also installs
+# Checkbox on the agent from source matching the version on the DUT
+# Finally the installation on the DUT is verified to check that the machine is
+# ready to run tests.
+# The `risk` parameter can be either "stable", "beta", "edge" and is used for
+#   both runtime and frontend
+# The `runtime_name` can be any of the runtime snaps (eg. checkbox16,
+#   checkbox24 etc.)
+# The `frontend_name` can be any of the frontend snaps (eg. checkbox,
+#   checkbox-tillamook).
+# The `frontend_track` parameter can be any valid track name (eg. 22.04, uc16).
+#   It is also used to appropriately install the snap (decide if a snap is
+#   classic or strict)
+
+set -e
+
+if [[ "$#" != "4" ]]; then
+  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk runtime_name frontend_name frontend_track"
+  exit 1
+fi
+
+echo "Installing Checkbox snaps"
+
+RISK=$1
+RUNTIME_NAME=$2
+FRONTEND_NAME=$3
+FRONTEND_TRACK=$4
+
+wait_for_snap_changes
+_run sudo snap install --no-wait $RUNTIME_NAME --channel=latest/$RISK
+wait_for_snap_changes
+
+# strict snaps need a different install flag and the connections to be made.
+# Checkbox Frontend snaps are strict on the tracks ucXX. Update
+# this regex to match more if alternative frontends need this as well
+[[ "$FRONTEND_TRACK" == uc* ]] && STRICT_FRONTEND=true || STRICT_FRONTEND=false
+
+if $STRICT_FRONTEND; then
+  echo "Frontend is a strict snap, using --devmode"
+  EXTRA_SNAP_INSTALL_FLAG="--devmode"
+else
+  echo "Frontend is a classic snap, using --classic"
+  EXTRA_SNAP_INSTALL_FLAG="--classic"
+fi
+
+_run sudo snap install --no-wait $FRONTEND_NAME $EXTRA_SNAP_INSTALL_FLAG --channel=$FRONTEND_TRACK/$RISK
+wait_for_snap_changes
+
+if $STRICT_FRONTEND; then
+  # these plugs are not automatically connected but are necessary to run some
+  # tests. Namely:
+  set +e
+  # Here we are handling results on a per-interface basis because we may not need
+  # these interfaces as we may not need to run the tests they are needed for
+
+  # Network tests
+  _run sudo snap connect $FRONTEND_NAME:network-manager network-manager:service
+  if [ $? -ne 0 ]; then
+    echo "Failed to connect plug. Networking (mostly wifi) tests may not work"
+  fi
+  # bluetooth tests
+  _run sudo snap connect $FRONTEND_NAME:bluez bluez:service
+  if [ $? -ne 0 ]; then
+    echo "Failed to connect plug. Bluetooth tests may not work"
+  fi
+  _run sudo snap connect $FRONTEND_NAME:bluetooth-control core:bluetooth-control
+  if [ $? -ne 0 ]; then
+    echo "Failed to connect plug. Bluetooth tests may not work"
+  fi
+  set -e
+
+  # force connect also the default plugs. This is necessary on some machines but
+  # is effectively a no-op when it would not be needed
+  _run sudo snap connect $FRONTEND_NAME:checkbox-runtime $RUNTIME_NAME:checkbox-runtime
+  _run sudo snap connect $FRONTEND_NAME:provider-certification-client $RUNTIME_NAME:provider-certification-client
+  _run sudo snap connect $FRONTEND_NAME:provider-checkbox $RUNTIME_NAME:provider-checkbox
+  _run sudo snap connect $FRONTEND_NAME:provider-resource $RUNTIME_NAME:provider-resource
+fi
+
+# some versions of snapd seem to force dependencies to be stable in some situation
+# but we want RISK risk, so lets force it by re-installing it
+# Note: this is done twice because if snapd doesn't force the stable dependency
+#       then this causes just 1 download
+_run sudo snap refresh --no-wait $RUNTIME_NAME --channel=latest/$RISK
+wait_for_snap_changes
+
+export CHECKBOX_VERSION=$(_run $FRONTEND_NAME.checkbox-cli --version)
+[ -z "$CHECKBOX_VERSION" ] && echo "Error: Unable to retrieve Checkbox version from device" && exit 1
+
+echo "Installing checkbox $CHECKBOX_VERSION on the agent container from source"
+install_checkbox_agent_source $CHECKBOX_VERSION
+
+check_for_checkbox_service

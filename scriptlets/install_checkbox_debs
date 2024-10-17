@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Install Checkbox on the DUT and the agent
+#
+# Description:
+#
+# Installs Checkbox debian packages on the DUT. Also installs
+# Checkbox on the agent from source matching the version on the DUT.
+# Finally the installation on the DUT is verified to check that the machine is
+# ready to run tests.
+#
+# The `risk` parameter can be either "stable", "beta", "edge"
+# The ppa that will be used is "ppa:checkbox-dev/$risk", to see the content
+# see:
+# - https://code.launchpad.net/~checkbox-dev/+archive/ubuntu/stable
+# - https://code.launchpad.net/~checkbox-dev/+archive/ubuntu/beta
+# - https://code.launchpad.net/~checkbox-dev/+archive/ubuntu/edge
+#
+# Returns:
+# 0 on success, non-0 on failure
+
+if [[ "$#" != "1" ]]; then
+  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk"
+  exit 1
+fi
+
+set -e
+
+echo "Installing Checkbox debian packages at risk: $RISK"
+echo "  PPA that will be used: ppa:checkbox-dev/$RISK"
+echo "  See: https://code.launchpad.net/~checkbox-dev/+archive/ubuntu/$RISK"
+
+RISK=$1
+
+wait_for_packages_complete
+_run sudo add-apt-repository ppa:checkbox-dev/$RISK
+_run install_packages checkbox-ng python3-checkbox-ng checkbox-provider-base checkbox-provider-resource checkbox-provider-sru fswebcam obexftp wmctrl iperf mesa-utils vim pastebinit fwts xorg-dev gir1.2-clutter-1.0
+wait_for_packages_complete
+
+export CHECKBOX_VERSION=$(_run checkbox-cli --version)
+[ -z "$CHECKBOX_VERSION" ] && echo "Error: Unable to retrieve Checkbox version from device" && exit 1
+
+echo "Installing checkbox $CHECKBOX_VERSION on the agent container from source"
+install_checkbox_agent_source $CHECKBOX_VERSION
+
+check_for_checkbox_service
