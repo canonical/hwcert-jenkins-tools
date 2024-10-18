@@ -8,4 +8,5 @@ else
     TAG=INFO
 fi
 
-echo "$(date '+%Y-%m-%d %T') [$TAG] $(basename ${BASH_SOURCE[-1]}): $*"
+CALLER=$(basename $(ps -o command= $PPID | cut -d ' ' -f 2))
+echo "$(date '+%Y-%m-%d %T') [$TAG] $CALLER: $*"
