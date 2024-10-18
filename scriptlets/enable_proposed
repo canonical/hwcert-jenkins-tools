@@ -10,8 +10,8 @@ SERIES="$(scenario artifact.series)"
 [[ "$ARCH" =~ ^(amd64|i386)$ ]] && ARCHIVE_URL="http://archive.ubuntu.com/ubuntu/" || ARCHIVE_URL="http://ports.ubuntu.com/ubuntu-ports"
 
 # enable proposed pocket (on the device)
-log "enabling proposed pocket..."
-log "deb $ARCHIVE_URL $SERIES-proposed main restricted universe multiverse" | _run "sudo tee /etc/apt/sources.list.d/proposed-repositories.list"
+log "enabling proposed pocket"
+echo "deb $ARCHIVE_URL $SERIES-proposed main restricted universe multiverse" | _run "sudo tee /etc/apt/sources.list.d/proposed-repositories.list"
 
 # pin package priority (on the device)
 log "pining priority of packages"
