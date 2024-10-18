@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 usage() {
-    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--no-update] -- <apt-get install arguments>"
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--no-update] [--dist-upgrade] -- <apt-get install arguments>"
 }
 
 # separate command-line arguments into the ones for the script and the ones for apt-get
@@ -29,6 +29,9 @@ for arg in "${local_args[@]}"; do
         --no-update)
             NO_UPDATE="true"
             ;;
+        --dist-upgrade)
+            DIST_UPGRADE="true"
+            ;;
         *)
             usage
             echo "Error: Invalid argument $arg"
@@ -43,5 +46,9 @@ if [ ${#package_args[@]} -eq 0 ]; then
     exit 1
 fi
 
+[ -n "$DIST_UPGRADE" ] && ACTION=dist-upgrade || ACTION=install
+
 ([ -n "$NO_UPDATE" ] || sudo apt-get -qq update) && \
-sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install -o Dpkg::Options::="--force-confdef" "${package_args[@]}"
+sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy $ACTION \
+  -o Dpkg::Options::="--force-confdef" Dpkg::Options::="--force-confold" \
+  "${package_args[@]}"
