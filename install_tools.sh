@@ -61,17 +61,11 @@ done
 TOOLS_PATH=${TOOLS_PATH:-$TOOLS_PATH_DEFAULT}
 BRANCH=${BRANCH:-$BRANCH_DEFAULT}
 
-echo "HERE?"
-rm -rf $TOOLS_PATH && clone
-echo $?
-
 # retrieve the tools from the repository
 if ! (rm -rf $TOOLS_PATH && clone); then
     echo "Unable to clone $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
     exit 1
 fi
-
-echo "HERE?"
 
 # add scriptlets to agent's PATH
 SCRIPTLETS_PATH=$TOOLS_PATH/scriptlets
@@ -81,22 +75,22 @@ add_to_path $SCRIPTLETS_PATH/sru-helpers
 add_to_path ~/.local/bin
 
 echo "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
-#log "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
+log "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
 
 # ensure that the device is reachable and copy over selected scriptlets
 # (testing reachability with --allow-starting is a single-try fallback option)
 (wait_for_ssh --allow-degraded || check_for_ssh --allow-starting) \
 && echo "Installing selected scriptlets on the device" \
-#&& log "Installing selected scriptlets on the device" \
+&& log "Installing selected scriptlets on the device" \
 && install_on_device \
 || exit 1
 
 echo "Installing agent dependencies"
-#log "Installing agent dependencies"
+log "Installing agent dependencies"
 install_packages pipx python3-venv sshpass jq > /dev/null
 
 echo "Installing agent tools"
-#log "Installing agent tools"
+log "Installing agent tools"
 pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
 
 # restore tracing (if previously enabled)
