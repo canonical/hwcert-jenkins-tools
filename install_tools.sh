@@ -75,22 +75,22 @@ add_to_path $SCRIPTLETS_PATH/sru-helpers
 add_to_path ~/.local/bin
 
 echo "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
-log "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
+#log "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
 
 # ensure that the device is reachable and copy over selected scriptlets
 # (testing reachability with --allow-starting is a single-try fallback option)
 (wait_for_ssh --allow-degraded || check_for_ssh --allow-starting) \
 && echo "Installing selected scriptlets on the device" \
-&& log "Installing selected scriptlets on the device" \
+#&& log "Installing selected scriptlets on the device" \
 && install_on_device \
 || exit 1
 
 echo "Installing agent dependencies"
-log "Installing agent dependencies"
+#log "Installing agent dependencies"
 install_packages pipx python3-venv sshpass jq > /dev/null
 
 echo "Installing agent tools"
-log "Installing agent tools"
+#log "Installing agent tools"
 pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
 
 # restore tracing (if previously enabled)
