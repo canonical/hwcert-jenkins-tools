@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# Find submission files and move them into the "artifacts" directory
+# (this is hard-coded because that's where Testflinger collects them from)
+# Also include any additional files, specified using the --include argument
+
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--include <file>*]"
+}
+
+if [ "$#" -gt 0 ]; then
+    if [ "$1" != "--include" ]; then
+        usage
+        echo "Error: unknown argument $1"
+        exit 1
+    fi
+    shift
+    INCLUDED="$@"
+fi
+
+rm -rf artifacts && mkdir artifacts
+find ~ -name 'submission_*.junit.xml' -exec mv {} artifacts/junit.xml \;
+find ~ -name 'submission_*.html' -exec mv {} artifacts/submission.html \;
+find ~ -name 'submission_*.tar.xz' -exec mv {} artifacts/submission.tar.xz \;
+tar -xf artifacts/submission.tar.xz -C artifacts submission.json
+
+[ -n "$INCLUDED" ] && cp $INCLUDED artifacts

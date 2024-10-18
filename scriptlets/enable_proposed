@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# Enable the proposed pocket for an arch and series and pin package priority (on the device)
+
+check_for_scenario_file || exit 1
+ARCH="$(scenario artifact.arch)"
+SERIES="$(scenario artifact.series)"
+
+# determine URL for proposed repository
+[[ "$ARCH" =~ ^(amd64|i386)$ ]] && ARCHIVE_URL="http://archive.ubuntu.com/ubuntu/" || ARCHIVE_URL="http://ports.ubuntu.com/ubuntu-ports"
+
+# enable proposed pocket (on the device)
+echo "enabling proposed pocket..."
+echo "deb $ARCHIVE_URL $SERIES-proposed main restricted universe multiverse" | _run "sudo tee /etc/apt/sources.list.d/proposed-repositories.list"
+
+# pin package priority (on the device)
+echo "pining priority of packages"
+cat << EOF | _run "sudo tee -a /etc/apt/preferences.d/pining"
+Package: '*'
+Pin: release o=Ubuntu,a=$SERIES-proposed
+Pin-priority: 500
+EOF
