@@ -18,6 +18,9 @@ if [ "$#" -gt 0 ]; then
     INCLUDED="$@"
 fi
 
+[ -n "$INCLUDED" ] && INCLUDED_MESSAGE=" (including $INCLUDED)"
+log "Collecting artifacts$INCLUDED_MESSAGE"
+
 rm -rf artifacts && mkdir artifacts
 find ~ -name 'submission_*.junit.xml' -exec mv {} artifacts/junit.xml \;
 find ~ -name 'submission_*.html' -exec mv {} artifacts/submission.html \;
