@@ -25,7 +25,7 @@ if [[ "$#" != "4" ]]; then
   exit 1
 fi
 
-echo "Installing Checkbox snaps"
+log "Installing Checkbox snaps"
 
 RISK=$1
 RUNTIME_NAME=$2
@@ -91,9 +91,9 @@ _run sudo snap refresh --no-wait $RUNTIME_NAME --channel=latest/$RISK
 wait_for_snap_changes
 
 export CHECKBOX_VERSION=$(_run $FRONTEND_NAME.checkbox-cli --version)
-[ -z "$CHECKBOX_VERSION" ] && echo "Error: Unable to retrieve Checkbox version from device" && exit 1
+[ -z "$CHECKBOX_VERSION" ] && log --error "Unable to retrieve Checkbox version from device" && exit 1
 
-echo "Installing checkbox $CHECKBOX_VERSION on the agent container from source"
+log "Installing checkbox $CHECKBOX_VERSION on the agent container from source"
 install_checkbox_agent_source $CHECKBOX_VERSION
 
 check_for_checkbox_service
