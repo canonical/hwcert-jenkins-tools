@@ -61,11 +61,17 @@ done
 TOOLS_PATH=${TOOLS_PATH:-$TOOLS_PATH_DEFAULT}
 BRANCH=${BRANCH:-$BRANCH_DEFAULT}
 
+echo "HERE?"
+rm -rf $TOOLS_PATH && clone
+echo $?
+
 # retrieve the tools from the repository
 if ! (rm -rf $TOOLS_PATH && clone); then
     echo "Unable to clone $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
     exit 1
 fi
+
+echo "HERE?"
 
 # add scriptlets to agent's PATH
 SCRIPTLETS_PATH=$TOOLS_PATH/scriptlets
