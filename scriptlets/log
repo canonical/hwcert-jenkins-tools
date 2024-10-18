@@ -8,5 +8,4 @@ else
     TAG=INFO
 fi
 
-CALLER=$(basename $(ps -o command= $PPID | cut -d ' ' -f 2))
-echo "$(date '+%Y-%m-%d %T') [$TAG] $CALLER: $*"
+echo "$(date '+%Y-%m-%d %T') [$TAG]: $*"
