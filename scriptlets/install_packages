@@ -40,13 +40,16 @@ for arg in "${local_args[@]}"; do
     esac
 done
 
-if [ ${#package_args[@]} -eq 0 ]; then
-    usage
-    echo "Error: no arguments provided for 'apt-get install'"
-    exit 1
+if [ -n "$DIST_UPGRADE" ]; then
+    ACTION=dist-upgrade
+else
+    ACTION=install
+    if [ ${#package_args[@]} -eq 0 ]; then
+        usage
+        echo "Error: no arguments provided for 'apt-get install'"
+        exit 1
+    fi
 fi
-
-[ -n "$DIST_UPGRADE" ] && ACTION=dist-upgrade || ACTION=install
 
 ([ -n "$NO_UPDATE" ] || sudo apt-get -qq update) && \
 sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy $ACTION \
