@@ -69,15 +69,12 @@ fi
 
 # add scriptlets to agent's PATH
 SCRIPTLETS_PATH=$TOOLS_PATH/scriptlets
-source "$SCRIPTLETS_PATH/defs/log"
-log "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
-
-export -f log
-
 source "$SCRIPTLETS_PATH/defs/add_to_path"
 add_to_path $SCRIPTLETS_PATH
 add_to_path $SCRIPTLETS_PATH/sru-helpers
 add_to_path ~/.local/bin
+
+log "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
 
 # ensure that the device is reachable and copy over selected scriptlets
 # (testing reachability with --allow-starting is a single-try fallback option)
