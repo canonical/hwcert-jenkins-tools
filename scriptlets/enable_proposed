@@ -2,9 +2,8 @@
 
 # Enable the proposed pocket for an arch and series and pin package priority (on the device)
 
-check_for_scenario_file || exit 1
-ARCH="$(scenario artifact.arch)"
-SERIES="$(scenario artifact.series)"
+SERIES="$1"
+ARCH="$2"
 
 # determine URL for proposed repository
 [[ "$ARCH" =~ ^(amd64|i386)$ ]] && ARCHIVE_URL="http://archive.ubuntu.com/ubuntu/" || ARCHIVE_URL="http://ports.ubuntu.com/ubuntu-ports"

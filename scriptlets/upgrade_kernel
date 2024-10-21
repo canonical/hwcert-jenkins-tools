@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 
-# Install a specific kernel package (specified in the scenario file)
-# and perform a dist-upgrade
+# Install a specific kernel package and perform a dist-upgrade
 
-check_for_scenario_file || exit 1
-CONCRETE_KERNEL="$(scenario artifact.name)"
+CONCRETE_KERNEL="$1"
 
 _run wait_for_packages_complete
 
