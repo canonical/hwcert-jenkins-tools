@@ -19,22 +19,36 @@
 # Returns:
 # 0 on success, non-0 on failure
 
-if [[ "$#" != "1" ]]; then
-  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk"
+if [ "$#" -ne 1 ]; then
+  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk [--providers <providers>]"
   exit 1
 fi
 
-set -e
+RISK=$1
+shift
+
+if [ "$1" = "--providers" ]; then
+  shift
+  ARG_PROVIDERS="$@"
+elif [ "$#" -ne 0 ]; then
+  usage
+  echo "Error: unknown arguments $@"
+  exit 1
+fi
 
 log "Installing Checkbox debian packages at risk: $RISK"
 echo "  PPA that will be used: ppa:checkbox-dev/$RISK"
 echo "  See: https://code.launchpad.net/~checkbox-dev/+archive/ubuntu/$RISK"
+[ -n "$ARG_PROVIDERS" ] && echo "  Additional providers: $PROVIDERS"
 
-RISK=$1
+set -e
 
 wait_for_packages_complete
 _run sudo add-apt-repository ppa:checkbox-dev/$RISK
-_run install_packages checkbox-ng python3-checkbox-ng checkbox-provider-base checkbox-provider-resource checkbox-provider-sru fswebcam obexftp wmctrl iperf mesa-utils vim pastebinit fwts xorg-dev gir1.2-clutter-1.0
+_run install_packages \
+  checkbox-ng python3-checkbox-ng \
+  checkbox-provider-base checkbox-provider-resource checkbox-provider-sru $PROVIDERS \
+  fswebcam obexftp wmctrl iperf mesa-utils vim pastebinit fwts xorg-dev gir1.2-clutter-1.0
 wait_for_packages_complete
 
 export CHECKBOX_VERSION=$(_run checkbox-cli --version)
