@@ -19,8 +19,13 @@
 # Returns:
 # 0 on success, non-0 on failure
 
-if [ "$#" -ne 1 ]; then
+usage() {
   echo "Usage: $(basename ${BASH_SOURCE[0]}) risk [--providers <providers>]"
+}
+
+if [ "$#" -lt 1 ]; then
+  usage
+  echo "Error: unspecified risk"
   exit 1
 fi
 
@@ -29,7 +34,12 @@ shift
 
 if [ "$1" = "--providers" ]; then
   shift
-  ARG_PROVIDERS="$@"
+  PROVIDERS="$@"
+  if [ -z "$PROVIDERS" ]; then
+    usage
+    echo "Error: unspecified providers"
+    exit 1
+  fi
 elif [ "$#" -ne 0 ]; then
   usage
   echo "Error: unknown arguments $@"
@@ -39,7 +49,7 @@ fi
 log "Installing Checkbox debian packages at risk: $RISK"
 echo "  PPA that will be used: ppa:checkbox-dev/$RISK"
 echo "  See: https://code.launchpad.net/~checkbox-dev/+archive/ubuntu/$RISK"
-[ -n "$ARG_PROVIDERS" ] && echo "  Additional providers: $PROVIDERS"
+[ -n "$PROVIDERS" ] && echo "  Additional providers: $PROVIDERS"
 
 set -e
 
