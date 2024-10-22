@@ -8,50 +8,94 @@
 # Usage:
 #     `fetch_manifest <CID> <MACHINE_SECURE_ID>`
 
-from argparse import ArgumentParser
-import configparser
+from argparse import ArgumentParser, Namespace
+from configparser import ConfigParser
+from pathlib import Path
 import sys
+
 import requests
 
 
-def parse_json(manifest_json):
-    """
-    Given an manifest json file, parse it as a format suitable for the Checkbox launcher file
-    """
-    manifest_config = configparser.ConfigParser(delimiters=("=",))
-    manifest_config["manifest"] = manifest_json
-    return manifest_config
-
-
-def fetch_manifest():
+def parse_args() -> Namespace:
     parser = ArgumentParser(
         prog="fetch_manifest",
-        description="Helper script to fetch the manifest for a given machine from C3",
+        description="Fetch the manifest for a given machine from C3",
     )
     parser.add_argument("cid", help="Canonical ID of the machine", type=str)
     parser.add_argument("secure_id", help="Secure ID of the machine", type=str)
     parser.add_argument(
-        "--manifest_file",
+        "--output",
         help="File name to write the manifest to",
         default="manifest_conf",
         type=str,
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--default",
+        help="Path to default manifest, if one cannot be fetched",
+        default="manifest_conf",
+        type=str,
+    )
+    return parser.parse_args()
 
-    print("Fetching Manifest from C3")
+
+def fetch_manifest(cid: str, secure_id: str, output: Path) -> bool:
+    """
+    Fetch manifest for `cid` from C3 and write it to the `output` file
+    """
+    # request the manifest from C3
     response = requests.get(
-        f"https://certification.canonical.com/api/v2/machines/{args.cid}/manifest?secure_id={args.secure_id}"
+        "https://certification.canonical.com/api/v2/machines/"
+        f"{cid}/manifest?secure_id={secure_id}"
     )
     if response.status_code != 200:
-        print("Couldn't find manifest for the given machine")
-        sys.exit(1)
+        return False
+    # convert the manifest JSON from the response into
+    # an INI-style configuration and write it to a file
+    manifest_config = ConfigParser(delimiters=("=",))
+    manifest_config["manifest"] = response.json()
+    with open(output, "w") as manifest_file:
+        manifest_config.write(manifest_file)
+    return True
 
-    print("Manifest found")
-    manifest_config = parse_json(response.json())
-    with open(args.manifest_file, "w") as configfile:
-        manifest_config.write(configfile)
-    sys.exit(0)
+
+def fetch_default_manifest(default: Path, output: Path) -> bool:
+    """
+    Fetch a `default` manifest and write it to the `output` file
+
+    The manifest is not copied but instead read into a ConfigParser
+    and written back to the `output` file, for safety/validation.
+    """
+    manifest_config = ConfigParser(delimiters=("=",))
+    with open(default, "r") as manifest_file:
+        manifest_config.read(manifest_file)
+    with open(output, "w") as manifest_file:
+        manifest_config.write(manifest_file)
+
+
+def main() -> int:
+    args = parse_args()
+
+    print(f"Fetching manifest for {args.cid} from C3")
+    fetched = fetch_manifest(args.cid, args.secure_id, args.output)
+    if fetched:
+        print(f"Fetched manifest for {args.cid} into '{args.output}'")
+        return 0
+
+    if not args.default:
+        # no fetched manifest, no default manifest provided
+        print(f"Could not fetch manifest for {args.cid}")
+        return 1
+
+    # default manifest provided, fetch that instead
+    print(f"Fetching default manifest from '{args.default}'")
+    fetched = fetch_default_manifest(args.default, args.output)
+    if fetched:
+        print(f"Fetched default manifest into '{args.output}'")
+        return 0
+
+    print(f"Could not fetch manifest for {args.cid}")
+    return 1
 
 
 if __name__ == "__main__":
-    fetch_manifest()
+    sys.exit(main())
