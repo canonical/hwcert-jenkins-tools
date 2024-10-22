@@ -27,13 +27,12 @@ def parse_args() -> Namespace:
         "--output",
         help="File name to write the manifest to",
         default="manifest_conf",
-        type=str,
+        type=Path,
     )
     parser.add_argument(
         "--default",
         help="Path to default manifest, if one cannot be fetched",
-        default="manifest_conf",
-        type=str,
+        type=Path,
     )
     return parser.parse_args()
 
