@@ -76,6 +76,11 @@ add_to_path ~/.local/bin
 
 log "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
 
+if check_for_scenario_file; then
+    DEVICE_USER="$(scenario environment.user)"
+    [ "$?" -eq 0 ] && export DEVICE_USER
+fi
+
 # ensure that the device is reachable and copy over selected scriptlets
 # (testing reachability with --allow-starting is a single-try fallback option)
 (wait_for_ssh --allow-degraded || check_for_ssh --allow-starting) \
