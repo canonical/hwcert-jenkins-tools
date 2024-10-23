@@ -76,6 +76,12 @@ add_to_path ~/.local/bin
 
 log "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
 
+log "Installing agent dependencies"
+install_packages pipx python3-venv sshpass jq > /dev/null
+
+log "Installing agent tools"
+pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
+
 if check_for_scenario_file; then
     DEVICE_USER="$(scenario environment.user)"
     [ "$?" -eq 0 ] && export DEVICE_USER
@@ -87,12 +93,6 @@ fi
 && log "Installing selected scriptlets on the device" \
 && install_on_device \
 || exit 1
-
-log "Installing agent dependencies"
-install_packages pipx python3-venv sshpass jq > /dev/null
-
-log "Installing agent tools"
-pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
 
 # restore tracing (if previously enabled)
 [ "$TRACING" = true ] && set -x || true
