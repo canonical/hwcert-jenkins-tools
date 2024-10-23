@@ -66,6 +66,7 @@ if ! (rm -rf $TOOLS_PATH && clone); then
     echo "Unable to clone $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
     exit 1
 fi
+echo "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
 
 # add scriptlets to agent's PATH
 SCRIPTLETS_PATH=$TOOLS_PATH/scriptlets
@@ -74,17 +75,18 @@ add_to_path $SCRIPTLETS_PATH
 add_to_path $SCRIPTLETS_PATH/sru-helpers
 add_to_path ~/.local/bin
 
-log "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
-
 log "Installing agent dependencies"
 install_packages pipx python3-venv sshpass jq > /dev/null
 
 log "Installing agent tools"
 pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
 
-if check_for_scenario_file; then
+# grab DEVICE_USER from the scenario file, if possible
+# (generally, a non-default DEVICE_USER needs to be set
+# prior to accessing the device for the first time)
+if check_for_scenario_file > /dev/null; then
     DEVICE_USER="$(scenario environment.user)"
-    [ "$?" -eq 0 ] && export DEVICE_USER
+    [ "$?" -eq 0 ] && export DEVICE_USER && log "DEVICE_USER set to $DEVICE_USER"
 fi
 
 # ensure that the device is reachable and copy over selected scriptlets
