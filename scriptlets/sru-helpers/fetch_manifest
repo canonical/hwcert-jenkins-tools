@@ -9,7 +9,7 @@
 #     `fetch_manifest <CID> <MACHINE_SECURE_ID>`
 
 from argparse import ArgumentParser, Namespace
-from configparser import ConfigParser
+from configparser import ConfigParser, ParsingError
 from pathlib import Path
 import sys
 
@@ -37,7 +37,7 @@ def parse_args() -> Namespace:
     return parser.parse_args()
 
 
-def fetch_manifest(cid: str, secure_id: str, output: Path) -> bool:
+def fetch_c3_manifest(cid: str, secure_id: str, output: Path) -> bool:
     """
     Fetch manifest for `cid` from C3 and write it to the `output` file
     """
@@ -65,17 +65,22 @@ def fetch_default_manifest(default: Path, output: Path) -> bool:
     and written back to the `output` file, for safety/validation.
     """
     manifest_config = ConfigParser(delimiters=("=",))
-    with open(default, "r") as manifest_file:
-        manifest_config.read(manifest_file)
+    try:
+        with open(default, "r") as manifest_file:
+            manifest_config.read_file(manifest_file)
+    except (ParsingError, FileNotFoundError) as error:
+        print(f"{type(error).__name__}: {error}")
+        return False
     with open(output, "w") as manifest_file:
         manifest_config.write(manifest_file)
+    return True
 
 
 def main() -> int:
     args = parse_args()
 
     print(f"Fetching manifest for {args.cid} from C3")
-    fetched = fetch_manifest(args.cid, args.secure_id, args.output)
+    fetched = fetch_c3_manifest(args.cid, args.secure_id, args.output)
     if fetched:
         print(f"Fetched manifest for {args.cid} into '{args.output}'")
         return 0
@@ -92,7 +97,7 @@ def main() -> int:
         print(f"Fetched default manifest into '{args.output}'")
         return 0
 
-    print(f"Could not fetch manifest for {args.cid}")
+    print(f"Could not fetch manifest or provide default for {args.cid}")
     return 1
 
 
