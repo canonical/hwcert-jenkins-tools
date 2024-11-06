@@ -155,7 +155,8 @@ class SRU(BuilderWithParameters):
         self,
         job: str,
         testplan: Optional[str] = None,
-        reporting: Optional[str] = None,
+        reporting: Optional[bool] = None,
+        checkbox_channel: Optional[str] = None,
     ) -> requests.Response:
         """
         Trigger any SRU job named `job`.
@@ -168,7 +169,8 @@ class SRU(BuilderWithParameters):
             job=job,
             parameters={
                 "TESTPLAN": testplan,
-                "TEST_OBSERVER_REPORTING": str(reporting)
+                "TEST_OBSERVER_REPORTING": str(reporting),
+                "CHECKBOX_CHANNEL": checkbox_channel,
             }
         )
 
@@ -184,6 +186,7 @@ def main():
     sru_parser = subparsers.add_parser("sru", help="Trigger SRU job")
     sru_parser.add_argument("--no-reporting", action="store_true", help="Disable Test Observer reporting")
     sru_parser.add_argument("--testplan", choices=["full", "no_stress", "smoke"], default="full", help="Which test plan the job will use. full/no_stress/smoke.")
+    sru_parser.add_argument("--checkbox-channel", choices=["stable", "beta", "edge"], help="Which channel to install Checkbox from")
     sru_parser.add_argument("jobs", nargs="+", help="Names of SRU jobs to be triggered")
     args = parser.parse_args()
 
@@ -202,7 +205,10 @@ def main():
         for job in args.jobs:
             logging.info(f"Triggering SRU job: {job}")
             response = builder.run(
-                job, testplan=args.testplan, reporting=(not args.no_reporting)
+                job,
+                testplan=args.testplan,
+                reporting=(not args.no_reporting),
+                checkbox_channel=args.checkbox_channel,
             )
             logging.info(f"{response.status_code=}")
             if response.ok:
