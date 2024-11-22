@@ -31,14 +31,25 @@ if [ -n "$CHECKBOX_SNAPS" ]; then
     sudo snap remove $CHECKBOX_SNAPS
 fi
 
-# delete all installed Checkbox debian packages. This should also purge any
-# previously installed provider
-CHECKBOX_DEBS=$(apt list --installed | grep checkbox | grep -P -o "^[\w-]+")
-if [ -n "$CHECKBOX_DEBS" ]; then
-    echo "Found the following Checkbox debs"
-    echo "  " $CHECKBOX_DEBS
-    echo "Deleting them..."
-    sudo apt-get purge -y -qq $CHECKBOX_DEBS
+# Only relevant on non-Core systems where package-handling is supported:
+if apt-get --help > /dev/null 2>&1; then
+    # delete all installed Checkbox debian packages. This should also purge any
+    # previously installed provider
+    CHECKBOX_DEBS=$(apt list --installed | grep checkbox | grep -P -o "^[\w-]+")
+    if [ -n "$CHECKBOX_DEBS" ]; then
+        echo "Found the following Checkbox debs"
+        echo "  " $CHECKBOX_DEBS
+        echo "Deleting them..."
+        sudo apt-get purge -y -qq $CHECKBOX_DEBS
+    fi
+    # remove all ppa repos pre-configured as they may make the installer install
+    # from the wrong source. Also removing /ppa and /testing which are legacy names
+    # of /edge and /beta that may still be used somewhere
+    echo "Trying to remove all Checkbox ppas"
+    RISKS="ppa testing edge beta stable"
+    for risk in $RISKS; do
+      sudo add-apt-repository --remove -y ppa:checkbox-dev/$risk > /dev/null && echo "Removed ppa:checkbox-dev/$risk"
+    done
 fi
 
 # delete old sessions, as Checkbox will try to resume them when started,
@@ -53,15 +64,6 @@ if [ -d "/var/tmp/checkbox-providers-develop/" ]; then
   echo "Removing all developed providers"
   rm -rf /var/tmp/checkbox-providers-develop
 fi
-
-# remove all ppa repos pre-configured as they may make the installer install
-# from the wrong source. Also removing /ppa and /testing which are legacy names
-# of /edge and /beta that may still be used somewhere
-echo "Trying to remove all Checkbox ppas"
-RISKS="ppa testing edge beta stable"
-for risk in $RISKS; do
-  sudo add-apt-repository --remove -y ppa:checkbox-dev/$risk > /dev/null && echo "Removed ppa:checkbox-dev/$risk"
-done
 
 # Also remove any cloned version of Checkbox in any home, as this will clash
 # with anything trying to provision from source
