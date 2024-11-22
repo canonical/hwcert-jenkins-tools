@@ -96,4 +96,4 @@ export CHECKBOX_VERSION=$(_run $FRONTEND_NAME.checkbox-cli --version)
 echo "Installing checkbox $CHECKBOX_VERSION on the agent container from source"
 install_checkbox_agent_source $CHECKBOX_VERSION
 
-check_for_checkbox_service
+check_for_checkbox_service --debug
