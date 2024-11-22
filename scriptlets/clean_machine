@@ -59,6 +59,12 @@ if [ -d "/var/tmp/checkbox-ng" ]; then
   rm -rf /var/tmp/checkbox-ng
 fi
 
+# delete any sideloaded provider
+if [ -d "/var/tmp/checkbox-providers/" ]; then
+  echo "Removing all providers"
+  rm -rf /var/tmp/checkbox-providers
+fi
+
 # delete any provider that was globally "developed" (installed in editable mode)
 if [ -d "/var/tmp/checkbox-providers-develop/" ]; then
   echo "Removing all developed providers"
