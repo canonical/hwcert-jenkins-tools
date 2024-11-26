@@ -83,6 +83,7 @@ fi
 #       then this causes just 1 download
 _run sudo snap refresh --no-wait $RUNTIME_NAME --channel=latest/$RISK
 wait_for_snap_changes
+_run sudo snap restart $RUNTIME_NAME
 
 export CHECKBOX_VERSION=$(_run $FRONTEND_NAME.checkbox-cli --version)
 [ -z "$CHECKBOX_VERSION" ] && echo "Error: Unable to retrieve Checkbox version from device" && exit 1
