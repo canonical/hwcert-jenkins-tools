@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+# Transfer files from a remote Zapper via SCP.
+#
+# Description:
+#
+# The IP of the device is provided by the environment variable ZAPPER_IP,
+# which must be set. The user credentials on the remote device is `ubuntu:insecure`
+# by default, unless provided by the environment variables ZAPPER_USER and ZAPPER_PWD.
+#
+# The last argument provided is considered to be the "target", i.e. where
+# on the local device the file(s) will be copied.
+#
+# The source(s) can start with `:` (as is also the case with programs like
+# `scp`) to explicitly denote a source on the remote device. 
+#
+# This script sources `defs/set_ssh_options` to set SSH_OPTS.
+# This script soures `defs/check_for_zapper_ip` to check that ZAPPER_IP is set.
+#
+# Return value:
+#
+# 0 if the copy operation is successful or >0 in case of an error.
+
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [:<source>]+ <target>"
+}
+
+if [ $# -lt 2 ]; then
+    usage
+    echo "Error: <source> and/or <target> not specified"
+    exit 1
+fi
+
+source "$(dirname ${BASH_SOURCE[0]})/check_for_zapper_ip"
+source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"
+
+# The target is the last argument
+TARGET=${@: -1}
+
+# Extract the sources (remove the target) from the argument list...
+SOURCES_ARRAY=("${@:1:$#-1}")
+# ... and prefix them appropriately
+PREFIX=${ZAPPER_USER:-ubuntu}@${ZAPPER_IP}
+SOURCES=()
+for SOURCE in "${SOURCES_ARRAY[@]}"; do
+    [[ ${SOURCE:0:1} != ":" ]] && SOURCE=":${SOURCE}"
+    SOURCES+=("${PREFIX}${SOURCE}")
+done
+SOURCES="${SOURCES[@]}"
+
+sshpass -p ${ZAPPER_PWD:-insecure} scp $SSH_OPTS $SOURCES $TARGET
