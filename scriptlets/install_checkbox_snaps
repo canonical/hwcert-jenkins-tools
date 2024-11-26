@@ -51,6 +51,8 @@ fi
 
 _run sudo snap install --no-wait $FRONTEND_NAME $EXTRA_SNAP_INSTALL_FLAG --channel=$FRONTEND_TRACK/$RISK
 wait_for_snap_changes
+_run sudo snap set $FRONTEND_NAME agent=enabled
+_run sudo snap start $FRONTEND_NAME
 
 if $STRICT_FRONTEND; then
   # these plugs are not automatically connected but are necessary to run some
@@ -83,7 +85,9 @@ fi
 #       then this causes just 1 download
 _run sudo snap refresh --no-wait $RUNTIME_NAME --channel=latest/$RISK
 wait_for_snap_changes
-_run sudo snap restart $RUNTIME_NAME
+
+# restart the service to make sure the latest version of the code is used
+_run sudo snap restart $FRONTEND_NAME
 
 export CHECKBOX_VERSION=$(_run $FRONTEND_NAME.checkbox-cli --version)
 [ -z "$CHECKBOX_VERSION" ] && echo "Error: Unable to retrieve Checkbox version from device" && exit 1
