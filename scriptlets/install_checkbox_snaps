@@ -60,19 +60,13 @@ if $STRICT_FRONTEND; then
   # these interfaces as we may not need to run the tests they are needed for
 
   # Network tests
-  _run sudo snap connect $FRONTEND_NAME:network-manager network-manager:service
-  if [ $? -ne 0 ]; then
-    echo "Failed to connect plug. Networking (mostly wifi) tests may not work"
-  fi
+  _run sudo snap connect $FRONTEND_NAME:network-manager network-manager:service \
+  || echo "Failed to connect plug. Networking (mostly wifi) tests may not work"
   # bluetooth tests
-  _run sudo snap connect $FRONTEND_NAME:bluez bluez:service
-  if [ $? -ne 0 ]; then
-    echo "Failed to connect plug. Bluetooth tests may not work"
-  fi
-  _run sudo snap connect $FRONTEND_NAME:bluetooth-control core:bluetooth-control
-  if [ $? -ne 0 ]; then
-    echo "Failed to connect plug. Bluetooth tests may not work"
-  fi
+  _run sudo snap connect $FRONTEND_NAME:bluez bluez:service \
+  || echo "Failed to connect plug. Bluetooth tests may not work"
+  _run sudo snap connect $FRONTEND_NAME:bluetooth-control core:bluetooth-control \
+  || echo "Failed to connect plug. Bluetooth tests may not work"
   set -e
 
   # force connect also the default plugs. This is necessary on some machines but
