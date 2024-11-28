@@ -18,7 +18,7 @@
 
 set -e
 
-if [[ "$#" != "4" ]]; then
+if [[ "$#" != "3" ]]; then
   echo "Usage: $(basename ${BASH_SOURCE[0]}) risk frontend_name frontend_track"
   exit 1
 fi
