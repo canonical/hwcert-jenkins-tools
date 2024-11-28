@@ -10,8 +10,6 @@
 # ready to run tests.
 # The `risk` parameter can be either "stable", "beta", "edge" and is used for
 #   both runtime and frontend
-# The `runtime_name` can be any of the runtime snaps (eg. checkbox16,
-#   checkbox24 etc.)
 # The `frontend_name` can be any of the frontend snaps (eg. checkbox,
 #   checkbox-tillamook).
 # The `frontend_track` parameter can be any valid track name (eg. 22.04, uc16).
@@ -21,19 +19,25 @@
 set -e
 
 if [[ "$#" != "4" ]]; then
-  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk runtime_name frontend_name frontend_track"
+  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk frontend_name frontend_track"
   exit 1
 fi
 
 echo "Installing Checkbox snaps"
 
 RISK=$1
-RUNTIME_NAME=$2
-FRONTEND_NAME=$3
-FRONTEND_TRACK=$4
+FRONTEND_NAME=$2
+FRONTEND_TRACK=$3
+FRONTEND_CHANNEL="$FRONTEND_TRACK/$RISK"
 
-wait_for_snap_changes
-_run sudo snap install --no-wait $RUNTIME_NAME --channel=latest/$RISK
+# the runtime name is "checkboxYY";
+# YY is extracted from the "base" field of the front-end snap, which should be coreYY;
+# the final "grep ." will cause this script to exit if there's no match
+RUNTIME_NAME="checkbox$(snap info --verbose $FRONTEND_NAME | sed -n 's/^base:\s*core\([0-9]\{2\}\)$/\1/p' | grep .)"
+RUNTIME_CHANNEL="latest/$RISK"
+
+echo "Installing runtime snap: $RUNTIME_NAME from $RUNTIME_CHANNEL"
+_run sudo snap install --no-wait $RUNTIME_NAME --channel=$RUNTIME_CHANNEL
 wait_for_snap_changes
 
 # strict snaps need a different install flag and the connections to be made.
@@ -42,14 +46,15 @@ wait_for_snap_changes
 [[ "$FRONTEND_TRACK" == uc* ]] && STRICT_FRONTEND=true || STRICT_FRONTEND=false
 
 if $STRICT_FRONTEND; then
-  echo "Frontend is a strict snap, using --devmode"
+  NOTE="strict snap, using --devmode"
   EXTRA_SNAP_INSTALL_FLAG="--devmode"
 else
-  echo "Frontend is a classic snap, using --classic"
+  NOTE="classic snap, using --classic"
   EXTRA_SNAP_INSTALL_FLAG="--classic"
 fi
 
-_run sudo snap install --no-wait $FRONTEND_NAME $EXTRA_SNAP_INSTALL_FLAG --channel=$FRONTEND_TRACK/$RISK
+echo "Installing front-end snap: $FRONTEND_NAME from $FRONTEND_CHANNEL ($NOTE)"
+_run sudo snap install --no-wait $FRONTEND_NAME $EXTRA_SNAP_INSTALL_FLAG --channel=$FRONTEND_CHANNEL
 wait_for_snap_changes
 _run sudo snap set $FRONTEND_NAME agent=enabled
 _run sudo snap start $FRONTEND_NAME
