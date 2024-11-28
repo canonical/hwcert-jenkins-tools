@@ -33,7 +33,7 @@ FRONTEND_CHANNEL="$FRONTEND_TRACK/$RISK"
 # the runtime name is "checkboxYY";
 # YY is extracted from the "base" field of the front-end snap, which should be coreYY;
 # the final "grep ." will cause this script to exit if there's no match
-RUNTIME_NAME="checkbox$(snap info --verbose $FRONTEND_NAME | sed -n 's/^base:\s*core\([0-9]\{2\}\)$/\1/p' | grep .)"
+RUNTIME_NAME="checkbox$(_run "snap info --verbose $FRONTEND_NAME" | sed -n 's/^base:\s*core\([0-9]\{2\}\)$/\1/p' | grep .)"
 RUNTIME_CHANNEL="latest/$RISK"
 
 echo "Installing runtime snap: $RUNTIME_NAME from $RUNTIME_CHANNEL"
