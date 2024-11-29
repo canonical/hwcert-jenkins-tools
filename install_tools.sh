@@ -75,16 +75,16 @@ add_to_path $SCRIPTLETS_PATH
 add_to_path $SCRIPTLETS_PATH/sru-helpers
 add_to_path ~/.local/bin
 
-log "Installing agent dependencies"
+echo "Installing agent dependencies"
 install_packages pipx python3-venv sshpass jq > /dev/null
 
-log "Installing agent tools"
+echo "Installing agent tools"
 pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
 
 # ensure that the device is reachable and copy over selected scriptlets
 # (testing reachability with --allow-starting is a single-try fallback option)
 (wait_for_ssh --allow-degraded || check_for_ssh --allow-starting) \
-&& log "Installing selected scriptlets on the device" \
+&& echo "Installing selected scriptlets on the device" \
 && install_on_device \
 || exit 1
 
