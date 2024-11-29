@@ -83,7 +83,7 @@ if $STRICT_FRONTEND; then
     echo "DEBUG: $FRONTEND_PLUGS"
     # iterate over the default plugs...
     for CONNECTION in $CONNECTIONS; do
-        echo "DEBUG: Checking if plug $CONNECTION" exists"
+        echo "DEBUG: Checking if plug $CONNECTION exists"
         # ... and connect them to the corresponding slot in the runtime, if the plug exists
         if echo "$CONNECTIONS" | grep -q "^$FRONTEND_NAME:$CONNECTION$"; then
             echo "DEBUG: MATCH"
