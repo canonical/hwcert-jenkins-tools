@@ -83,9 +83,9 @@ if $STRICT_FRONTEND; then
     echo "DEBUG: $FRONTEND_PLUGS"
     # iterate over the default plugs...
     for CONNECTION in $CONNECTIONS; do
-        echo "DEBUG: Checking if plug $CONNECTION exists"
+        echo "DEBUG: Checking if plug $FRONTEND_NAME:$CONNECTION exists"
         # ... and connect them to the corresponding slot in the runtime, if the plug exists
-        if echo "$CONNECTIONS" | grep -q "^$FRONTEND_NAME:$CONNECTION$"; then
+        if echo "$FRONTEND_PLUGS" | grep -q "^$FRONTEND_NAME:$CONNECTION$"; then
             echo "DEBUG: MATCH"
             _run sudo snap connect $FRONTEND_NAME:$CONNECTION $RUNTIME_NAME:$CONNECTION
         fi
