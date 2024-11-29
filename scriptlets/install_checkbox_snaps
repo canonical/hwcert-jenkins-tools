@@ -31,7 +31,7 @@ FRONTEND_TRACK=$3
 FRONTEND_CHANNEL="$FRONTEND_TRACK/$RISK"
 
 # the runtime name is "checkboxYY";
-# YY is extracted from the "base" field of the front-end snap, which should be coreYY;
+# YY is extracted from the "base" field of the frontend snap, which should be coreYY;
 # the final "grep ." will cause this script to exit if there's no match
 RUNTIME_NAME="checkbox$(_run "snap info --verbose $FRONTEND_NAME" | sed -n 's/^base:\s*core\([0-9]\{2\}\)$/\1/p' | grep .)"
 RUNTIME_CHANNEL="latest/$RISK"
@@ -40,23 +40,23 @@ echo "Installing runtime snap: $RUNTIME_NAME from $RUNTIME_CHANNEL"
 _run sudo snap install --no-wait $RUNTIME_NAME --channel=$RUNTIME_CHANNEL
 wait_for_snap_changes
 
-# strict snaps need a different install flag and the connections to be made.
-# Checkbox Frontend snaps are strict on the tracks ucXX. Update
-# this regex to match more if alternative frontends need this as well
-[[ "$FRONTEND_TRACK" == uc* ]] && STRICT_FRONTEND=true || STRICT_FRONTEND=false
-
-if $STRICT_FRONTEND; then
-  NOTE="strict snap, using --devmode"
-  EXTRA_SNAP_INSTALL_FLAG="--devmode"
-else
-  NOTE="classic snap, using --classic"
-  EXTRA_SNAP_INSTALL_FLAG="--classic"
+# install the frontend snap as a strict snap and revert to classic if that fails
+# (strict snaps need a different install flag and the connections to be made)
+echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a strict snap, using --devmode)"
+STRICT_FRONTEND=true
+_run sudo snap install --no-wait $FRONTEND_NAME --devmode --channel=$FRONTEND_CHANNEL
+if [ "$?" -ne 0 ]; then
+    echo "Failed to install $FRONTEND_NAME as a strict snap"
+    echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a classic snap, using --classic)"
+    STRICT_FRONTEND=false
+    _run sudo snap install --no-wait $FRONTEND_NAME --classic --channel=$FRONTEND_CHANNEL
 fi
-
-echo "Installing front-end snap: $FRONTEND_NAME from $FRONTEND_CHANNEL ($NOTE)"
-_run sudo snap install --no-wait $FRONTEND_NAME $EXTRA_SNAP_INSTALL_FLAG --channel=$FRONTEND_CHANNEL
 wait_for_snap_changes
+
+# setting this flag is currently required for Checkbox to decide how to resume
 _run sudo snap set $FRONTEND_NAME agent=enabled
+
+# start the service
 _run sudo snap start $FRONTEND_NAME
 
 if $STRICT_FRONTEND; then
@@ -91,7 +91,7 @@ fi
 _run sudo snap refresh --no-wait $RUNTIME_NAME --channel=latest/$RISK
 wait_for_snap_changes
 
-# restart the service to make sure the latest version of the code is used
+# restart the service, to make sure the latest version of the code is used
 _run sudo snap restart $FRONTEND_NAME
 
 export CHECKBOX_VERSION=$(_run $FRONTEND_NAME.checkbox-cli --version)
