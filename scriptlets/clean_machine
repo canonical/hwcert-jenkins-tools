@@ -56,19 +56,19 @@ fi
 # but this is a new test session, so this is not desirable
 if [ -d "/var/tmp/checkbox-ng" ]; then
   echo "Removing all old sessions still on the machine"
-  rm -rf /var/tmp/checkbox-ng
+  sudo rm -rf /var/tmp/checkbox-ng
 fi
 
 # delete any sideloaded provider
 if [ -d "/var/tmp/checkbox-providers/" ]; then
   echo "Removing all providers"
-  rm -rf /var/tmp/checkbox-providers
+  sudo rm -rf /var/tmp/checkbox-providers
 fi
 
 # delete any provider that was globally "developed" (installed in editable mode)
 if [ -d "/var/tmp/checkbox-providers-develop/" ]; then
   echo "Removing all developed providers"
-  rm -rf /var/tmp/checkbox-providers-develop
+  sudo rm -rf /var/tmp/checkbox-providers-develop
 fi
 
 # Also remove any cloned version of Checkbox in any home, as this will clash
