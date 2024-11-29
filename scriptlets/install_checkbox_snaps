@@ -60,28 +60,33 @@ _run sudo snap set $FRONTEND_NAME agent=enabled
 _run sudo snap start $FRONTEND_NAME
 
 if $STRICT_FRONTEND; then
-  # these plugs are not automatically connected but are necessary to run some
-  # tests. Namely:
-  set +e
-  # Here we are handling results on a per-interface basis because we may not need
-  # these interfaces as we may not need to run the tests they are needed for
+    # these plugs are not automatically connected but are necessary to run some
+    # tests. Namely:
+    set +e
+    # Here we are handling results on a per-interface basis because we may not need
+    # these interfaces as we may not need to run the tests they are needed for
 
-  # Network tests
-  _run sudo snap connect $FRONTEND_NAME:network-manager network-manager:service \
-  || echo "Failed to connect plug. Networking (mostly wifi) tests may not work"
-  # bluetooth tests
-  _run sudo snap connect $FRONTEND_NAME:bluez bluez:service \
-  || echo "Failed to connect plug. Bluetooth tests may not work"
-  _run sudo snap connect $FRONTEND_NAME:bluetooth-control core:bluetooth-control \
-  || echo "Failed to connect plug. Bluetooth tests may not work"
-  set -e
+    # Network tests
+    _run sudo snap connect $FRONTEND_NAME:network-manager network-manager:service \
+    || echo "Failed to connect plug. Networking (mostly wifi) tests may not work"
+    # bluetooth tests
+    _run sudo snap connect $FRONTEND_NAME:bluez bluez:service \
+    || echo "Failed to connect plug. Bluetooth tests may not work"
+    _run sudo snap connect $FRONTEND_NAME:bluetooth-control core:bluetooth-control \
+    || echo "Failed to connect plug. Bluetooth tests may not work"
+    set -e
 
-  # force connect also the default plugs. This is necessary on some machines but
-  # is effectively a no-op when it would not be needed
-  _run sudo snap connect $FRONTEND_NAME:checkbox-runtime $RUNTIME_NAME:checkbox-runtime
-  _run sudo snap connect $FRONTEND_NAME:provider-certification-client $RUNTIME_NAME:provider-certification-client
-  _run sudo snap connect $FRONTEND_NAME:provider-checkbox $RUNTIME_NAME:provider-checkbox
-  _run sudo snap connect $FRONTEND_NAME:provider-resource $RUNTIME_NAME:provider-resource
+    # these are the default plugs (although some custom frontends may not have them)
+    CONNECTIONS="checkbox-runtime provider-checkbox provider-resource provider-certification-client"
+    # these are the actual plugs for this frontend
+    FRONTEND_PLUGS=$(_run "snap connections $FRONTEND_NAME" | awk '{ print $2 }' | tail +2)
+    # iterate over the default plugs...
+    for CONNECTION in $CONNECTIONS; do
+        # ... and connect them to the corresponding slot in the runtime, if the plug exists
+        if echo "$CONNECTIONS" | grep -q "^$FRONTEND_NAME:$CONNECTION$"; then
+            _run sudo snap connect $FRONTEND_NAME:$CONNECTION $RUNTIME_NAME:$CONNECTION
+        fi
+    done
 fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
