@@ -80,10 +80,13 @@ if $STRICT_FRONTEND; then
     CONNECTIONS="checkbox-runtime provider-checkbox provider-resource provider-certification-client"
     # these are the actual plugs for this frontend
     FRONTEND_PLUGS=$(_run "snap connections $FRONTEND_NAME" | awk '{ print $2 }' | tail +2)
+    echo ">>> DEBUG: $FRONTEND_PLUGS"
     # iterate over the default plugs...
     for CONNECTION in $CONNECTIONS; do
+        echo ">>> DEBUG: Checking if plug $CONNECTION" exists"
         # ... and connect them to the corresponding slot in the runtime, if the plug exists
         if echo "$CONNECTIONS" | grep -q "^$FRONTEND_NAME:$CONNECTION$"; then
+            echo ">>> DEBUG: MATCH"
             _run sudo snap connect $FRONTEND_NAME:$CONNECTION $RUNTIME_NAME:$CONNECTION
         fi
     done
