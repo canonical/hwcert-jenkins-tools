@@ -60,13 +60,23 @@ _run sudo snap set $FRONTEND_NAME agent=enabled
 _run sudo snap start $FRONTEND_NAME
 
 if $STRICT_FRONTEND; then
-    # these plugs are not automatically connected but are necessary to run some
-    # tests. Namely:
-    set +e
-    # Here we are handling results on a per-interface basis because we may not need
-    # these interfaces as we may not need to run the tests they are needed for
+    # these are the default plugs (although some custom frontends may not have them)
+    CONNECTIONS="checkbox-runtime provider-checkbox provider-resource provider-certification-client"
+    # these are the actual plugs for this frontend
+    FRONTEND_PLUGS=$(_run "snap connections $FRONTEND_NAME" | awk '{ print $2 }' | tail +2)
+    # iterate over the default plugs...
+    for CONNECTION in $CONNECTIONS; do
+        # ... and connect them to the corresponding slot in the runtime, if the plug exists
+        if echo "$FRONTEND_PLUGS" | grep -q "^$FRONTEND_NAME:$CONNECTION$"; then
+            _run sudo snap connect $FRONTEND_NAME:$CONNECTION $RUNTIME_NAME:$CONNECTION
+        fi
+    done
 
-    # Network tests
+    # these plugs are not automatically connected but are necessary to run some tests
+    # (we are handling results on a per-interface basis because we may not need
+    # these interfaces if we don't run the tests they are required for)
+    set +e
+    # network tests
     _run sudo snap connect $FRONTEND_NAME:network-manager network-manager:service \
     || echo "Failed to connect plug. Networking (mostly wifi) tests may not work"
     # bluetooth tests
@@ -75,21 +85,6 @@ if $STRICT_FRONTEND; then
     _run sudo snap connect $FRONTEND_NAME:bluetooth-control core:bluetooth-control \
     || echo "Failed to connect plug. Bluetooth tests may not work"
     set -e
-
-    # these are the default plugs (although some custom frontends may not have them)
-    CONNECTIONS="checkbox-runtime provider-checkbox provider-resource provider-certification-client"
-    # these are the actual plugs for this frontend
-    FRONTEND_PLUGS=$(_run "snap connections $FRONTEND_NAME" | awk '{ print $2 }' | tail +2)
-    echo "DEBUG: $FRONTEND_PLUGS"
-    # iterate over the default plugs...
-    for CONNECTION in $CONNECTIONS; do
-        echo "DEBUG: Checking if plug $FRONTEND_NAME:$CONNECTION exists"
-        # ... and connect them to the corresponding slot in the runtime, if the plug exists
-        if echo "$FRONTEND_PLUGS" | grep -q "^$FRONTEND_NAME:$CONNECTION$"; then
-            echo "DEBUG: MATCH"
-            _run sudo snap connect $FRONTEND_NAME:$CONNECTION $RUNTIME_NAME:$CONNECTION
-        fi
-    done
 fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
