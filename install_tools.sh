@@ -17,21 +17,14 @@ usage() {
     exit 1
 }
 
-fetch() {
-    git -C "$TOOLS_PATH" fetch -q --update-head-ok origin $BRANCH:$BRANCH 2> /dev/null && \
-    git -C "$TOOLS_PATH" checkout -q $BRANCH && \
-    echo "Fetched $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
-}
-
 clone() {
-    git clone -q --depth=1 --branch $BRANCH $TOOLS_REPO $TOOLS_PATH > /dev/null && \
-    echo "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
+    git clone -q --depth=1 --branch $BRANCH $TOOLS_REPO $TOOLS_PATH > /dev/null
 }
 
 install_on_device() {
     # copy selected scriptlets over to the device
     DEVICE_SCRIPTLETS=(retry check_for_packages_complete wait_for_packages_complete install_packages clean_machine git_get_shallow)
-    _run mkdir "$TOOLS_PATH_DEVICE" \
+    _run mkdir -p "$TOOLS_PATH_DEVICE" \
     && _put "${DEVICE_SCRIPTLETS[@]/#/$SCRIPTLETS_PATH/}" :"$TOOLS_PATH_DEVICE"
 
     # fuser is required by `check_for_packages_complete`
@@ -69,7 +62,11 @@ TOOLS_PATH=${TOOLS_PATH:-$TOOLS_PATH_DEFAULT}
 BRANCH=${BRANCH:-$BRANCH_DEFAULT}
 
 # retrieve the tools from the repository
-fetch || (rm -rf $TOOLS_PATH && clone)
+if ! (rm -rf $TOOLS_PATH && clone); then
+    echo "Unable to clone $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
+    exit 1
+fi
+echo "Cloned $TOOLS_REPO@$BRANCH into local repo: $TOOLS_PATH"
 
 # add scriptlets to agent's PATH
 SCRIPTLETS_PATH=$TOOLS_PATH/scriptlets
@@ -78,18 +75,18 @@ add_to_path $SCRIPTLETS_PATH
 add_to_path $SCRIPTLETS_PATH/sru-helpers
 add_to_path ~/.local/bin
 
+log "Installing agent dependencies"
+install_packages pipx python3-venv sshpass jq > /dev/null
+
+log "Installing agent tools"
+pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
+
 # ensure that the device is reachable and copy over selected scriptlets
 # (testing reachability with --allow-starting is a single-try fallback option)
 (wait_for_ssh --allow-degraded || check_for_ssh --allow-starting) \
-&& echo "Installing selected scriptlets on the device" \
+&& log "Installing selected scriptlets on the device" \
 && install_on_device \
 || exit 1
-
-echo "Installing agent dependencies"
-install_packages pipx python3-venv sshpass jq > /dev/null
-
-echo "Installing agent tools"
-pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
 
 # restore tracing (if previously enabled)
 [ "$TRACING" = true ] && set -x || true
