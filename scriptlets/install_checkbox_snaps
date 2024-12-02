@@ -53,8 +53,10 @@ if [ "$?" -ne 0 ]; then
 fi
 wait_for_snap_changes
 
-# setting this flag is currently required for Checkbox to decide how to resume
+# run the configure hook of the frontend snap
 _run sudo snap set $FRONTEND_NAME agent=enabled
+# note: setting "slave" instead of "agent" has been deprecated but is still necessary for some snaps
+_run sudo snap set $FRONTEND_NAME slave=enabled
 
 # start the service
 _run sudo snap start $FRONTEND_NAME
