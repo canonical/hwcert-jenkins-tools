@@ -68,13 +68,13 @@ curl -s -H 'Snap-Device-Series: 16' ${STORE:+ -H "Snap-Device-Store: $STORE"} "h
 BASE=$(curl -s -H 'Snap-Device-Series: 16' ${STORE:+ -H "Snap-Device-Store: $STORE"} "https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base&architecture=$(get_ubuntu_arch)" \
 | jq -r --arg FRONTEND_TRACK $FRONTEND_TRACK --arg RISK $RISK '.["channel-map"] | .[] | select(.channel.track == $FRONTEND_TRACK and .channel.risk == $RISK) | .base')
 
-echo "DIAGNOSTIC: BASE=$BASE"
+echo "DIAGNOSTIC: --BASE=$BASE--"
 
 # use the base as a heuristic to derive the Checkbox runtime
 if [ "$BASE" = "null" ]; then
   # no base:" resort to using the Core version
   # (the final "grep ." will cause the command to fail if there's no match)
-  RUNTIME_NAME="checkbox$(cat /etc/os-release | sed -n 's/PRETTY_NAME="Ubuntu Core \([0-9]\{2\}\)"$/\1/p' | grep .)"
+  RUNTIME_NAME="checkbox$(_run "cat /etc/os-release" | sed -n 's/PRETTY_NAME="Ubuntu Core \([0-9]\{2\}\)"$/\1/p' | grep .)"
 elif [ "$BASE" = "core" ]; then
   # base: core -> runtime: checkbox16
   RUNTIME_NAME=checkbox16
