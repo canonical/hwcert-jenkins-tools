@@ -22,15 +22,18 @@ get_ubuntu_arch() {
     echo "${arch_map[$(uname -m)]:-$(uname -m)}"
 }
 
-
 find_runtime() {
   # get the store token from the device, if available
   STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
   # get the snap info from the snap store and extract the base
+  # (to be used as a heuristic for deriving the Checkbox runtime)
   BASE=$(curl -s -H 'Snap-Device-Series: 16' ${STORE:+ -H "Snap-Device-Store: $STORE"} "https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base" \
   | jq -r --arg FRONTEND_TRACK $FRONTEND_TRACK --arg RISK $RISK '.["channel-map"] | .[] | select(.channel.track == $FRONTEND_TRACK and .channel.risk == $RISK) | .base')
-  # use the base as a heuristic to derive the Checkbox runtime
-  if [ "$BASE" = "core" ]; then
+  if [ "$BASE" = "null" ]; then
+    # no base:" resort to using the Core version
+    # (the final "grep ." will cause the command to fail if there's no match)
+    RUNTIME_NAME="checkbox$(cat /etc/os-release | sed -n 's/PRETTY_NAME="Ubuntu Core \([0-9]\{2\}\)"$/\1/p' | grep .)"
+  elif [ "$BASE" = "core" ]; then
     # base: core -> runtime: checkbox16
     RUNTIME_NAME=checkbox16
   else
@@ -68,7 +71,11 @@ BASE=$(curl -s -H 'Snap-Device-Series: 16' ${STORE:+ -H "Snap-Device-Store: $STO
 echo "DIAGNOSTIC: BASE=$BASE"
 
 # use the base as a heuristic to derive the Checkbox runtime
-if [ "$BASE" = "core" ]; then
+if [ "$BASE" = "null" ]; then
+  # no base:" resort to using the Core version
+  # (the final "grep ." will cause the command to fail if there's no match)
+  RUNTIME_NAME="checkbox$(cat /etc/os-release | sed -n 's/PRETTY_NAME="Ubuntu Core \([0-9]\{2\}\)"$/\1/p' | grep .)"
+elif [ "$BASE" = "core" ]; then
   # base: core -> runtime: checkbox16
   RUNTIME_NAME=checkbox16
 else
