@@ -16,6 +16,24 @@
 #   It is also used to appropriately install the snap (decide if a snap is
 #   classic or strict)
 
+
+find_runtime() {
+  # get the store token from the device, if available
+  STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
+  # get the snap info from the snap store and extract the base
+  BASE=$(curl -s -H 'Snap-Device-Series: 16' ${STORE:+ -H "Snap-Device-Store: $STORE"} "https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base" \
+  | jq -r --arg FRONTEND_TRACK $FRONTEND_TRACK --arg RISK $RISK '.["channel-map"] | .[] | select(.channel.track == $FRONTEND_TRACK and .channel.risk == $RISK) | .base')
+  # use the base as a heuristic to derive the Checkbox runtime
+  if [ "$BASE" = "core" ]; then
+    # base: core -> runtime: checkbox16
+    RUNTIME_NAME=checkbox16
+  else
+    # base coreYY -> runtime checkboxYY
+    # (the final "grep ." will cause the command to fail if there's no match)
+    RUNTIME_NAME="checkbox$(echo $BASE | sed -n 's/^core\([0-9]\{2\}\)$/\1/p' | grep .)"
+  fi
+}
+
 set -e
 
 if [[ "$#" != "3" ]]; then
@@ -29,11 +47,7 @@ RISK=$1
 FRONTEND_NAME=$2
 FRONTEND_TRACK=$3
 FRONTEND_CHANNEL="$FRONTEND_TRACK/$RISK"
-
-# the runtime name is "checkboxYY";
-# YY is extracted from the "base" field of the frontend snap, which should be coreYY;
-# the final "grep ." will cause this script to exit if there's no match
-RUNTIME_NAME="checkbox$(_run "snap info --verbose $FRONTEND_NAME" | sed -n 's/^base:\s*core\([0-9]\{2\}\)$/\1/p' | grep .)"
+RUNTIME_NAME=$(find_runtime)
 RUNTIME_CHANNEL="latest/$RISK"
 
 echo "Installing runtime snap: $RUNTIME_NAME from $RUNTIME_CHANNEL"
