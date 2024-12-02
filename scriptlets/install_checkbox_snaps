@@ -65,8 +65,10 @@ echo "DIAGNOSTIC: Store info $STORE"
 curl -s -H 'Snap-Device-Series: 16' ${STORE:+ -H "Snap-Device-Store: $STORE"} "https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base" 
 
 # get the snap info from the snap store and extract the base
-BASE=$(curl -s -H 'Snap-Device-Series: 16' ${STORE:+ -H "Snap-Device-Store: $STORE"} "https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base&architecture=$(get_ubuntu_arch)" \
-| jq -r --arg FRONTEND_TRACK $FRONTEND_TRACK --arg RISK $RISK '.["channel-map"] | .[] | select(.channel.track == $FRONTEND_TRACK and .channel.risk == $RISK) | .base')
+BASE=$(curl -s -H 'Snap-Device-Series: 16' ${STORE:+ -H "Snap-Device-Store: $STORE"} "https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base" \
+| jq -r \
+--arg FRONTEND_TRACK $FRONTEND_TRACK --arg RISK $RISK --arg ARCH $(get_ubuntu_arch) \
+'.["channel-map"] | .[] | select(.channel.track == $FRONTEND_TRACK and .channel.risk == $RISK and .channel.architecture == $ARCH) | .base')
 
 echo "DIAGNOSTIC: --BASE=$BASE--"
 
