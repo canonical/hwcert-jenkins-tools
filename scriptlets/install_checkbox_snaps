@@ -59,7 +59,7 @@ export RISK=$1
 export FRONTEND_NAME=$2
 export FRONTEND_TRACK=$3
 FRONTEND_CHANNEL="$FRONTEND_TRACK/$RISK"
-RUNTIME_NAME=$(find_runtime)
+RUNTIME_NAME=$(get_runtime)
 RUNTIME_CHANNEL="latest/$RISK"
 
 echo "Installing runtime snap: $RUNTIME_NAME from $RUNTIME_CHANNEL"
