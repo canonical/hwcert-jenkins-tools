@@ -19,7 +19,8 @@
 
 get_ubuntu_arch() {
     declare -A arch_map=([x86_64]=amd64 [aarch64]=arm64 [armv7l]=armhf [i686]=i386)
-    echo "${arch_map[$(uname -m)]:-$(uname -m)}"
+    UNAME_ARCH=$(_run "uname -m")
+    echo "${arch_map[$UNAME_ARCH]:-$UNAME_ARCH}"
 }
 
 get_runtime() {
