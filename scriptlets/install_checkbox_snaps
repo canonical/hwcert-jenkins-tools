@@ -85,9 +85,6 @@ _run sudo snap set $FRONTEND_NAME agent=enabled
 # note: setting "slave" instead of "agent" has been deprecated but is still necessary for some snaps
 _run sudo snap set $FRONTEND_NAME slave=enabled
 
-# start the service
-_run sudo snap start $FRONTEND_NAME
-
 if $STRICT_FRONTEND; then
     # these are the default plugs (although some custom frontends may not have them)
     CONNECTIONS="checkbox-runtime provider-checkbox provider-resource provider-certification-client"
