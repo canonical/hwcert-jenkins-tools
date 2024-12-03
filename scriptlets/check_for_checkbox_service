@@ -31,6 +31,6 @@ STATUS=$(_run 'systemctl is-active *checkbox*.service')
 # display services to facilitate diagnostics
 if [ $# -eq 1 ]; then
     echo "The Checkbox service is not active on ${DEVICE_IP:-device}"
-    _run systemctl list-units --type=service
+    _run systemctl list-units --type=service --all | grep checkbox
 fi
 exit 1
