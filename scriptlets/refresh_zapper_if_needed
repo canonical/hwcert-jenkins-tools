@@ -8,6 +8,9 @@
 # to the target channel (default is `beta`), upgrade firmware
 # and wait until the add-ons are recognized.
 
+export DEVICE_IP=$ZAPPER_IP
+export DEVICE_PWD=${ZAPPER_PWD:-insecure}
+
 usage() {
     echo "Usage: $(basename ${BASH_SOURCE[0]}) [--channel]"
 }
@@ -28,16 +31,16 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-check_for_zapper_ip >> /dev/null || exit 0
+$(dirname ${BASH_SOURCE[0]})/defs/check_for_device_ip >> /dev/null || exit 0
 
-message=$(_run_zapper sudo snap refresh zapper --amend --channel $CHANNEL 2>&1)
+message=$(_run sudo snap refresh zapper --amend --channel $CHANNEL 2>&1)
 if echo "$message" | grep -q 'no updates available'; then
     echo "Snap was up-to-date, restarting the service instead..."
-    _run_zapper sudo snap restart zapper
+    _run sudo snap restart zapper
 fi
 wait_for_zapper_addons
 
-message=$(_run_zapper zapper firmware update -y --allow-older)
+message=$(_run zapper firmware update -y --allow-older)
 if echo "$message" | grep -q 'update in progress'; then
     echo "Firmware(s) got upgraded, waiting again for the add-on discovery..."
     wait_for_zapper_addons
