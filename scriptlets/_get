@@ -8,6 +8,9 @@
 # which must be set. The user name on the remote device is `ubuntu`
 # by default, unless provided by the environment variable DEVICE_USER.
 #
+# If provided, DEVICE_PWD can be used for password-based authentication,
+# otherwise it is expected to have set up authorization keys first.
+#
 # The last argument provided is considered to be the "target", i.e. where
 # on the local device the file(s) will be copied.
 #
@@ -48,4 +51,10 @@ for SOURCE in "${SOURCES_ARRAY[@]}"; do
 done
 SOURCES="${SOURCES[@]}"
 
-scp $SSH_OPTS $SOURCES $TARGET
+if [ -n "$DEVICE_PWD" ]; then
+    SSHPASS="sshpass -p $DEVICE_PWD"
+else
+    SSHPASS=""
+fi
+
+$SSHPASS scp $SSH_OPTS $SOURCES $TARGET
