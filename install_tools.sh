@@ -41,6 +41,7 @@ install_on_device() {
 
 TOOLS_PATH=""
 BRANCH=""
+SKIP_DEVICE=""
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --branch)
@@ -51,6 +52,9 @@ while [[ "$#" -gt 0 ]]; do
                 echo "Error: value required for --branch"
                 exit 1
             fi
+            ;;
+        --skip-dut)
+            SKIP_DEVICE=true
             ;;
         *)
             if [ -z "$TOOLS_PATH" ]; then
@@ -78,12 +82,14 @@ add_to_path $SCRIPTLETS_PATH
 add_to_path $SCRIPTLETS_PATH/sru-helpers
 add_to_path ~/.local/bin
 
-# ensure that the device is reachable and copy over selected scriptlets
-# (testing reachability with --allow-starting is a single-try fallback option)
-(wait_for_ssh --allow-degraded || check_for_ssh --allow-starting) \
-&& echo "Installing selected scriptlets on the device" \
-&& install_on_device \
-|| exit 1
+if [ -z "$SKIP_DEVICE" ]; then
+    # ensure that the device is reachable and copy over selected scriptlets
+    # (testing reachability with --allow-starting is a single-try fallback option)
+    (wait_for_ssh --allow-degraded || check_for_ssh --allow-starting) \
+    && echo "Installing selected scriptlets on the device" \
+    && install_on_device \
+    || exit 1
+fi
 
 echo "Installing agent dependencies"
 install_packages pipx python3-venv sshpass jq > /dev/null
