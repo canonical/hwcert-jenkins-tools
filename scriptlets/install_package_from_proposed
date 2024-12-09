@@ -27,7 +27,7 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-if [ -z "$PACKAGE"]; then
+if [ -z "$PACKAGE" ]; then
     usage
     echo "Error: Package not specified"
     exit 1
