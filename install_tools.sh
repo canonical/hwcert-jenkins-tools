@@ -3,7 +3,7 @@
 # Clone the certification tools repo to a local directory.
 # If the repo is already available locally, fetch the latest version.
 # Use the --branch option to specify a specific branch.
-# Use the --skip-device to skip installing scriptlets to the DUT.
+# Use the --skip-device option to skip installing scriptlets to the DUT.
 
 # disable tracing (if previously enabled)
 [[ "$-" == *x* ]] && TRACING=true && set +x || TRACING=false
