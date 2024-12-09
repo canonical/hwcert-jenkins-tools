@@ -3,7 +3,7 @@
 # Clone the certification tools repo to a local directory.
 # If the repo is already available locally, fetch the latest version.
 # Use the --branch option to specify a specific branch.
-# Use the --skip-dut to skip installing scriptlets to the DUT.
+# Use the --skip-device to skip installing scriptlets to the DUT.
 
 # disable tracing (if previously enabled)
 [[ "$-" == *x* ]] && TRACING=true && set +x || TRACING=false
@@ -14,7 +14,7 @@ TOOLS_PATH_DEFAULT=$(basename $TOOLS_REPO .git)
 export TOOLS_PATH_DEVICE=".scriptlets"
 
 usage() {
-    echo "Usage: $0 [<path>] [--branch <value>] [--skip-dut]"
+    echo "Usage: $0 [<path>] [--branch <value>] [--skip-device]"
     exit 1
 }
 
@@ -54,7 +54,7 @@ while [[ "$#" -gt 0 ]]; do
                 exit 1
             fi
             ;;
-        --skip-dut)
+        --skip-device)
             SKIP_DEVICE=true
             ;;
         *)
