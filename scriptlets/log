@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+if [ "$1" = "--warn" ]; then
+    TAG=WARN
+elif [ "$1" = "--error" ]; then
+    TAG=ERROR
+else
+    TAG=INFO
+fi
+
+echo "$(date '+%Y-%m-%d %T') [$TAG]: $*"

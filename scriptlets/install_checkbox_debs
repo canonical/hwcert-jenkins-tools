@@ -19,28 +19,52 @@
 # Returns:
 # 0 on success, non-0 on failure
 
-if [[ "$#" != "1" ]]; then
-  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk"
+usage() {
+  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk [--providers <providers>]"
+}
+
+if [ "$#" -lt 1 ]; then
+  usage
+  echo "Error: unspecified risk"
   exit 1
 fi
 
-set -e
+RISK=$1
+shift
 
-echo "Installing Checkbox debian packages at risk: $RISK"
+if [ "$1" = "--providers" ]; then
+  shift
+  PROVIDERS="$@"
+  if [ -z "$PROVIDERS" ]; then
+    usage
+    echo "Error: unspecified providers"
+    exit 1
+  fi
+elif [ "$#" -ne 0 ]; then
+  usage
+  echo "Error: unknown arguments $@"
+  exit 1
+fi
+
+log "Installing Checkbox debian packages at risk: $RISK"
 echo "  PPA that will be used: ppa:checkbox-dev/$RISK"
 echo "  See: https://code.launchpad.net/~checkbox-dev/+archive/ubuntu/$RISK"
+[ -n "$PROVIDERS" ] && echo "  Additional providers: $PROVIDERS"
 
-RISK=$1
+set -e
 
 wait_for_packages_complete
 _run sudo add-apt-repository ppa:checkbox-dev/$RISK
-_run install_packages checkbox-ng python3-checkbox-ng checkbox-provider-base checkbox-provider-resource checkbox-provider-sru fswebcam obexftp wmctrl iperf mesa-utils vim pastebinit fwts xorg-dev gir1.2-clutter-1.0
+_run install_packages \
+  checkbox-ng python3-checkbox-ng \
+  checkbox-provider-base checkbox-provider-resource checkbox-provider-sru $PROVIDERS \
+  fswebcam obexftp wmctrl iperf mesa-utils vim pastebinit fwts xorg-dev gir1.2-clutter-1.0
 wait_for_packages_complete
 
 export CHECKBOX_VERSION=$(_run checkbox-cli --version)
 [ -z "$CHECKBOX_VERSION" ] && echo "Error: Unable to retrieve Checkbox version from device" && exit 1
 
-echo "Installing checkbox $CHECKBOX_VERSION on the agent container from source"
+log "Installing checkbox $CHECKBOX_VERSION on the agent container from source"
 install_checkbox_agent_source $CHECKBOX_VERSION
 
 check_for_checkbox_service
