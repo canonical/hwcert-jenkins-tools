@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+# Install a specific package from proposed and perform a dist-upgrade
+
+usage() {
+    echo "Usage: $(basename $0) package [--series SERIES]"
+}
+
+PACKAGE=""
+SERIES=$(lsb_release -cs)
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --series)
+            shift
+            SERIES=$1
+            ;;
+        *)
+            if [ -z "$PACKAGE" ]; then
+                PACKAGE=$1
+            else
+                usage
+                echo "Error: Invalid argument $1 (only a single package can be specifed)"
+                exit 1
+            fi
+            ;;
+    esac
+    shift
+done
+
+if [ -z "$PACKAGE"]; then
+    usage
+    echo "Error: Package not specified"
+    exit 1
+fi
+
+_run wait_for_packages_complete
+
+log "Installing $PACKAGE"
+_run install_packages -t $SERIES-proposed $PACKAGE
+_run wait_for_packages_complete
+
+log "Running a dist-upgrade"
+_run install_packages --dist-upgrade -- --allow-remove-essential
+_run wait_for_packages_complete
+
+log "Rebooting for changes to take effect"
+_run sudo reboot
+wait_for_ssh --allow-degraded
