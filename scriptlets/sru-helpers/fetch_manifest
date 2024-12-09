@@ -51,6 +51,7 @@ def fetch_c3_manifest(cid: str, secure_id: str, output: Path) -> bool:
     # convert the manifest JSON from the response into
     # an INI-style configuration and write it to a file
     manifest_config = ConfigParser(delimiters=("=",))
+    manifest_config.optionxform = str
     manifest_config["manifest"] = response.json()
     with open(output, "w") as manifest_file:
         manifest_config.write(manifest_file)
@@ -65,6 +66,7 @@ def fetch_default_manifest(default: Path, output: Path) -> bool:
     and written back to the `output` file, for safety/validation.
     """
     manifest_config = ConfigParser(delimiters=("=",))
+    manifest_config.optionxform = str
     try:
         with open(default, "r") as manifest_file:
             manifest_config.read_file(manifest_file)
