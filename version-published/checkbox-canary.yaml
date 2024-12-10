@@ -65,7 +65,7 @@ required-packages:
     source: checkbox-provider-gpgpu
     package: checkbox-provider-gpgpu
     versions: [ "18.04", "20.04", "22.04", "24.04" ]
-    architectures: [ all ]
+    architectures: [ amd64 ]
 
   - channel: edge
     source: checkbox-provider-resource

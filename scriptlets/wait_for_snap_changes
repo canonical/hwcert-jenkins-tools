@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 
 # Wait for all snap changes on a remote device to complete
-# 
+#
 # See `check_for_snap_changes` (which is repeatedly called here)
 # for details
 #
 # Return value:
-# 
+#
 # 0 if `check_for_snap_changes` is successful or 1 otherwise
 
 usage() {
     echo "Usage: $(basename $0) [--times TIMES] [--delay DELAY]"
 }
 
-TIMES=40
+# 1h 30m max time (180 * 30 / 60 seconds)
+TIMES=180
 DELAY=30
 while [[ "$#" -gt 0 ]]; do
     case $1 in
