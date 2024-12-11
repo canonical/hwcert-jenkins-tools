@@ -37,7 +37,7 @@ def parse_args() -> Namespace:
     return parser.parse_args()
 
 
-def fetch_c3_manifest(cid: str, secure_id: str, output: Path) -> bool:
+def fetch_c3_manifest(cid: str, secure_id: str, output: Path):
     """
     Fetch manifest for `cid` from C3 and write it to the `output` file
     """
@@ -46,8 +46,7 @@ def fetch_c3_manifest(cid: str, secure_id: str, output: Path) -> bool:
         "https://certification.canonical.com/api/v2/machines/"
         f"{cid}/manifest?secure_id={secure_id}"
     )
-    if response.status_code != 200:
-        return False
+    response.raise_for_status()
     # convert the manifest JSON from the response into
     # an INI-style configuration and write it to a file
     manifest_config = ConfigParser(delimiters=("=",))
@@ -55,10 +54,9 @@ def fetch_c3_manifest(cid: str, secure_id: str, output: Path) -> bool:
     manifest_config["manifest"] = response.json()
     with open(output, "w") as manifest_file:
         manifest_config.write(manifest_file)
-    return True
 
 
-def fetch_default_manifest(default: Path, output: Path) -> bool:
+def fetch_default_manifest(default: Path, output: Path):
     """
     Fetch a `default` manifest and write it to the `output` file
 
@@ -67,40 +65,37 @@ def fetch_default_manifest(default: Path, output: Path) -> bool:
     """
     manifest_config = ConfigParser(delimiters=("=",))
     manifest_config.optionxform = str
-    try:
-        with open(default, "r") as manifest_file:
-            manifest_config.read_file(manifest_file)
-    except (ParsingError, FileNotFoundError) as error:
-        print(f"{type(error).__name__}: {error}")
-        return False
+    with open(default, "r") as manifest_file:
+        manifest_config.read_file(manifest_file)
     with open(output, "w") as manifest_file:
         manifest_config.write(manifest_file)
-    return True
 
 
 def main() -> int:
     args = parse_args()
 
     print(f"Fetching manifest for {args.cid} from C3")
-    fetched = fetch_c3_manifest(args.cid, args.secure_id, args.output)
-    if fetched:
+    try:
+        fetch_c3_manifest(args.cid, args.secure_id, args.output)
         print(f"Fetched manifest for {args.cid} into '{args.output}'")
         return 0
-
-    if not args.default:
-        # no fetched manifest, no default manifest provided
+    except requests.RequestException as error:
         print(f"Could not fetch manifest for {args.cid}")
-        return 1
+        print(f"{type(error).__name__}: {error}")
+        if not args.default:
+            # no fetched manifest, no default manifest specified
+            return 1
 
-    # default manifest provided, fetch that instead
-    print(f"Fetching default manifest from '{args.default}'")
-    fetched = fetch_default_manifest(args.default, args.output)
-    if fetched:
+    # default manifest specified, fetch that instead
+    print(f"Retrieving default manifest from '{args.default}'")
+    try:
+        fetch_default_manifest(args.default, args.output)
         print(f"Fetched default manifest into '{args.output}'")
         return 0
-
-    print(f"Could not fetch manifest or provide default for {args.cid}")
-    return 1
+    except (ParsingError, FileNotFoundError) as error:
+        print(f"Could not retrieve default manifest for {args.cid}")
+        print(f"{type(error).__name__}: {error}")
+        return 1
 
 
 if __name__ == "__main__":
