@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+# Enable the proposed pocket for an arch and series and pin package priority (on the device)
+# https://wiki.ubuntu.com/Testing/EnableProposed
+
+usage() {
+    echo "Usage: $(basename $0) [--arch ARCH] [--series SERIES]"
+}
+
+ARCH=$(dpkg --print-architecture)
+SERIES=$(lsb_release -cs)
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --arch)
+            shift
+            ARCH=$1
+            ;;
+        --series)
+            shift
+            SERIES=$1
+            ;;
+        *)
+            usage
+            echo "Error: Invalid argument $1"
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+# determine URL for proposed repository
+[[ "$ARCH" =~ ^(amd64|i386)$ ]] && ARCHIVE_URL="http://archive.ubuntu.com/ubuntu/" || ARCHIVE_URL="http://ports.ubuntu.com/ubuntu-ports"
+
+# enable proposed pocket (on the device)
+log "enabling proposed pocket"
+echo "deb $ARCHIVE_URL $SERIES-proposed main restricted universe multiverse" | _run "sudo tee /etc/apt/sources.list.d/proposed-repositories.list"
+
+# pin package priority (on the device)
+log "pining priority of packages"
+cat << EOF | _run "sudo tee -a /etc/apt/preferences.d/pining"
+Package: '*'
+Pin: release o=Ubuntu,a=$SERIES-proposed
+Pin-priority: 400
+EOF

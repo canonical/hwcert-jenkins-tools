@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 
-# Access the SCENARIO_FILE and output the key specified
+# Access the SCENARIO_FILE and output the value specified
 # by the first argument, e.g. scenario job.artifact.series
 #
-# If the key is not present in the SCENARIO_FILE, the output is "null"
+# If the specified key is not present in the SCENARIO_FILE,
+# then the output is "null"
 # 
 # Return value:
 #
-# 0 if the key is present in the SCENARIO_FILE
+# 0 if the specified key is present in the SCENARIO_FILE
 # Non-zero otherwise (because of the -e option provided to jq)
+
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--list] <specifier>"
+}
 
 dot_to_brackets() {
     # convert a simple dot-delimited filter like a.b.c
@@ -24,4 +29,23 @@ dot_to_brackets() {
     '
 }
 
-jq -r -e $(dot_to_brackets "$1") "$SCENARIO_FILE"
+if [ "$1" = "--list" ]; then
+    ARG_LIST_FLAG=true
+    shift
+fi
+
+if [ "$#" -eq 0 ]; then
+    usage
+    echo "Error: missing specifier"
+    exit 1
+fi
+
+RESULT=$(jq -r -e $(dot_to_brackets "$1") "$SCENARIO_FILE")
+EXIT_CODE="$?"
+
+if [ "$EXIT_CODE" -ne 0 ] || [ -z "$ARG_LIST_FLAG" ]; then
+    echo "$RESULT"
+else
+    echo "$RESULT" | jq -r 'join(" ")'
+fi
+exit $EXIT_CODE
