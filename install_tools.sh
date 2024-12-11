@@ -2,7 +2,8 @@
 
 # Clone the certification tools repo to a local directory.
 # If the repo is already available locally, fetch the latest version.
-# Use the --branch option to specify a specific branch
+# Use the --branch option to specify a specific branch.
+# Use the --skip-device option to skip installing scriptlets to the DUT.
 
 # disable tracing (if previously enabled)
 [[ "$-" == *x* ]] && TRACING=true && set +x || TRACING=false
@@ -13,7 +14,7 @@ TOOLS_PATH_DEFAULT=$(basename $TOOLS_REPO .git)
 export TOOLS_PATH_DEVICE=".scriptlets"
 
 usage() {
-    echo "Usage: $0 [<path>] [--branch <value>]"
+    echo "Usage: $0 [<path>] [--branch <value>] [--skip-device]"
     exit 1
 }
 
@@ -34,6 +35,7 @@ install_on_device() {
 
 TOOLS_PATH=""
 BRANCH=""
+SKIP_DEVICE=""
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --branch)
@@ -44,6 +46,9 @@ while [[ "$#" -gt 0 ]]; do
                 echo "Error: value required for --branch"
                 exit 1
             fi
+            ;;
+        --skip-device)
+            SKIP_DEVICE=true
             ;;
         *)
             if [ -z "$TOOLS_PATH" ]; then
@@ -75,18 +80,28 @@ add_to_path $SCRIPTLETS_PATH
 add_to_path $SCRIPTLETS_PATH/sru-helpers
 add_to_path ~/.local/bin
 
-echo "Installing agent dependencies"
+log "Installing agent dependencies"
 install_packages pipx python3-venv sshpass jq > /dev/null
 
-echo "Installing agent tools"
+log "Installing agent tools"
 pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
 
-# ensure that the device is reachable and copy over selected scriptlets
-# (testing reachability with --allow-starting is a single-try fallback option)
-(wait_for_ssh --allow-degraded || check_for_ssh --allow-starting) \
-&& echo "Installing selected scriptlets on the device" \
-&& install_on_device \
-|| exit 1
+# grab DEVICE_USER from the scenario file, if possible
+# (generally, a non-default DEVICE_USER needs to be set
+# prior to accessing the device for the first time)
+if check_for_scenario_file > /dev/null; then
+    DEVICE_USER="$(scenario environment.user)"
+    [ "$?" -eq 0 ] && export DEVICE_USER && log "DEVICE_USER set to $DEVICE_USER"
+fi
+
+if [ -z "$SKIP_DEVICE" ]; then
+    # ensure that the device is reachable and copy over selected scriptlets
+    # (testing reachability with --allow-starting is a single-try fallback option)
+    (wait_for_ssh --allow-degraded || check_for_ssh --allow-starting) \
+    && echo "Installing selected scriptlets on the device" \
+    && install_on_device \
+    || exit 1
+fi
 
 # restore tracing (if previously enabled)
 [ "$TRACING" = true ] && set -x || true
