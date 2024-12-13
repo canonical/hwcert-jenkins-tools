@@ -27,10 +27,20 @@ get_runtime() {
     # get the store token from the device, if available
     STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
     # get the snap info from the snap store and extract the base
-    BASE=$(curl -s -H 'Snap-Device-Series: 16' ${STORE:+ -H "Snap-Device-Store: $STORE"} "https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base" \
-    | jq -r \
-    --arg FRONTEND_TRACK $FRONTEND_TRACK --arg RISK $RISK --arg ARCH $(get_ubuntu_arch) \
-    '.["channel-map"] | .[] | select(.channel.track == $FRONTEND_TRACK and .channel.risk == $RISK and .channel.architecture == $ARCH) | .base')
+    SNAPSTORE_URL="https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base"
+    SNAPINFO=$(curl -s -H 'Snap-Device-Series: 16' ${STORE:+ -H "Snap-Device-Store: $STORE"} "$SNAPSTORE_URL")
+    BASE=$(jq -r \
+      --arg FRONTEND_TRACK $FRONTEND_TRACK \
+      --arg RISK $RISK \
+      --arg ARCH $(get_ubuntu_arch) \
+      '.["channel-map"] | .[] |
+       select(
+         .channel.track == $FRONTEND_TRACK and
+         .channel.risk == $RISK and
+         .channel.architecture == $ARCH
+        ) |
+        .base' <<< $SNAPINFO
+    )
     # use the base as a heuristic to derive the Checkbox runtime
     if [ "$BASE" = "null" ]; then
       # no base:" fall back to using the Core version
