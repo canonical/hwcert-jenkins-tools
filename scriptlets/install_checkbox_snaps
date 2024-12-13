@@ -57,6 +57,41 @@ get_runtime() {
     echo $RUNTIME_NAME
 }
 
+connect() {
+    # Collect unconnected frontend plugs (strip out the frontend name)
+    FRONTEND_PLUGS=$(_run "snap connections $FRONTEND_NAME" | awk '$3 == "-" {print $2}' | sed -n "s/$FRONTEND_NAME:\(.*\)$/\1/p")
+    # Collect unconnected runtime slots (strip out the runtime name)
+    # and keep them in a set (for quicker membership tests)
+    RUNTIME_SLOTS=$(_run snap connections "$RUNTIME_NAME" | awk '$2 == "-" {print $3}' | sed -n "s/$RUNTIME_NAME:\(.*\)$/\1/p")
+    declare -A RUNTIME_SLOT_SET
+    for SLOT in $RUNTIME_SLOTS; do RUNTIME_SLOT_SET[$SLOT]=$SLOT; done
+    # For each unconnected frontend plug, check if you can connect to a matching runtime slot
+    while read -r PLUG; do
+        SLOT=${RUNTIME_SLOT_SET[$PLUG]}
+        if [ -n "$SLOT" ]; then
+            echo "Connecting $FRONTEND_NAME:$PLUG to $RUNTIME_NAME:$SLOT"
+            # input from /dev/null prevents ssh from consuming the standard input
+            _run sudo snap connect $FRONTEND_NAME:$PLUG $RUNTIME_NAME:$SLOT < /dev/null
+        fi
+    done <<< "$FRONTEND_PLUGS"
+    # Collect unconnected frontend plugs and their corresponding (non-content) interface
+    FRONTEND_PLUGS=$(_run "snap connections $FRONTEND_NAME" | awk '$3 == "-" && $1 != "content" {print $2, $1}')
+    # Collect slots and their corresponding (non-content) interface
+    # and create an interface -> slot mapping (for quicker checks)
+    SLOTS=$(_run "snap connections --all" | awk '$3 ~ ":" && $1 != "content" {print $3, $1}')
+    declare -A INTERFACE_SLOT_MAP
+    while IFS=' ' read -r SLOT INTERFACE; do INTERFACE_SLOT_MAP[$INTERFACE]=$SLOT; done <<< "$SLOTS"
+    # For each unconnected frontend plug, check if you can connect to a matching runtime slot
+    while IFS=' ' read -r PLUG INTERFACE; do
+        SLOT=${INTERFACE_SLOT_MAP[$INTERFACE]}
+        if [ -n "$SLOT" ]; then
+            echo "Connecting $PLUG to $SLOT"
+            # input from /dev/null prevents ssh from consuming the standard input
+            _run sudo snap connect $PLUG $SLOT < /dev/null
+        fi
+    done <<< "$FRONTEND_PLUGS"
+}
+
 set -e
 
 if [[ "$#" != "3" ]]; then
@@ -69,8 +104,8 @@ log "Installing Checkbox snaps"
 export RISK=$1
 export FRONTEND_NAME=$2
 export FRONTEND_TRACK=$3
+export RUNTIME_NAME=$(get_runtime)
 FRONTEND_CHANNEL="$FRONTEND_TRACK/$RISK"
-RUNTIME_NAME=$(get_runtime)
 RUNTIME_CHANNEL="latest/$RISK"
 
 echo "Installing runtime snap: $RUNTIME_NAME from $RUNTIME_CHANNEL"
@@ -96,31 +131,8 @@ _run sudo snap set $FRONTEND_NAME agent=enabled
 _run sudo snap set $FRONTEND_NAME slave=enabled
 
 if $STRICT_FRONTEND; then
-    # these are the default plugs (although some custom frontends may not have them)
-    CONNECTIONS="checkbox-runtime provider-checkbox provider-resource provider-certification-client"
-    # these are the actual plugs for this frontend
-    FRONTEND_PLUGS=$(_run "snap connections $FRONTEND_NAME" | awk '{ print $2 }' | tail +2)
-    # iterate over the default plugs...
-    for CONNECTION in $CONNECTIONS; do
-        # ... and connect them to the corresponding slot in the runtime, if the plug exists
-        if echo "$FRONTEND_PLUGS" | grep -q "^$FRONTEND_NAME:$CONNECTION$"; then
-            _run sudo snap connect $FRONTEND_NAME:$CONNECTION $RUNTIME_NAME:$CONNECTION
-        fi
-    done
-
-    # these plugs are not automatically connected but are necessary to run some tests
-    # (we are handling results on a per-interface basis because we may not need
-    # these interfaces if we don't run the tests they are required for)
-    set +e
-    # network tests
-    _run sudo snap connect $FRONTEND_NAME:network-manager network-manager:service \
-    || echo "Failed to connect plug. Networking (mostly wifi) tests may not work"
-    # bluetooth tests
-    _run sudo snap connect $FRONTEND_NAME:bluez bluez:service \
-    || echo "Failed to connect plug. Bluetooth tests may not work"
-    _run sudo snap connect $FRONTEND_NAME:bluetooth-control core:bluetooth-control \
-    || echo "Failed to connect plug. Bluetooth tests may not work"
-    set -e
+    # connect any unconnected frontend plugs to available plugs
+    connect
 fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
