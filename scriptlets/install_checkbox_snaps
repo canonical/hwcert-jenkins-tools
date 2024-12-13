@@ -57,6 +57,64 @@ get_runtime() {
     echo $RUNTIME_NAME
 }
 
+connect() {
+    CONNECTIONS=$(_run "snap connections --all")
+    echo "$CONNECTIONS" | awk '
+        # Collect unconnected frontend plugs
+        $2 ~ "^'"$FRONTEND_NAME"':" && $3 == "-" {
+            match($2, "^'"$FRONTEND_NAME"':(.+)", matches);
+            plug_name = matches[1];
+            plugs[plug_name] = 1;
+        }
+        # Collect unconnected runtime slots
+        $3 ~ "^'"$RUNTIME_NAME"':" && $2 == "-" {
+            match($3, "^'"$RUNTIME_NAME"':(.+)", matches);
+            slot_name = matches[1];
+            slots[slot_name] = 1;
+        }
+        END {
+            # Connect frontend plugs to matching runtime slots
+            for (plug_name in plugs) {
+                if (plug_name in slots) {
+                    plug = "'"$FRONTEND_NAME"':" plug_name;
+                    slot = "'"$RUNTIME_NAME"':" plug_name;
+                    print "Connecting " plug " to " slot;
+                    system("snap connect " plug " " slot);
+                }
+            }
+        }
+    '
+    echo "$CONNECTIONS" | awk '
+        # Collect unconnected non-content frontend plugs
+        $2 ~ "^'"$FRONTEND_NAME"':" && $3 == "-" && $1 != "content" {
+            interface = $1;
+            match($2, "^'"$FRONTEND_NAME"':(.+)", matches);
+            plug_name = matches[1];
+            plugs[plug_name] = interface;
+        }
+        # Collect all non-content slots by interface
+        $3 ~ ":" {
+            interface = $1;
+            if (interface != "content") {
+                slots[interface] = $3;
+            }
+        }
+        END {
+            # Connect frontend plugs to slots on matching interfaces
+            for (plug_name in plugs) {
+                interface = plugs[plug_name];
+                if (interface in slots) {
+                    plug = "'"$FRONTEND_NAME"':" plug_name;
+                    slot = slots[interface];
+                    print "Connecting " plug " (" interface ") to " slot;
+                    system("snap connect " plug " " slot);
+                }
+            }
+        }
+    '
+}
+
+
 set -e
 
 if [[ "$#" != "3" ]]; then
@@ -96,31 +154,7 @@ _run sudo snap set $FRONTEND_NAME agent=enabled
 _run sudo snap set $FRONTEND_NAME slave=enabled
 
 if $STRICT_FRONTEND; then
-    # these are the default plugs (although some custom frontends may not have them)
-    CONNECTIONS="checkbox-runtime provider-checkbox provider-resource provider-certification-client"
-    # these are the actual plugs for this frontend
-    FRONTEND_PLUGS=$(_run "snap connections $FRONTEND_NAME" | awk '{ print $2 }' | tail +2)
-    # iterate over the default plugs...
-    for CONNECTION in $CONNECTIONS; do
-        # ... and connect them to the corresponding slot in the runtime, if the plug exists
-        if echo "$FRONTEND_PLUGS" | grep -q "^$FRONTEND_NAME:$CONNECTION$"; then
-            _run sudo snap connect $FRONTEND_NAME:$CONNECTION $RUNTIME_NAME:$CONNECTION
-        fi
-    done
-
-    # these plugs are not automatically connected but are necessary to run some tests
-    # (we are handling results on a per-interface basis because we may not need
-    # these interfaces if we don't run the tests they are required for)
-    set +e
-    # network tests
-    _run sudo snap connect $FRONTEND_NAME:network-manager network-manager:service \
-    || echo "Failed to connect plug. Networking (mostly wifi) tests may not work"
-    # bluetooth tests
-    _run sudo snap connect $FRONTEND_NAME:bluez bluez:service \
-    || echo "Failed to connect plug. Bluetooth tests may not work"
-    _run sudo snap connect $FRONTEND_NAME:bluetooth-control core:bluetooth-control \
-    || echo "Failed to connect plug. Bluetooth tests may not work"
-    set -e
+    connect
 fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
