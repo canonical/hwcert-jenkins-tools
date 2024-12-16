@@ -10,77 +10,129 @@
 # ready to run tests.
 # The `risk` parameter can be either "stable", "beta", "edge" and is used for
 #   both runtime and frontend
-# The `runtime_name` can be any of the runtime snaps (eg. checkbox16,
-#   checkbox24 etc.)
 # The `frontend_name` can be any of the frontend snaps (eg. checkbox,
 #   checkbox-tillamook).
 # The `frontend_track` parameter can be any valid track name (eg. 22.04, uc16).
 #   It is also used to appropriately install the snap (decide if a snap is
 #   classic or strict)
 
+
+get_ubuntu_arch() {
+    declare -A arch_map=([x86_64]=amd64 [aarch64]=arm64 [armv7l]=armhf [i686]=i386)
+    UNAME_ARCH=$(_run "uname -m")
+    echo "${arch_map[$UNAME_ARCH]:-$UNAME_ARCH}"
+}
+
+get_runtime() {
+    # get the store token from the device, if available
+    STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
+    # get the snap info from the snap store and extract the base
+    SNAPSTORE_URL="https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base"
+    SNAPINFO=$(curl -s -H 'Snap-Device-Series: 16' ${STORE:+ -H "Snap-Device-Store: $STORE"} "$SNAPSTORE_URL")
+    BASE=$(jq -r \
+      --arg FRONTEND_TRACK $FRONTEND_TRACK \
+      --arg RISK $RISK \
+      --arg ARCH $(get_ubuntu_arch) \
+      '.["channel-map"] | .[] |
+       select(
+         .channel.track == $FRONTEND_TRACK and
+         .channel.risk == $RISK and
+         .channel.architecture == $ARCH
+        ) |
+        .base' <<< $SNAPINFO
+    )
+    # use the base as a heuristic to derive the Checkbox runtime
+    if [ "$BASE" = "null" ]; then
+      # no base:" fall back to using the Core version
+      # (the final "grep ." will cause the command to fail if there's no match)
+      RUNTIME_NAME="checkbox$(_run "cat /etc/os-release" | sed -n 's/PRETTY_NAME="Ubuntu Core \([0-9]\{2\}\)"$/\1/p' | grep .)"
+    elif [ "$BASE" = "core" ]; then
+      # base: core -> runtime: checkbox16
+      RUNTIME_NAME=checkbox16
+    else
+      # base coreYY -> runtime checkboxYY
+      # (the final "grep ." will cause the command to fail if there's no match)
+      RUNTIME_NAME="checkbox$(echo $BASE | sed -n 's/^core\([0-9]\{2\}\)$/\1/p' | grep .)"
+    fi
+    echo $RUNTIME_NAME
+}
+
+connect() {
+    # Collect unconnected frontend plugs (strip out the frontend name)
+    FRONTEND_PLUGS=$(_run "snap connections $FRONTEND_NAME" | awk '$3 == "-" {print $2}' | sed -n "s/$FRONTEND_NAME:\(.*\)$/\1/p")
+    # Collect unconnected runtime slots (strip out the runtime name)
+    # and keep them in a set (for quicker membership tests)
+    RUNTIME_SLOTS=$(_run snap connections "$RUNTIME_NAME" | awk '$2 == "-" {print $3}' | sed -n "s/$RUNTIME_NAME:\(.*\)$/\1/p")
+    declare -A RUNTIME_SLOT_SET
+    for SLOT in $RUNTIME_SLOTS; do RUNTIME_SLOT_SET[$SLOT]=$SLOT; done
+    # For each unconnected frontend plug, check if you can connect it to a matching runtime slot
+    while read -r PLUG; do
+        SLOT=${RUNTIME_SLOT_SET[$PLUG]}
+        if [ -n "$SLOT" ]; then
+            echo "Connecting $FRONTEND_NAME:$PLUG to $RUNTIME_NAME:$SLOT"
+            # input from /dev/null prevents ssh from consuming the standard input
+            _run sudo snap connect $FRONTEND_NAME:$PLUG $RUNTIME_NAME:$SLOT < /dev/null
+        fi
+    done <<< "$FRONTEND_PLUGS"
+    # Collect unconnected frontend plugs and their corresponding (non-content) interface
+    FRONTEND_PLUGS=$(_run "snap connections $FRONTEND_NAME" | awk '$3 == "-" && $1 != "content" {print $2, $1}')
+    # Collect slots and their corresponding (non-content) interface
+    # and create an interface -> slot mapping (for quicker checks)
+    SLOTS=$(_run "snap connections --all" | awk '$3 ~ ":" && $1 != "content" {print $3, $1}')
+    declare -A INTERFACE_SLOT_MAP
+    while IFS=' ' read -r SLOT INTERFACE; do INTERFACE_SLOT_MAP[$INTERFACE]=$SLOT; done <<< "$SLOTS"
+    # For each unconnected frontend plug, check if you can connect it to a slot on a matching interface
+    while IFS=' ' read -r PLUG INTERFACE; do
+        SLOT=${INTERFACE_SLOT_MAP[$INTERFACE]}
+        if [ -n "$SLOT" ]; then
+            echo "Connecting $PLUG to $SLOT"
+            # input from /dev/null prevents ssh from consuming the standard input
+            _run sudo snap connect $PLUG $SLOT < /dev/null
+        fi
+    done <<< "$FRONTEND_PLUGS"
+}
+
 set -e
 
-if [[ "$#" != "4" ]]; then
-  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk runtime_name frontend_name frontend_track"
+if [[ "$#" != "3" ]]; then
+  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk frontend_name frontend_track"
   exit 1
 fi
 
 log "Installing Checkbox snaps"
 
-RISK=$1
-RUNTIME_NAME=$2
-FRONTEND_NAME=$3
-FRONTEND_TRACK=$4
+export RISK=$1
+export FRONTEND_NAME=$2
+export FRONTEND_TRACK=$3
+export RUNTIME_NAME=$(get_runtime)
+FRONTEND_CHANNEL="$FRONTEND_TRACK/$RISK"
+RUNTIME_CHANNEL="latest/$RISK"
 
+echo "Installing runtime snap: $RUNTIME_NAME from $RUNTIME_CHANNEL"
+_run sudo snap install --no-wait $RUNTIME_NAME --channel=$RUNTIME_CHANNEL
 wait_for_snap_changes
-_run sudo snap install --no-wait $RUNTIME_NAME --channel=latest/$RISK
-wait_for_snap_changes
 
-# strict snaps need a different install flag and the connections to be made.
-# Checkbox Frontend snaps are strict on the tracks ucXX. Update
-# this regex to match more if alternative frontends need this as well
-[[ "$FRONTEND_TRACK" == uc* ]] && STRICT_FRONTEND=true || STRICT_FRONTEND=false
-
-if $STRICT_FRONTEND; then
-  echo "Frontend is a strict snap, using --devmode"
-  EXTRA_SNAP_INSTALL_FLAG="--devmode"
-else
-  echo "Frontend is a classic snap, using --classic"
-  EXTRA_SNAP_INSTALL_FLAG="--classic"
+# install the frontend snap as a strict snap and revert to classic if that fails
+# (strict snaps need a different install flag and the connections to be made)
+echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a strict snap, using --devmode)"
+STRICT_FRONTEND=true
+_run sudo snap install --no-wait $FRONTEND_NAME --devmode --channel=$FRONTEND_CHANNEL
+if [ "$?" -ne 0 ]; then
+    echo "Failed to install $FRONTEND_NAME as a strict snap"
+    echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a classic snap, using --classic)"
+    STRICT_FRONTEND=false
+    _run sudo snap install --no-wait $FRONTEND_NAME --classic --channel=$FRONTEND_CHANNEL
 fi
-
-_run sudo snap install --no-wait $FRONTEND_NAME $EXTRA_SNAP_INSTALL_FLAG --channel=$FRONTEND_TRACK/$RISK
 wait_for_snap_changes
 
+# run the configure hook of the frontend snap
+_run sudo snap set $FRONTEND_NAME agent=enabled
+# note: setting "slave" instead of "agent" has been deprecated but is still necessary for some snaps
+_run sudo snap set $FRONTEND_NAME slave=enabled
+
 if $STRICT_FRONTEND; then
-  # these plugs are not automatically connected but are necessary to run some
-  # tests. Namely:
-  set +e
-  # Here we are handling results on a per-interface basis because we may not need
-  # these interfaces as we may not need to run the tests they are needed for
-
-  # Network tests
-  _run sudo snap connect $FRONTEND_NAME:network-manager network-manager:service
-  if [ $? -ne 0 ]; then
-    echo "Failed to connect plug. Networking (mostly wifi) tests may not work"
-  fi
-  # bluetooth tests
-  _run sudo snap connect $FRONTEND_NAME:bluez bluez:service
-  if [ $? -ne 0 ]; then
-    echo "Failed to connect plug. Bluetooth tests may not work"
-  fi
-  _run sudo snap connect $FRONTEND_NAME:bluetooth-control core:bluetooth-control
-  if [ $? -ne 0 ]; then
-    echo "Failed to connect plug. Bluetooth tests may not work"
-  fi
-  set -e
-
-  # force connect also the default plugs. This is necessary on some machines but
-  # is effectively a no-op when it would not be needed
-  _run sudo snap connect $FRONTEND_NAME:checkbox-runtime $RUNTIME_NAME:checkbox-runtime
-  _run sudo snap connect $FRONTEND_NAME:provider-certification-client $RUNTIME_NAME:provider-certification-client
-  _run sudo snap connect $FRONTEND_NAME:provider-checkbox $RUNTIME_NAME:provider-checkbox
-  _run sudo snap connect $FRONTEND_NAME:provider-resource $RUNTIME_NAME:provider-resource
+    # connect any unconnected frontend plugs to available plugs
+    connect
 fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
@@ -90,10 +142,13 @@ fi
 _run sudo snap refresh --no-wait $RUNTIME_NAME --channel=latest/$RISK
 wait_for_snap_changes
 
+# restart the service, to make sure the latest version of the code is used
+_run sudo snap restart $FRONTEND_NAME
+
 export CHECKBOX_VERSION=$(_run $FRONTEND_NAME.checkbox-cli --version)
 [ -z "$CHECKBOX_VERSION" ] && log --error "Unable to retrieve Checkbox version from device" && exit 1
 
 log "Installing checkbox $CHECKBOX_VERSION on the agent container from source"
 install_checkbox_agent_source $CHECKBOX_VERSION
 
-check_for_checkbox_service
+check_for_checkbox_service --debug
