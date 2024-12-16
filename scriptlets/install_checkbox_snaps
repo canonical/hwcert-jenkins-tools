@@ -26,9 +26,12 @@ get_ubuntu_arch() {
 get_runtime() {
     # get the store token from the device, if available
     STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
+    echo "DIAGNOSTIC store $STORE" 
     # get the snap info from the snap store and extract the base
     SNAPSTORE_URL="https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base"
+    echo "DIAGNOSTIC store url $SNAPSTORE_URL"
     SNAPINFO=$(curl -s -H 'Snap-Device-Series: 16' ${STORE:+ -H "Snap-Device-Store: $STORE"} "$SNAPSTORE_URL")
+    echo "DIAGNOSTIC snap info $SNAPINFO" | jq
     BASE=$(jq -r \
       --arg FRONTEND_TRACK $FRONTEND_TRACK \
       --arg RISK $RISK \
@@ -41,6 +44,7 @@ get_runtime() {
         ) |
         .base' <<< $SNAPINFO
     )
+    echo "DIAGNOSTIC base $BASE"
     # use the base as a heuristic to derive the Checkbox runtime
     if [ "$BASE" = "null" ]; then
       # no base:" fall back to using the Core version
