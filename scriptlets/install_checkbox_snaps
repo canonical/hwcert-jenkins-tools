@@ -65,7 +65,7 @@ connect() {
     RUNTIME_SLOTS=$(_run snap connections "$RUNTIME_NAME" | awk '$2 == "-" {print $3}' | sed -n "s/$RUNTIME_NAME:\(.*\)$/\1/p")
     declare -A RUNTIME_SLOT_SET
     for SLOT in $RUNTIME_SLOTS; do RUNTIME_SLOT_SET[$SLOT]=$SLOT; done
-    # For each unconnected frontend plug, check if you can connect to a matching runtime slot
+    # For each unconnected frontend plug, check if you can connect it to a matching runtime slot
     while read -r PLUG; do
         SLOT=${RUNTIME_SLOT_SET[$PLUG]}
         if [ -n "$SLOT" ]; then
@@ -81,7 +81,7 @@ connect() {
     SLOTS=$(_run "snap connections --all" | awk '$3 ~ ":" && $1 != "content" {print $3, $1}')
     declare -A INTERFACE_SLOT_MAP
     while IFS=' ' read -r SLOT INTERFACE; do INTERFACE_SLOT_MAP[$INTERFACE]=$SLOT; done <<< "$SLOTS"
-    # For each unconnected frontend plug, check if you can connect to a matching runtime slot
+    # For each unconnected frontend plug, check if you can connect it to a slot on a matching interface
     while IFS=' ' read -r PLUG INTERFACE; do
         SLOT=${INTERFACE_SLOT_MAP[$INTERFACE]}
         if [ -n "$SLOT" ]; then
