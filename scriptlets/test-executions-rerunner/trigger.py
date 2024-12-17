@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Use the Jenkins API to manually build jobs with parameters.
+Use the Jenkins API to manually deploy and trigger jobs with parameters.
 
 These environment variables need to be set in order to reach the Jenkins API
 and authenticate:
@@ -13,11 +13,12 @@ Examples:
 
 ```
 ./trigger.py deploy \
-cert-raspi-sru-noble-server-arm64-rpi4b8g-server-rt \
-cert-raspi-sru-noble-server-arm64-rpi5b8g-server-rt \
-cert-raspi-sru-noble-desktop-arm64-rpi4b8g-desktop-rt \
-cert-raspi-sru-noble-desktop-arm64-rpi5b8g-desktop-rt \
---branch realtime-fixes
+RTW-399-raspi-sru-noble-server-arm64-rpi4b8g-server-rt \
+RTW-399-raspi-sru-noble-server-arm64-rpi5b8g-server-rt \
+RTW-399-raspi-sru-noble-desktop-arm64-rpi4b8g-desktop-rt \
+RTW-399-raspi-sru-noble-desktop-arm64-rpi5b8g-desktop-rt \
+--prefix RTW-399 \
+--branch RTW-399-realtime-fixes
 ```
 
 ```
@@ -175,6 +176,35 @@ class SRU(BuilderWithParameters):
         )
 
 
+class SUV(BuilderWithParameters):
+    """
+    Instances of this class can trigger any snap-testing job in Jenkins.
+
+    When an `SUV` builder is instantiated, it is provided with a `Connection`
+    instance. The `run` method can then be used to trigger any SUV job over
+    that connection.
+    """
+
+    def run(
+        self,
+        job: str,
+        reporting: Optional[bool] = None
+    ) -> requests.Response:
+        """
+        Trigger any SUV job named `job`.
+
+        Just like with any job from `hwcert-jenkins-jobs` that uses the
+        `snap-testing-template`, you can switch Test Observer reporting
+        on or off.
+        """
+        return self.build(
+            job=job,
+            parameters={
+                "TEST_OBSERVER_REPORTING": str(reporting),
+            }
+        )
+
+
 def main():
 
     parser = argparse.ArgumentParser(description="Trigger deploy or SRU jobs")
@@ -188,6 +218,9 @@ def main():
     sru_parser.add_argument("--testplan", choices=["full", "no_stress", "smoke"], default="full", help="Which test plan the job will use. full/no_stress/smoke.")
     sru_parser.add_argument("--checkbox-channel", choices=["stable", "beta", "edge"], help="Which channel to install Checkbox from")
     sru_parser.add_argument("jobs", nargs="+", help="Names of SRU jobs to be triggered")
+    suv_parser = subparsers.add_parser("suv", help="Trigger SUV job")
+    suv_parser.add_argument("--no-reporting", action="store_true", help="Disable Test Observer reporting")
+    suv_parser.add_argument("jobs", nargs="+", help="Names of SUV jobs to be triggered")
     args = parser.parse_args()
 
     connection = Connection()
@@ -209,6 +242,19 @@ def main():
                 testplan=args.testplan,
                 reporting=(not args.no_reporting),
                 checkbox_channel=args.checkbox_channel,
+            )
+            logging.info(f"{response.status_code=}")
+            if response.ok:
+                logging.info(f"{builder.connection.jenkins_url}/job/{job}")
+                queue_url = response.headers['Location']
+                logging.info(f'Queue item URL: {queue_url}')
+    elif args.action == "suv":
+        builder = SUV(connection)
+        for job in args.jobs:
+            logging.info(f"Triggering SUV job: {job}")
+            response = builder.run(
+                job,
+                reporting=(not args.no_reporting),
             )
             logging.info(f"{response.status_code=}")
             if response.ok:
