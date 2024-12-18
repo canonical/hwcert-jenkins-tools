@@ -10,11 +10,14 @@
 # add-on list until the length is stable for 3 consecutive
 # iterations.
 
+export DEVICE_IP=$ZAPPER_IP
+export DEVICE_PWD=${ZAPPER_PWD:-insecure}
+
 previous_addon_count=-1
 stable_count=0
 max_stable_checks=3
 while true; do
-    current_addon_count=$(_run_zapper zapper addon list 2> /dev/null | wc -l)
+    current_addon_count=$(_run zapper addon list 2> /dev/null | wc -l)
     if [[ "$current_addon_count" -eq "$previous_addon_count" ]]; then
       ((stable_count++))
     else
