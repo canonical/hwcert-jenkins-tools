@@ -31,7 +31,7 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-$(dirname ${BASH_SOURCE[0]})/defs/check_for_device_ip >> /dev/null || exit 0
+check_for_device_ip >> /dev/null || exit 0
 
 message=$(_run sudo snap refresh zapper --amend --channel $CHANNEL 2>&1)
 if echo "$message" | grep -q 'no updates available'; then

@@ -34,7 +34,7 @@ if [ $# -lt 2 ]; then
     exit 1
 fi
 
-source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_device_ip"
+check_for_device_ip || exit 1
 source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"
 
 # The target is the last argument
