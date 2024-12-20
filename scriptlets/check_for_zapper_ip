@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-# Check if the environment variable $ZAPPER_IP is set
-
-if [ -z $ZAPPER_IP ]; then
-    echo "Error $(basename "${BASH_SOURCE[-1]}"): Environment variable ZAPPER_IP not set"
-    exit 1
-fi
