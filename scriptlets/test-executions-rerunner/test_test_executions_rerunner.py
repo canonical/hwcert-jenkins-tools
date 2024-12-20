@@ -27,7 +27,7 @@ def test_correctly_submits_deb_rerun_request(requests_mock: Mocker):
     )
 
     def are_build_parameters_valid(request) -> bool:  # noqa: ANN001
-        return request.json() == {"TESTPLAN": "full"}
+        return request.json() == {"TESTPLAN": "full", "TEST_OBSERVER_REPORTING": True}
 
     rerun_link = f"{job_link}/buildWithParameters"
     jenkins_build_matcher = requests_mock.post(
@@ -59,10 +59,14 @@ def test_correctly_submits_snap_rerun_request(requests_mock: Mocker):
         json=[{"test_execution_id": 1, "ci_link": ci_link, "family": "snap"}],
     )
 
+    def are_build_parameters_valid(request) -> bool:  # noqa: ANN001
+        return request.json() == {"TEST_OBSERVER_REPORTING": True}
+
     rerun_link = f"{job_link}/buildWithParameters"
     jenkins_build_matcher = requests_mock.post(
         rerun_link,
         request_headers=jenkins_request_headers,
+        additional_matcher=are_build_parameters_valid,
     )
 
     def is_delete_body_valid(request) -> bool:
