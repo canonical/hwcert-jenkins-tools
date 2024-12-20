@@ -59,7 +59,7 @@ def test_correctly_submits_snap_rerun_request(requests_mock: Mocker):
         json=[{"test_execution_id": 1, "ci_link": ci_link, "family": "snap"}],
     )
 
-    rerun_link = f"{job_link}/build"
+    rerun_link = f"{job_link}/buildWithParameters"
     jenkins_build_matcher = requests_mock.post(
         rerun_link,
         request_headers=jenkins_request_headers,

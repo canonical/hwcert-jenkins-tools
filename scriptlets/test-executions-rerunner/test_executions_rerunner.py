@@ -80,7 +80,7 @@ class Main:
         return None
 
     def _submit_snap_rerun(self, base_job_link: str) -> None:
-        rerun_link = f"{base_job_link}/build"
+        rerun_link = f"{base_job_link}/buildWithParameters"
         logging.info(f"POST {rerun_link}")
         requests.post(rerun_link, auth=self.jenkins_auth)
 
