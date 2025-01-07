@@ -51,10 +51,5 @@ for SOURCE in "${SOURCES_ARRAY[@]}"; do
 done
 SOURCES="${SOURCES[@]}"
 
-if [ -n "$DEVICE_PWD" ]; then
-    SSHPASS="sshpass -p $DEVICE_PWD"
-else
-    SSHPASS=""
-fi
-
+SSHPASS=${DEVICE_PWD:+"sshpass -p $DEVICE_PWD"}
 $SSHPASS scp $SSH_OPTS $SOURCES $TARGET

@@ -34,10 +34,5 @@ check_for_device_ip || exit 1
 source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"
 USER=${DEVICE_USER:-ubuntu}
 
-if [ -n "$DEVICE_PWD" ]; then
-    SSHPASS="sshpass -p $DEVICE_PWD"
-else
-    SSHPASS=""
-fi
-
+SSHPASS=${DEVICE_PWD:+"sshpass -p $DEVICE_PWD"}
 $SSHPASS ssh $SSH_OPTS $USER@$DEVICE_IP "export PATH=\"\$PATH:/home/$USER/$TOOLS_PATH_DEVICE\"; $@"

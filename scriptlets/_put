@@ -49,10 +49,5 @@ TARGET=${PREFIX}${TARGET}
 SOURCES_ARRAY=("${@:1:$#-1}")
 SOURCES="${SOURCES_ARRAY[@]}"
 
-if [ -n "$DEVICE_PWD" ]; then
-    SSHPASS="sshpass -p $DEVICE_PWD"
-else
-    SSHPASS=""
-fi
-
+SSHPASS=${DEVICE_PWD:+"sshpass -p $DEVICE_PWD"}
 $SSHPASS scp $SSH_OPTS $SOURCES $TARGET
