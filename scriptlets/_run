@@ -8,6 +8,9 @@
 # which must be set. The user name on the remote device is `ubuntu`
 # by default, unless provided by the environment variable DEVICE_USER.
 #
+# If provided, DEVICE_PWD can be used for password-based authentication,
+# otherwise it is expected to have set up authorization keys first.
+#
 # This script sources `defs/set_ssh_options` to set SSH_OPTS.
 # This script soures `defs/check_for_device_ip` to check that DEVICE_IP is set.
 #
@@ -27,7 +30,9 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 
-source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_device_ip"
+check_for_device_ip || exit 1
 source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"
 USER=${DEVICE_USER:-ubuntu}
-ssh $SSH_OPTS $USER@$DEVICE_IP "export PATH=\"\$PATH:/home/$USER/$TOOLS_PATH_DEVICE\"; $@"
+
+SSHPASS=${DEVICE_PWD:+"sshpass -p $DEVICE_PWD"}
+$SSHPASS ssh $SSH_OPTS $USER@$DEVICE_IP "export PATH=\"\$PATH:/home/$USER/$TOOLS_PATH_DEVICE\"; $@"

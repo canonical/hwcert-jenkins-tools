@@ -8,6 +8,9 @@
 # which must be set. The user name on the remote device is `ubuntu`
 # by default, unless provided by the environment variable DEVICE_USER.
 #
+# If provided, DEVICE_PWD can be used for password-based authentication,
+# otherwise it is expected to have set up authorization keys first.
+#
 # The last argument provided is considered to be the "target", i.e. where
 # on the remote device the file(s) will be copied.
 #
@@ -33,7 +36,7 @@ if [ $# -lt 2 ]; then
     exit 1
 fi
 
-source "$(dirname ${BASH_SOURCE[0]})/defs/check_for_device_ip"
+check_for_device_ip || exit 1
 source "$(dirname ${BASH_SOURCE[0]})/defs/ssh_options"
 
 # The target is the last argument (prefixed appropriately)
@@ -46,4 +49,5 @@ TARGET=${PREFIX}${TARGET}
 SOURCES_ARRAY=("${@:1:$#-1}")
 SOURCES="${SOURCES_ARRAY[@]}"
 
-scp $SSH_OPTS $SOURCES $TARGET
+SSHPASS=${DEVICE_PWD:+"sshpass -p $DEVICE_PWD"}
+$SSHPASS scp $SSH_OPTS $SOURCES $TARGET
