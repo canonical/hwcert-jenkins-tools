@@ -116,8 +116,13 @@ wait_for_snap_changes
 # (strict snaps need a different install flag and the connections to be made)
 echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a strict snap, using --devmode)"
 STRICT_FRONTEND=true
+
+set +e
 _run sudo snap install --no-wait $FRONTEND_NAME --devmode --channel=$FRONTEND_CHANNEL
-if [ "$?" -ne 0 ]; then
+snap_install_status=$?
+set -e
+
+if [ "$snap_install_status" -ne 0 ]; then
     echo "Failed to install $FRONTEND_NAME as a strict snap"
     echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a classic snap, using --classic)"
     STRICT_FRONTEND=false
