@@ -119,10 +119,10 @@ STRICT_FRONTEND=true
 
 set +e
 _run sudo snap install --no-wait $FRONTEND_NAME --devmode --channel=$FRONTEND_CHANNEL
-snap_install_status=$?
+SNAP_INSTALL_STATUS=$?
 set -e
 
-if [ "$snap_install_status" -ne 0 ]; then
+if [ "$SNAP_INSTALL_STATUS" -ne 0 ]; then
     echo "Failed to install $FRONTEND_NAME as a strict snap"
     echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a classic snap, using --classic)"
     STRICT_FRONTEND=false
