@@ -117,8 +117,13 @@ wait_for_snap_changes
 echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a strict snap, using --devmode)"
 STRICT_FRONTEND=true
 
+# Export UBUNTU_STORE_AUTH_DATA_FILENAME to a file containing a snapcraft token
+# to allow downloading private snaps.
+snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
+_put $FRONTEND_NAME.* /tmp
+_run sudo snap ack /tmp/$FRONTEND_NAME.assert
 set +e
-_run sudo snap install --no-wait $FRONTEND_NAME --devmode --channel=$FRONTEND_CHANNEL
+_run sudo snap install --no-wait --devmode /tmp/$FRONTEND_NAME.snap
 SNAP_INSTALL_STATUS=$?
 set -e
 
@@ -126,7 +131,7 @@ if [ "$SNAP_INSTALL_STATUS" -ne 0 ]; then
     echo "Failed to install $FRONTEND_NAME as a strict snap"
     echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a classic snap, using --classic)"
     STRICT_FRONTEND=false
-    _run sudo snap install --no-wait $FRONTEND_NAME --classic --channel=$FRONTEND_CHANNEL
+    _run sudo snap install --no-wait --classic /tmp/$FRONTEND_NAME.snap
 fi
 wait_for_snap_changes
 
