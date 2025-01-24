@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 To authenticate a request to snapcraft APIs,
-the must bind the discharge macaroon to the root macaroon.
+the user must bind the discharge macaroon to the root macaroon.
 
 See https://documentation.ubuntu.com/snap-store-proxy/en/api-authentication/
 for reference.
