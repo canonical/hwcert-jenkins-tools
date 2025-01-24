@@ -15,6 +15,8 @@
 # The `frontend_track` parameter can be any valid track name (eg. 22.04, uc16).
 #   It is also used to appropriately install the snap (decide if a snap is
 #   classic or strict)
+# In case the checkbox frontend is private, export UBUNTU_STORE_AUTH_DATA_FILENAME
+#   to a file obtained with `snapcraft export-login`.
 
 
 get_ubuntu_arch() {
@@ -107,15 +109,11 @@ log "Installing Checkbox snaps"
 export RISK=$1
 export FRONTEND_NAME=$2
 export FRONTEND_TRACK=$3
-
-# Export UBUNTU_STORE_AUTH_DATA_FILENAME to a file containing a snapcraft token
-# to allow downloading private snaps.
-export TOKEN_FILENAME=$(basename $UBUNTU_STORE_AUTH_DATA_FILENAME)
+export TOKEN_FILENAME=$(basename $UBUNTU_STORE_AUTH_DATA_FILENAME 2> /dev/null)
 
 export RUNTIME_NAME=$(get_runtime)
 FRONTEND_CHANNEL="$FRONTEND_TRACK/$RISK"
 RUNTIME_CHANNEL="latest/$RISK"
-
 
 echo "Installing runtime snap: $RUNTIME_NAME from $RUNTIME_CHANNEL"
 _run sudo snap install --no-wait $RUNTIME_NAME --channel=$RUNTIME_CHANNEL
