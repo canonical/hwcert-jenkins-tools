@@ -15,8 +15,8 @@
 # The `frontend_track` parameter can be any valid track name (eg. 22.04, uc16).
 #   It is also used to appropriately install the snap (decide if a snap is
 #   classic or strict)
-# In case the checkbox frontend is private, export UBUNTU_STORE_AUTH_DATA_FILENAME
-#   to a file obtained with `snapcraft export-login`.
+# If the Checkbox frontend is private, set UBUNTU_STORE_AUTH_DATA_FILENAME to <FILENAME>,
+#   which can be obtained using `snapcraft export-login <FILENAME>`.
 
 
 get_ubuntu_arch() {
