@@ -129,6 +129,7 @@ if [[ -n "$TOKEN_FILENAME" ]]; then
     _put $UBUNTU_STORE_AUTH_DATA_FILENAME /var/tmp
 fi
 _run ${TOKEN_FILENAME:+ UBUNTU_STORE_AUTH_DATA_FILENAME=/var/tmp/$TOKEN_FILENAME} snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
+_run rm /var/tmp/$TOKEN_FILENAME || true
 _run sudo snap ack $FRONTEND_NAME.assert
 set +e
 _run sudo snap install --no-wait --devmode $FRONTEND_NAME.snap
@@ -141,7 +142,6 @@ if [ "$SNAP_INSTALL_STATUS" -ne 0 ]; then
     STRICT_FRONTEND=false
     _run sudo snap install --no-wait --classic $FRONTEND_NAME.snap
 fi
-_run rm /var/tmp/$TOKEN_FILENAME $FRONTEND_NAME.*|| true
 wait_for_snap_changes
 
 # run the configure hook of the frontend snap
