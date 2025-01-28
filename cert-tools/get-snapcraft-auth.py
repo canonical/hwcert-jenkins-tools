@@ -30,7 +30,6 @@ def get_authorization_header(token: str) -> str:
         raise ValueError("Malformed authentication token.")
 
     root = Macaroon.deserialize(token_dict["v"]["r"])
-
     raw_discharge = token_dict["v"]["d"]
 
     # An authenticated request might fail with `Macaroon needs_refresh=1` since
@@ -41,7 +40,6 @@ def get_authorization_header(token: str) -> str:
         method="POST",
     )
     discharge = Macaroon.deserialize(refresh_request.data["discharged_macaroon"])
-
     bound = root.prepare_for_request(discharge)
 
     return f"macaroon root={root.serialize()}, discharge={bound.serialize()}"
@@ -52,7 +50,6 @@ if __name__ == "__main__":
     _ = parser.add_argument(
         "token_file", type=str, help="Token file obtained with `snapcraft export-login`"
     )
-
     args = parser.parse_args()
 
     with open(args.token_file, encoding="utf-8") as token:
