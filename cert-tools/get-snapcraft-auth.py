@@ -47,7 +47,7 @@ def get_authorization_header(token: str) -> str:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    _ = parser.add_argument(
+    parser.add_argument(
         "token_file", type=str, help="Token file obtained with `snapcraft export-login`"
     )
     args = parser.parse_args()
