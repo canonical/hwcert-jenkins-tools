@@ -29,7 +29,8 @@ def get_authorization_header(token: str) -> str:
 
     raw_discharge = token_dict["v"]["d"]
 
-    # The discharge macaroon has an expiry: fresh is better
+    # An authenticated request might fail with `Macaroon needs_refresh=1` since
+    # the discharge has an expiry. It's just easier to refresh it every time.
     refresh_request = Request(
         REFRESH_ENDPOINT,
         data={"discharged_macaroon": raw_discharge},
