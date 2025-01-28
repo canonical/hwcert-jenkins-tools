@@ -32,7 +32,7 @@ get_runtime() {
     SNAPSTORE_URL="https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base"
     SNAPINFO=$(curl -s -H 'Snap-Device-Series: 16' \
         ${STORE:+ -H "Snap-Device-Store: $STORE"} \
-        ${TOKEN_FILENAME:+ -H "Authorization: $($TOOLS_PATH/cert-tools/get-snapcraft-auth.py $UBUNTU_STORE_AUTH_DATA_FILENAME)"} \
+        ${TOKEN_FILENAME:+ -H "Authorization: $($TOOLS_PATH/cert-tools/snapcraft/get-auth.py $UBUNTU_STORE_AUTH_DATA_FILENAME)"} \
         "$SNAPSTORE_URL")
     BASE=$(jq -r \
       --arg FRONTEND_TRACK $FRONTEND_TRACK \
