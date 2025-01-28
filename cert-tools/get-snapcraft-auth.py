@@ -22,6 +22,10 @@ def get_authorization_header(token: str) -> str:
     token_str = base64.b64decode(token).decode("utf-8")
     token_dict = json.loads(token_str)
 
+    # Format for token type `u1-macaroon`:
+    # - v: value
+    # - r: root macaroon
+    # - d: discharged macaroon
     if not token_dict["v"] and token_dict["v"]["r"] and token_dict["v"]["d"]:
         raise ValueError("Malformed authentication token.")
 
