@@ -2,23 +2,28 @@
 """
 To authenticate a request to snapcraft APIs,
 the user must bind the discharge macaroon to the root macaroon.
-
-See https://documentation.ubuntu.com/snap-store-proxy/en/api-authentication/
-for reference.
 """
 
 import argparse
 import base64
 import json
-from urllib.request import Request
 from pymacaroons import Macaroon
+from requests import HTTPError, get, post
 
-REFRESH_ENDPOINT = "https://api.snapcraft.io/v2/tokens/refresh"
+REFRESH_ENDPOINT = "https://login.ubuntu.com/api/v2/tokens/refresh"
+WHOAMI_ENDPOINT = "https://dashboard.snapcraft.io/api/v2/tokens/whoami"
+
+
+def _make_header(raw_root: str, raw_discharge: str) -> str:
+    """Make Authorization header from a raw macaroon."""
+    root = Macaroon.deserialize(raw_root)
+    discharge = Macaroon.deserialize(raw_discharge)
+    bound = root.prepare_for_request(discharge)
+    return f"macaroon root={root.serialize()}, discharge={bound.serialize()}"
 
 
 def get_authorization_header(token: str) -> str:
     """Return the required authorization header."""
-
     token_str = base64.b64decode(token).decode("utf-8")
     token_dict = json.loads(token_str)
 
@@ -26,32 +31,43 @@ def get_authorization_header(token: str) -> str:
     # - v: value
     # - r: root macaroon
     # - d: discharged macaroon
-    if not token_dict["v"] and token_dict["v"]["r"] and token_dict["v"]["d"]:
-        raise ValueError("Malformed authentication token.")
+    try:
+        raw_root: str = token_dict["v"]["r"]
+        raw_discharge: str = token_dict["v"]["d"]
+    except KeyError as exc:
+        raise ValueError("Malformed authentication token.") from exc
 
-    root = Macaroon.deserialize(token_dict["v"]["r"])
-    raw_discharge = token_dict["v"]["d"]
+    header = _make_header(raw_root, raw_discharge)
 
-    # An authenticated request might fail with `Macaroon needs_refresh=1` since
-    # the discharge has an expiry. It's just easier to refresh it every time.
-    refresh_request = Request(
-        REFRESH_ENDPOINT,
-        data={"discharged_macaroon": raw_discharge},
-        method="POST",
+    # Test if the macaroon from the token is still valid. If not, refresh it.
+    request = get(
+        WHOAMI_ENDPOINT,
+        headers={"Authorization": header},
     )
-    discharge = Macaroon.deserialize(refresh_request.data["discharged_macaroon"])
-    bound = root.prepare_for_request(discharge)
+    try:
+        request.raise_for_status()
+    except HTTPError:
+        request = post(
+            REFRESH_ENDPOINT,
+            json={"discharge_macaroon": raw_discharge},
+            headers={"Content-Type": "application/json"},
+        )
+        request.raise_for_status()
+        raw_discharge = json.loads(request.content)["discharge_macaroon"]
+        header = _make_header(raw_root, raw_discharge)
 
-    return f"macaroon root={root.serialize()}, discharge={bound.serialize()}"
+    return header
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "token_file", type=str, help="Token file obtained with `snapcraft export-login`"
+        "token_file",
+        type=str,
+        help="Token file obtained with `snapcraft export-login`",
     )
     args = parser.parse_args()
 
     with open(args.token_file, encoding="utf-8") as token:
         header = get_authorization_header(token.read())
-        print(header)
+    print(header)
