@@ -15,8 +15,8 @@
 # The `frontend_track` parameter can be any valid track name (eg. 22.04, uc16).
 #   It is also used to appropriately install the snap (decide if a snap is
 #   classic or strict)
-# If the Checkbox frontend is private, set UBUNTU_STORE_AUTH_DATA_FILENAME to <FILENAME>,
-#   which can be obtained using `snapcraft export-login <FILENAME>`.
+# If the Checkbox frontend is private, set UBUNTU_STORE_AUTH to <exported-login credentials base64>,
+#   which can be obtained using `snapcraft export-login <export-login file>`.
 
 
 get_ubuntu_arch() {
@@ -32,7 +32,7 @@ get_runtime() {
     SNAPSTORE_URL="https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base"
     SNAPINFO=$(curl -s -H 'Snap-Device-Series: 16' \
         ${STORE:+ -H "Snap-Device-Store: $STORE"} \
-        ${TOKEN_FILENAME:+ -H "Authorization: $($TOOLS_PATH/cert-tools/snapcraft/get-auth.py $UBUNTU_STORE_AUTH_DATA_FILENAME)"} \
+        ${UBUNTU_STORE_AUTH:+ -H "Authorization: $($TOOLS_PATH/cert-tools/snapcraft/get-auth.py $UBUNTU_STORE_AUTH)"} \
         "$SNAPSTORE_URL")
     BASE=$(jq -r \
       --arg FRONTEND_TRACK $FRONTEND_TRACK \
@@ -109,8 +109,6 @@ log "Installing Checkbox snaps"
 export RISK=$1
 export FRONTEND_NAME=$2
 export FRONTEND_TRACK=$3
-export TOKEN_FILENAME=$(basename $UBUNTU_STORE_AUTH_DATA_FILENAME 2> /dev/null)
-
 export RUNTIME_NAME=$(get_runtime)
 FRONTEND_CHANNEL="$FRONTEND_TRACK/$RISK"
 RUNTIME_CHANNEL="latest/$RISK"
@@ -124,12 +122,7 @@ wait_for_snap_changes
 echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a strict snap, using --devmode)"
 STRICT_FRONTEND=true
 
-# if [[ -n "$TOKEN_FILENAME" ]]; then
-#     echo "A snapcraft token will be used to download the $FRONTEND_NAME snap"
-#     _put $UBUNTU_STORE_AUTH_DATA_FILENAME /var/tmp
-# fi
-_run ${TOKEN_FILENAME:+ UBUNTU_STORE_AUTH=$(cat $UBUNTU_STORE_AUTH_DATA_FILENAME)} snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
-# _run rm /var/tmp/$TOKEN_FILENAME || true
+_run ${UBUNTU_STORE_AUTH:+ UBUNTU_STORE_AUTH=$UBUNTU_STORE_AUTH)} snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
 _run sudo snap ack $FRONTEND_NAME.assert
 set +e
 _run sudo snap install --no-wait --devmode $FRONTEND_NAME.snap
