@@ -124,12 +124,12 @@ wait_for_snap_changes
 echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a strict snap, using --devmode)"
 STRICT_FRONTEND=true
 
-if [[ -n "$TOKEN_FILENAME" ]]; then
-    echo "A snapcraft token will be used to download the $FRONTEND_NAME snap"
-    _put $UBUNTU_STORE_AUTH_DATA_FILENAME /var/tmp
-fi
-_run ${TOKEN_FILENAME:+ UBUNTU_STORE_AUTH_DATA_FILENAME=/var/tmp/$TOKEN_FILENAME} snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
-_run rm /var/tmp/$TOKEN_FILENAME || true
+# if [[ -n "$TOKEN_FILENAME" ]]; then
+#     echo "A snapcraft token will be used to download the $FRONTEND_NAME snap"
+#     _put $UBUNTU_STORE_AUTH_DATA_FILENAME /var/tmp
+# fi
+_run ${TOKEN_FILENAME:+ UBUNTU_STORE_AUTH=$(cat $UBUNTU_STORE_AUTH_DATA_FILENAME)} snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
+# _run rm /var/tmp/$TOKEN_FILENAME || true
 _run sudo snap ack $FRONTEND_NAME.assert
 set +e
 _run sudo snap install --no-wait --devmode $FRONTEND_NAME.snap
