@@ -124,10 +124,9 @@ STRICT_FRONTEND=true
 
 # When using a dedicated snap store, exporting the token variable might make
 # the device unable to download the snap.
-if [ -n "$STORE" ]; then
-    unset UBUNTU_STORE_AUTH
-fi
-_run ${UBUNTU_STORE_AUTH:+ UBUNTU_STORE_AUTH=$UBUNTU_STORE_AUTH} snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
+_run ${STORE:+ UBUNTU_STORE_ID=$STORE} \
+    ${UBUNTU_STORE_AUTH:+ UBUNTU_STORE_AUTH=$UBUNTU_STORE_AUTH} \
+    snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
 _run sudo snap ack $FRONTEND_NAME.assert
 set +e
 _run sudo snap install --no-wait --devmode $FRONTEND_NAME.snap
