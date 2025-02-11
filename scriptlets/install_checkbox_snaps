@@ -18,7 +18,6 @@
 # If the Checkbox frontend is private, set UBUNTU_STORE_AUTH to <exported-login credentials base64>,
 #   which can be obtained using `snapcraft export-login <export-login file>`.
 
-
 get_ubuntu_arch() {
     declare -A arch_map=([x86_64]=amd64 [aarch64]=arm64 [armv7l]=armhf [i686]=i386)
     UNAME_ARCH=$(_run "uname -m")
@@ -26,8 +25,6 @@ get_ubuntu_arch() {
 }
 
 get_runtime() {
-    # get the store token from the device, if available
-    export STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
     # get the snap info from the snap store and extract the base
     SNAPSTORE_URL="https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base"
     SNAPINFO=$(curl -s -H 'Snap-Device-Series: 16' \
@@ -109,7 +106,8 @@ log "Installing Checkbox snaps"
 export RISK=$1
 export FRONTEND_NAME=$2
 export FRONTEND_TRACK=$3
-export RUNTIME_NAME=$(get_runtime)
+export STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
+export RUNTIME_NAME=$(get_runtime $STORE)
 FRONTEND_CHANNEL="$FRONTEND_TRACK/$RISK"
 RUNTIME_CHANNEL="latest/$RISK"
 
@@ -122,8 +120,6 @@ wait_for_snap_changes
 echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a strict snap, using --devmode)"
 STRICT_FRONTEND=true
 
-# When using a dedicated snap store, exporting the token variable might make
-# the device unable to download the snap.
 _run ${STORE:+ UBUNTU_STORE_ID=$STORE} \
     ${UBUNTU_STORE_AUTH:+ UBUNTU_STORE_AUTH=$UBUNTU_STORE_AUTH} \
     snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
