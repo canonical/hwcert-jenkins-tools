@@ -27,7 +27,7 @@ get_ubuntu_arch() {
 
 get_runtime() {
     # get the store token from the device, if available
-    STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
+    export STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
     # get the snap info from the snap store and extract the base
     SNAPSTORE_URL="https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base"
     SNAPINFO=$(curl -s -H 'Snap-Device-Series: 16' \
@@ -122,6 +122,11 @@ wait_for_snap_changes
 echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a strict snap, using --devmode)"
 STRICT_FRONTEND=true
 
+# When using a dedicated snap store, exporting the token variable might make
+# the device unable to download the snap.
+if [ -n "$STORE" ]; then
+    unset UBUNTU_STORE_AUTH
+fi
 _run ${UBUNTU_STORE_AUTH:+ UBUNTU_STORE_AUTH=$UBUNTU_STORE_AUTH} snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
 _run sudo snap ack $FRONTEND_NAME.assert
 set +e
