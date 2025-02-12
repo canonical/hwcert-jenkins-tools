@@ -27,10 +27,12 @@ get_ubuntu_arch() {
 get_runtime() {
     # get the snap info from the snap store and extract the base
     SNAPSTORE_URL="https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base"
+    set -x
     SNAPINFO=$(curl -s -H 'Snap-Device-Series: 16' \
         ${STORE:+ -H "Snap-Device-Store: $STORE"} \
         ${UBUNTU_STORE_AUTH:+ -H "Authorization: $($TOOLS_PATH/cert-tools/snapcraft/get-auth.py $UBUNTU_STORE_AUTH)"} \
         "$SNAPSTORE_URL")
+    set +x
     BASE=$(jq -r \
       --arg FRONTEND_TRACK $FRONTEND_TRACK \
       --arg RISK $RISK \
