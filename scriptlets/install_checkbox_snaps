@@ -106,6 +106,7 @@ log "Installing Checkbox snaps"
 export RISK=$1
 export FRONTEND_NAME=$2
 export FRONTEND_TRACK=$3
+# get the store token from the device, if available
 export STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
 export RUNTIME_NAME=$(get_runtime $STORE)
 FRONTEND_CHANNEL="$FRONTEND_TRACK/$RISK"
