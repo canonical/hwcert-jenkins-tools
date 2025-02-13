@@ -121,6 +121,10 @@ wait_for_snap_changes
 echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a strict snap, using --devmode)"
 STRICT_FRONTEND=true
 
+# To install any snap, regardless of its visibility, on a non-authenticated device:
+# 1. Download the snap using an exported valid token and the store ID, if any
+# 2. Validate the snap to avoid using the --dangerous flag
+# 3. Install the snap from the local file
 _run ${STORE:+ UBUNTU_STORE_ID=$STORE} \
     ${UBUNTU_STORE_AUTH:+ UBUNTU_STORE_AUTH=$UBUNTU_STORE_AUTH} \
     snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
