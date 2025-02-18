@@ -54,14 +54,16 @@ echo "  See: https://code.launchpad.net/~checkbox-dev/+archive/ubuntu/$RISK"
 set -e
 
 wait_for_packages_complete
-_run sudo add-apt-repository ppa:checkbox-dev/$RISK
+_run sudo add-apt-repository -y ppa:colin-king/stress-ng
+_run sudo add-apt-repository -y ppa:firmware-testing-team/ppa-fwts-stable
+_run sudo add-apt-repository -y ppa:checkbox-dev/$RISK
 _run install_packages \
   checkbox-ng python3-checkbox-ng \
   checkbox-provider-base checkbox-provider-resource checkbox-provider-sru $PROVIDERS \
   fswebcam obexftp wmctrl iperf mesa-utils vim pastebinit fwts xorg-dev gir1.2-clutter-1.0
 wait_for_packages_complete
 
-export CHECKBOX_VERSION=$(_run checkbox-cli --version)
+export CHECKBOX_VERSION=$(retry --times 5 -- _run checkbox-cli --version)
 [ -z "$CHECKBOX_VERSION" ] && echo "Error: Unable to retrieve Checkbox version from device" && exit 1
 
 log "Installing checkbox $CHECKBOX_VERSION on the agent container from source"
