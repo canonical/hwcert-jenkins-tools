@@ -4,7 +4,6 @@ usage() {
     echo "Usage: $(basename ${BASH_SOURCE[0]}) [--no-update] [--dist-upgrade] -- <apt-get install arguments>"
 }
 
-set -x
 
 # separate command-line arguments into the ones for the script and the ones for apt-get
 local_args=()
