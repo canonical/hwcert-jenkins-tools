@@ -77,7 +77,7 @@ fi
 
 # Also remove any cloned version of Checkbox in any home, as this will clash
 # with anything trying to provision from source
-CHECKBOX_SOURCE_CLONES=$(find /home/ -maxdepth 2 -name "*checkbox*" -type d)
+CHECKBOX_SOURCE_CLONES=$(find $HOME -maxdepth 1 -name "*checkbox*" -type d)
 if [ -n "$CHECKBOX_SOURCE_CLONES" ]; then
   echo "Removing all clones of Checkbox on the machine"
   echo "Removing the following clones:"
