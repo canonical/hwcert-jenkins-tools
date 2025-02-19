@@ -2,8 +2,10 @@
 
 if [ "$1" = "--warn" ]; then
     TAG=WARN
+    shift
 elif [ "$1" = "--error" ]; then
     TAG=ERROR
+    shift
 else
     TAG=INFO
 fi
