@@ -9,7 +9,7 @@ jenkins_request_headers = {
     "Authorization": f"Basic {base64.b64encode(b'admin:token').decode()}"
 }
 
-reruns_link = TestObserverInterface.reruns_endpoint
+reruns_link = TestObserverInterface().reruns_endpoint
 
 
 def execute():
