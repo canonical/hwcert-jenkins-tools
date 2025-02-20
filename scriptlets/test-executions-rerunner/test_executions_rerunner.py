@@ -10,14 +10,15 @@ from abc import ABC, abstractmethod
 import logging
 from functools import partial
 from os import environ
-from typing import List, Optional, Set, Tuple
+import re
+from typing import Dict, List, Optional, Set
 
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import HTTPError
 from urllib3.util import Retry
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse
 
 logging.basicConfig(level=logging.INFO)
 
@@ -61,77 +62,125 @@ class TestObserverInterface:
 
 class RunnerInterface(ABC):
 
-    def __init__(self, auth: Optional[HTTPBasicAuth] = None):
-        self.auth = auth
+    def __init__(self, constant_post_arguments: Dict):
+        self.constant_post_arguments = constant_post_arguments
 
+    @classmethod
     @abstractmethod
-    def process(self, rerun_request: dict) -> Tuple[str, dict]:
+    def process(cls, rerun_request: dict) -> Dict:
         raise NotImplementedError
 
-    def submit_rerun(self, endpoint: str, payload: dict) -> None:
-        logging.info("POST %s %s", endpoint, payload)
-        response = requests.post(endpoint, auth=self.auth, json=payload)
+    def post(self, post_arguments: Dict) -> None:
+        logging.info("POST %s", post_arguments)
+        response = requests.post(
+            **{**self.constant_post_arguments, **post_arguments}
+        )
         response.raise_for_status()
+
+    def submit_rerun(self, rerun_request: dict) -> None:
+        post_arguments = self.process(rerun_request)
+        self.post(post_arguments)
 
 
 class Jenkins(RunnerInterface):
 
-    Jenkins_netloc = "10.102.156.15:8080"
+    netloc = "10.102.156.15:8080"
+    path_template = r"job/(?P<job_name>[\w-]+)/\d+"
 
     def __init__(self, api_token: Optional[str] = None):
-        super().__init__(
-            auth=HTTPBasicAuth(
-                "admin", api_token or environ["JENKINS_API_TOKEN"]
-            )
+        auth = HTTPBasicAuth(
+            "admin", api_token or environ["JENKINS_API_TOKEN"]
         )
+        super().__init__({"auth": auth})
 
-    def process(self, rerun_request: dict) -> Tuple[str, dict]:
+    @classmethod
+    def process(cls, rerun_request: dict) -> Dict:
         try:
             ci_link = rerun_request["ci_link"]
         except KeyError as error:
             raise RerunRequestProccesingError(
-                f"{type(self).__name__} cannot find ci_link "
+                f"{cls.__name__} cannot find ci_link "
                 f"in rerun request {rerun_request}"
             ) from error
-        base_job_link = self._extract_base_job_link_from_ci_link(ci_link)
-        endpoint = f"{base_job_link}/buildWithParameters"
+        url = cls.extract_rerun_url_from_ci_link(ci_link)
         try:
             family = rerun_request["family"]
         except KeyError as error:
             raise RerunRequestProccesingError(
-                f"{type(self).__name__} cannot find family "
+                f"{cls.__name__} cannot find family "
                 f"in rerun request {rerun_request}"
             ) from error
         if family == "deb":
-            payload = {
+            json = {
                 "TEST_OBSERVER_REPORTING": True,
                 "TESTPLAN": "full"
             }
         elif family == "snap":
-            payload = {
+            json = {
                 "TEST_OBSERVER_REPORTING": True,
             }
         else:
             raise RerunRequestProccesingError(
-                f"{type(self).__name__} cannot process family '{family}' "
+                f"{cls.__name__} cannot process family '{family}' "
                 f"in rerun request {rerun_request}"
             )
-        return endpoint, payload
+        return {"url": url, "json": json}
 
-    def _extract_base_job_link_from_ci_link(self, ci_link: str) -> Optional[str]:
+    @classmethod
+    def extract_rerun_url_from_ci_link(cls, ci_link: str) -> str:
         url_components = urlparse(ci_link)
-        path = url_components.path.strip("/").split("/")
-        if (
-            url_components.netloc != self.Jenkins_netloc or
-            len(path) != 3 or path[0] != "job"
-        ):
+        path = url_components.path.strip("/")
+        match = re.match(cls.path_template, path)
+        if url_components.netloc != cls.netloc or not match:
             raise RerunRequestProccesingError(
-                f"{type(self).__name__} cannot process ci_link {ci_link}"
+                f"{cls.__name__} cannot process ci_link {ci_link}"
             )
-        return urlunparse(
-            url_components._replace(
-                path="/".join(path[:-1])
+        return (
+            f"{url_components.scheme}://{url_components.netloc}/"
+            f"job/{match.group('job_name')}/buildWithParameters"
+        )
+
+
+class Github(RunnerInterface):
+
+    netloc = "github.com"
+    path_template = r"canonical/(?P<repo>[\w-]+)/actions/runs/(?P<run_id>\d+)/job/\d+"
+
+    def __init__(self, api_token: str):
+        super().__init__(
+            {
+                "headers": {
+                    "Accept": "application/vnd.github+json",
+                    "Authorization": f"Bearer {api_token}"
+                }
+            }
+        )
+
+    @classmethod
+    def process(cls, rerun_request: dict) -> Dict:
+        try:
+            ci_link = rerun_request["ci_link"]
+        except KeyError as error:
+            raise RerunRequestProccesingError(
+                f"{cls.__name__} cannot find ci_link "
+                f"in rerun request {rerun_request}"
+            ) from error
+        url = cls.extract_rerun_url_from_ci_link(ci_link)
+        return {"url": url}
+
+    @classmethod
+    def extract_rerun_url_from_ci_link(cls, ci_link: str) -> str:
+        url_components = urlparse(ci_link)
+        path = url_components.path.strip("/")
+        match = re.match(cls.path_template, path)
+        if url_components.netloc != cls.netloc or not match:
+            raise RerunRequestProccesingError(
+                f"{cls.__name__} cannot process ci_link {ci_link}"
             )
+        return (
+            f"https://api.github.com/repos/"
+            f"canonical/{match.group('repo')}/"
+            f"actions/runs/{match.group('run_id')}/rerun"
         )
 
 
@@ -149,8 +198,6 @@ class Rerunner:
         self._delete_rerun_requests()
 
     def _load_rerun_requests(self) -> None:
-        if self.rerun_requests is not None:
-            raise RuntimeError("Rerun requests have already been loaded")
         self.rerun_requests = self.test_observer.load()
         logging.info(
             "Received the following rerun requests:\n%s",
@@ -159,19 +206,16 @@ class Rerunner:
 
     def _submit_rerun_requests(self) -> None:
         if self.rerun_requests is None:
-            raise RuntimeError("Rerun requests have not been loaded")
-        if self.execution_ids_successful_requests is not None:
-            raise RuntimeError("Rerun requests have already been submitted")
-
+            self._load_rerun_requests()
+        if not self.rerun_requests:
+            return
         self.execution_ids_successful_requests = set()
         for rerun_request in self.rerun_requests:
             for runner in self.runners:
                 try:
-                    endpoint, payload = runner.process(rerun_request)
+                    runner.submit_rerun(rerun_request)
                 except RerunRequestProccesingError:
                     continue
-                try:
-                    runner.submit_rerun(endpoint, payload)
                 except HTTPError as error:
                     logging.error(
                         "Response %s submitting rerun request to %s:\n%s",
@@ -191,18 +235,17 @@ class Rerunner:
                 )
 
     def _delete_rerun_requests(self) -> None:
-        if self.rerun_requests is None:
-            raise RuntimeError("Rerun requests have not been loaded")
         if self.execution_ids_successful_requests is None:
-            raise RuntimeError("Rerun requests have not been submitted")
-        if self.execution_ids_successful_requests:
-            self.test_observer.delete(
-                (deleted := sorted(self.execution_ids_successful_requests))
-            )
-            logging.info(
-                "Deleted rerun requests with execution ids: %s",
-                ", ".join(map(str, deleted))
-            )
+            self._submit_rerun_requests()
+        if not self.execution_ids_successful_requests:
+            return
+        self.test_observer.delete(
+            (deleted := sorted(self.execution_ids_successful_requests))
+        )
+        logging.info(
+            "Deleted rerun requests with execution ids: %s",
+            ", ".join(map(str, deleted))
+        )
 
 
 if __name__ == "__main__":
