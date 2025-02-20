@@ -1,12 +1,21 @@
 import base64
-
 from requests_mock import Mocker
 
-from test_executions_rerunner import Main, reruns_link
+from test_executions_rerunner import (
+    Jenkins, Rerunner, TestObserverInterface
+)
 
 jenkins_request_headers = {
     "Authorization": f"Basic {base64.b64encode(b'admin:token').decode()}"
 }
+
+reruns_link = TestObserverInterface.reruns_endpoint
+
+
+def execute():
+    Rerunner(
+        runner_interfaces=[Jenkins(api_token="token")]
+    ).run()
 
 
 def test_does_nothing_when_no_reruns_requested(requests_mock: Mocker):
@@ -81,7 +90,3 @@ def test_correctly_submits_snap_rerun_request(requests_mock: Mocker):
 
     assert jenkins_build_matcher.called_once
     assert test_observer_delete_matcher.called_once
-
-
-def execute():
-    Main(jenkins_api_token="token").run()
