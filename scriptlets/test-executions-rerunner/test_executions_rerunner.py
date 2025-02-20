@@ -8,7 +8,6 @@ Note also that jenkins uses python 3.8
 
 from abc import ABC, abstractmethod
 import logging
-import re
 from functools import partial
 from os import environ
 from typing import List, Optional, Set, Tuple
@@ -18,6 +17,7 @@ from requests.adapters import HTTPAdapter
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import HTTPError
 from urllib3.util import Retry
+from urllib.parse import urlparse, urlunparse
 
 logging.basicConfig(level=logging.INFO)
 
@@ -76,6 +76,8 @@ class RunnerInterface(ABC):
 
 class Jenkins(RunnerInterface):
 
+    Jenkins_netloc = "10.102.156.15:8080"
+
     def __init__(self, api_token: Optional[str] = None):
         super().__init__(
             auth=HTTPBasicAuth(
@@ -117,12 +119,20 @@ class Jenkins(RunnerInterface):
         return endpoint, payload
 
     def _extract_base_job_link_from_ci_link(self, ci_link: str) -> Optional[str]:
-        matching = re.match(r"(.+/)\d+/", ci_link)
-        if not matching:
+        url_components = urlparse(ci_link)
+        path = url_components.path.strip("/").split("/")
+        if (
+            url_components.netloc != self.Jenkins_netloc or
+            len(path) != 3 or path[0] != "job"
+        ):
             raise RerunRequestProccesingError(
                 f"{type(self).__name__} cannot process ci_link {ci_link}"
             )
-        return matching.group(1)
+        return urlunparse(
+            url_components._replace(
+                path="/".join(path[:-1])
+            )
+        )
 
 
 class Rerunner:

@@ -27,9 +27,9 @@ def test_does_nothing_when_no_reruns_requested(requests_mock: Mocker):
 
 
 def test_correctly_submits_deb_rerun_request(requests_mock: Mocker):
-    job_link = "http://10.102.156.15:8080/job/fake-job/"
+    job_link = "http://10.102.156.15:8080/job/fake-job"
 
-    ci_link = f"{job_link}1/"
+    ci_link = f"{job_link}/1/"
     requests_mock.get(
         reruns_link,
         json=[{"test_execution_id": 1, "ci_link": ci_link, "family": "deb"}],
@@ -60,9 +60,9 @@ def test_correctly_submits_deb_rerun_request(requests_mock: Mocker):
 
 
 def test_correctly_submits_snap_rerun_request(requests_mock: Mocker):
-    job_link = "http://10.102.156.15:8080/job/fake-job/"
+    job_link = "http://10.102.156.15:8080/job/fake-job"
 
-    ci_link = f"{job_link}1/"
+    ci_link = f"{job_link}/1/"
     requests_mock.get(
         reruns_link,
         json=[{"test_execution_id": 1, "ci_link": ci_link, "family": "snap"}],
