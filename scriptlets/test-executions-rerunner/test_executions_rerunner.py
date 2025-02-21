@@ -7,11 +7,12 @@ Note also that jenkins uses python 3.8
 """
 
 from abc import ABC, abstractmethod
+from argparse import ArgumentParser
 import logging
 from functools import partial
 from os import environ
 import re
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Tuple
 
 from requests import Session
 from requests.adapters import HTTPAdapter
@@ -72,16 +73,16 @@ class TestObserverInterface:
         response.raise_for_status()
 
 
-class RerunRequestProccesingError(ValueError):
+class RequestProccesingError(ValueError):
     """
-    Raised when a rerun request cannot be processed by a RunnerInterface
+    Raised when a rerun request cannot be processed by a RequestProcessor
     """
 
 
-class RunnerInterface(ABC):
+class RequestProcessor(ABC):
     """
-    An abstract class for interfacing with any API responsible for triggering
-    reruns, based on Test Observer rerun requests.
+    An abstract class for processing Test Observer rerun requests and
+    triggering the corresponding reruns.
     """
 
     def __init__(self, constant_post_arguments: Dict):
@@ -96,14 +97,14 @@ class RunnerInterface(ABC):
         Return a dict containing POST arguments that will trigger a rerun,
         based on a Test Observer rerun request.
 
-        Raises an RerunRequestProccesingError if the rerun request
+        Raises an RequestProccesingError if the rerun request
         cannot be processed.
         """
         raise NotImplementedError
 
-    def post(self, post_arguments: Dict) -> None:
+    def submit(self, post_arguments: Dict) -> None:
         """
-        Combine all available arguments for triggering a rerun and POST them.
+        Combine all available arguments for triggering a rerun and submit them.
 
         Raises an HTTPError if the operation fails.
         """
@@ -113,19 +114,10 @@ class RunnerInterface(ABC):
         )
         response.raise_for_status()
 
-    def rerun(self, rerun_request: dict) -> None:
-        """
-        Trigger a rerun based on a Test Observer rerun request.
 
-        Raises an HTTPError if the operation fails.
-        """
-        post_arguments = self.process(rerun_request)
-        self.post(post_arguments)
-
-
-class Jenkins(RunnerInterface):
+class Jenkins(RequestProcessor):
     """
-    Trigger Jenkins job reruns, based on Test Observer rerun requests.
+    Process Test Observer rerun requests for Jenkins jobs
     """
 
     # where Jenkins is deployed
@@ -133,10 +125,8 @@ class Jenkins(RunnerInterface):
     # what the path of Jenkins job run looks like
     path_template = r"job/(?P<job_name>[\w-]+)/\d+"
 
-    def __init__(self, api_token: Optional[str] = None):
-        auth = HTTPBasicAuth(
-            "admin", api_token or environ["JENKINS_API_TOKEN"]
-        )
+    def __init__(self, user: str, password: str):
+        auth = HTTPBasicAuth(user, password)
         super().__init__({"auth": auth})
 
     @classmethod
@@ -144,7 +134,7 @@ class Jenkins(RunnerInterface):
         try:
             ci_link = rerun_request["ci_link"]
         except KeyError as error:
-            raise RerunRequestProccesingError(
+            raise RequestProccesingError(
                 f"{cls.__name__} cannot find ci_link "
                 f"in rerun request {rerun_request}"
             ) from error
@@ -155,7 +145,7 @@ class Jenkins(RunnerInterface):
         try:
             family = rerun_request["family"]
         except KeyError as error:
-            raise RerunRequestProccesingError(
+            raise RequestProccesingError(
                 f"{cls.__name__} cannot find family "
                 f"in rerun request {rerun_request}"
             ) from error
@@ -169,7 +159,7 @@ class Jenkins(RunnerInterface):
                 "TEST_OBSERVER_REPORTING": True,
             }
         else:
-            raise RerunRequestProccesingError(
+            raise RequestProccesingError(
                 f"{cls.__name__} cannot process family '{family}' "
                 f"in rerun request {rerun_request}"
             )
@@ -187,7 +177,7 @@ class Jenkins(RunnerInterface):
         path = url_components.path.strip("/")
         match = re.match(cls.path_template, path)
         if url_components.netloc != cls.netloc or not match:
-            raise RerunRequestProccesingError(
+            raise RequestProccesingError(
                 f"{cls.__name__} cannot process ci_link {ci_link}"
             )
         return (
@@ -196,9 +186,9 @@ class Jenkins(RunnerInterface):
         )
 
 
-class Github(RunnerInterface):
+class Github(RequestProcessor):
     """
-    Trigger Github workflow reruns, based on Test Observer rerun requests.
+    Process Test Observer rerun requests for Github workflows
 
     Ref: https://docs.github.com/en/rest/actions/workflow-runs
     """
@@ -223,7 +213,7 @@ class Github(RunnerInterface):
         try:
             ci_link = rerun_request["ci_link"]
         except KeyError as error:
-            raise RerunRequestProccesingError(
+            raise RequestProccesingError(
                 f"{cls.__name__} cannot find ci_link "
                 f"in rerun request {rerun_request}"
             ) from error
@@ -242,7 +232,7 @@ class Github(RunnerInterface):
         path = url_components.path.strip("/")
         match = re.match(cls.path_template, path)
         if url_components.netloc != cls.netloc or not match:
-            raise RerunRequestProccesingError(
+            raise RequestProccesingError(
                 f"{cls.__name__} cannot process ci_link {ci_link}"
             )
         return (
@@ -252,96 +242,135 @@ class Github(RunnerInterface):
         )
 
 
+ProcessedRequests = Dict[int, Tuple[RequestProcessor, Dict]]
+
+
 class Rerunner:
     """
     Collect rerun requests from Test Observer and trigger the
-    corresponding reruns using the appropriate interfaces.
+    corresponding reruns.
     """
 
-    def __init__(self, runner_interfaces: List[RunnerInterface]):
+    def __init__(self, processors: List[RequestProcessor]):
         self.test_observer = TestObserverInterface()
-        self.runners = runner_interfaces
-        # Rerunner state: a collection of rerun requests from Test Observer
-        self.rerun_requests: Optional[List[dict]] = None
-        # Rerunner state: a collection of rerun requests that have been
-        # serviced (each specified by a Test Observer execution id)
-        self.execution_ids_serviced_requests: Optional[Set[int]] = None
+        self.processors = processors
 
-    def run(self):
+    def load_rerun_requests(self) -> List[Dict]:
         """
-        Collect, service and remove rerun requests
+        Return rerun requests retrieved from Test Observer
         """
-        self.load_rerun_requests()
-        self.submit_rerun_requests()
-        self.delete_rerun_requests()
-
-    def load_rerun_requests(self) -> None:
-        """
-        Retrieve and store rerun requests from Test Observer
-        """
-        self.rerun_requests = self.test_observer.load()
+        rerun_requests = self.test_observer.load()
         logging.info(
             "Received the following rerun requests:\n%s",
-            str(self.rerun_requests)
+            str(rerun_requests)
         )
+        return rerun_requests
 
-    def submit_rerun_requests(self) -> None:
+    def process_rerun_requests(self, rerun_requests: List[Dict]) -> ProcessedRequests:
         """
-        Service the stored rerun requests
+        Process a list of rerun requests, selecting the appropriate processor
+        for each one of them.
+
+        Return a dict that maps Test Observer execution IDs (one for each
+        processed rerun request) to the processor that handled it, along with
+        the arguments required to trigger the rerun.
         """
-        if self.rerun_requests is None:
-            self.load_rerun_requests()
-        if not self.rerun_requests:
-            return
-        self.execution_ids_serviced_requests = set()
-        for rerun_request in self.rerun_requests:
-            # for each request, iterate over the runner interfaces
-            # to find the first that can process it
-            for runner in self.runners:
+        processed_requests = {}
+        for rerun_request in rerun_requests:
+            # for each request, find the first processor that can handle it
+            for processor in self.processors:
                 try:
-                    runner.rerun(rerun_request)
-                except RerunRequestProccesingError:
-                    # unable to process the request:
-                    # move on to the next runner interface
-                    continue
-                except HTTPError as error:
-                    # unable to complete the request:
-                    # log the error and move on to the next request
-                    # (don't try another runner)
-                    logging.error(
-                        "Response %s submitting rerun request to %s:\n%s",
-                        error,
-                        type(runner).__name__,
-                        str(rerun_request)
-                    )
+                    post_arguments = processor.process(rerun_request)
+                except RequestProccesingError:
+                    pass
+                else:
+                    execution_id = rerun_request["test_execution_id"]
+                    processed_requests[execution_id] = (processor, post_arguments)
                     break
-                # mark this request as successfully serviced
-                # (so that it can be removed from Test Observer's queue)
-                self.execution_ids_serviced_requests.add(
-                    rerun_request["test_execution_id"]
-                )
-                break
             else:
-                # none of the runners were able to process this rerun request
+                # none of the processors handled the rerun request
                 logging.warning(
-                    "Unable to submit the following rerun request:\n%s",
+                    "Unable to process this rerun request:\n%s",
                     str(rerun_request)
                 )
+        return processed_requests
 
-    def delete_rerun_requests(self) -> None:
-        if self.execution_ids_serviced_requests is None:
-            self.submit_rerun_requests()
-        if not self.execution_ids_serviced_requests:
+    def submit_processed_requests(self, processed_requests: ProcessedRequests) -> List[int]:
+        """
+        Use the data generated by `process_rerun_requests` to trigger reruns.
+        Return a list of Test Observer execution IDs corresponding to the
+        reruns that were successfully triggered.
+        """
+        execution_ids_submitted_requests = []
+        for execution_id, (processor, post_arguments) in processed_requests.items():
+            try:
+                processor.submit(post_arguments)
+            except HTTPError as error:
+                # unable to POST: log the error
+                logging.error(
+                    "Response %s posting %s to %s",
+                    error,
+                    str(post_arguments),
+                    type(processor).__name__
+                )
+            else:
+                # mark this request as successfully serviced
+                # (so that it can be removed from Test Observer's queue)
+                execution_ids_submitted_requests.append(execution_id)
+        return execution_ids_submitted_requests
+
+    def delete_rerun_requests(self, execution_ids: List[int]) -> None:
+        """
+        Remove a list of rerun requests from Test Observer (as specified by
+        their execution IDs).
+        """
+        if not execution_ids:
             return
-        # delete all successfully serviced rerun requests from Test Observer
-        self.test_observer.delete(
-            (deleted := sorted(self.execution_ids_serviced_requests))
-        )
+        # sort the execution ids so that they are easier to locate in the log
+        self.test_observer.delete((deleted := sorted(execution_ids)))
         logging.info(
             "Deleted rerun requests with execution ids: %s",
             ", ".join(map(str, deleted))
         )
 
+    def run(self):
+        """
+        Collect, service and remove rerun requests
+        """
+        rerun_requests = self.load_rerun_requests()
+        if not rerun_requests:
+            return
+        processed_requests = self.process_rerun_requests(rerun_requests)
+        if not processed_requests:
+            return
+        submitted_requests = self.submit_processed_requests(processed_requests)
+        if not submitted_requests:
+            return
+        self.delete_rerun_requests(submitted_requests)
+
+
+def main():
+    parser = ArgumentParser(
+        description="Process Test Observer rerun requests"
+    )
+    parser.add_argument(
+        "runner", nargs="+",
+        choices=["jenkins", "github"],
+        help="Specify which runner interfaces to include"
+    )
+    args = parser.parse_args()
+    runner_interfaces = []
+    for runner in args.runner:
+        if runner == "jenkins":
+            runner_interfaces.append(
+                Jenkins("admin", environ["JENKINS_API_TOKEN"])
+            )
+        else:
+            runner_interfaces.append(
+                Github(environ["GITHUB_TOKEN"])
+            )
+    Rerunner(runner_interfaces)#.run()
+
 
 if __name__ == "__main__":
-    Rerunner(runner_interfaces=[Jenkins()]).run()
+    main()

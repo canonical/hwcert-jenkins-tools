@@ -13,9 +13,7 @@ reruns_link = TestObserverInterface().reruns_endpoint
 
 
 def execute():
-    Rerunner(
-        runner_interfaces=[Jenkins(api_token="token")]
-    ).run()
+    Rerunner([Jenkins("admin", "token")]).run()
 
 
 def test_does_nothing_when_no_reruns_requested(requests_mock: Mocker):
