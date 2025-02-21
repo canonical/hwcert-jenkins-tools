@@ -134,32 +134,24 @@ github = Github("ghtoken")
 # the expected result of Rerunner.process_rerun_requests;
 # this allows one-to-one checking of how each rerun request is processed
 expected_processed = {
-    1: (
-            jenkins,
-            {
-                "url": "http://10.102.156.15:8080/job/snap-job/buildWithParameters",
-                "json": {"TEST_OBSERVER_REPORTING": True}
-            }
-    ),
-    2: (
-            jenkins,
-            {
-                "url": "http://10.102.156.15:8080/job/deb-job/buildWithParameters",
-                "json": {"TEST_OBSERVER_REPORTING": True, "TESTPLAN": "full"}
-            }
-    ),
-    4: (
-            github,
-            {
-                "url": "https://api.github.com/repos/canonical/fake-repo/actions/runs/13/rerun",
-            }
-    ),
-    5: (
-            github,
-            {
-                "url": "https://api.github.com/repos/canonical/fake-repo/actions/runs/39/rerun",
-            }
-    ),
+    "Jenkins": {
+        1: {
+            "url": "http://10.102.156.15:8080/job/snap-job/buildWithParameters",
+            "json": {"TEST_OBSERVER_REPORTING": True}
+        },
+        2: {
+            "url": "http://10.102.156.15:8080/job/deb-job/buildWithParameters",
+            "json": {"TEST_OBSERVER_REPORTING": True, "TESTPLAN": "full"}
+        },
+    },
+    "Github": {
+        4: {
+            "url": "https://api.github.com/repos/canonical/fake-repo/actions/runs/13/rerun",
+        },
+        5: {
+            "url": "https://api.github.com/repos/canonical/fake-repo/actions/runs/39/rerun",
+        }
+    }
 }
 
 
@@ -205,8 +197,8 @@ def test_end_to_end(request, rerunner_name, expected_matches, expected_successfu
                 return True
         return json_matcher
 
-    def request_headers_filter(processor):
-        return headers[type(processor).__name__]
+    def request_headers_filter(processor_name):
+        return headers[processor_name]
 
     with requests_mock.Mocker() as mocker:
         catch_all = mocker.register_uri(requests_mock.ANY, requests_mock.ANY, status_code=500)
@@ -223,13 +215,14 @@ def test_end_to_end(request, rerunner_name, expected_matches, expected_successfu
         submit_matchers = [
             mocker.post(
                 post_arguments["url"],
-                request_headers=request_headers_filter(processor),
+                request_headers=request_headers_filter(processor_name),
                 additional_matcher=create_json_matcher(post_arguments),
                 # only some of the reruns are designated to succeed,
                 # so that we can check that only these are deleted
                 status_code=200 if execution_id in expected_successful else 500
             )
-            for execution_id, (processor, post_arguments) in expected_processed.items()
+            for processor_name, processed_requests_per_processor in expected_processed.items()
+            for execution_id, post_arguments in processed_requests_per_processor.items()
             if execution_id in expected_matches
         ]
         # this will be used to mock-delete the rerun requests that were
