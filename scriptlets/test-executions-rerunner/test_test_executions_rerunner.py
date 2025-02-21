@@ -133,7 +133,7 @@ github = Github("ghtoken")
 
 # the expected result of Rerunner.process_rerun_requests;
 # this allows one-to-one checking of how each rerun request is processed
-expected_processed = {
+expected_processed_per_processor = {
     "Jenkins": {
         1: {
             "url": "http://10.102.156.15:8080/job/snap-job/buildWithParameters",
@@ -156,36 +156,33 @@ expected_processed = {
 
 
 @pytest.fixture
-def rerunner_mixed():
-    return Rerunner([jenkins, github])
+def rerunner_jenkins():
+    return Rerunner(jenkins)
 
 @pytest.fixture
-def rerunner_jenkins_only():
-    return Rerunner([jenkins])
-
-@pytest.fixture
-def rerunner_github_only():
-    return Rerunner([github])
+def rerunner_github():
+    return Rerunner(github)
 
 
-def test_does_nothing_when_no_reruns_requested(rerunner_mixed):
+def test_does_nothing_when_no_reruns_requested(rerunner_jenkins):
     with requests_mock.Mocker() as mocker:
         catch_all = mocker.register_uri(requests_mock.ANY, requests_mock.ANY, status_code=500)
         load_matcher = mocker.get(TestObserverInterface().reruns_endpoint, json=[])
-        rerunner_mixed.run()
+        rerunner_jenkins.run()
     assert not catch_all.called
     assert load_matcher.called_once
 
 
 @pytest.mark.parametrize(
-    "rerunner_name, expected_matches, expected_successful", [
-        ("rerunner_jenkins_only", [1, 2], [1, 2]),
-        ("rerunner_github_only", [4, 5], [4]),
-        ("rerunner_mixed", [1, 2, 4, 5], [2, 5]),
+    "rerunner_name, expected_successful", [
+        ("rerunner_jenkins", [1, 2]),
+        ("rerunner_github", [4]),
     ],
 )
-def test_end_to_end(request, rerunner_name, expected_matches, expected_successful):
+def test_end_to_end(request, rerunner_name, expected_successful):
     rerunner = request.getfixturevalue(rerunner_name)
+    processor_name = type(rerunner.processor).__name__
+    expected_processed = expected_processed_per_processor[processor_name]
 
     def create_json_matcher(post_arguments):
         if "json" in post_arguments:
@@ -221,9 +218,7 @@ def test_end_to_end(request, rerunner_name, expected_matches, expected_successfu
                 # so that we can check that only these are deleted
                 status_code=200 if execution_id in expected_successful else 500
             )
-            for processor_name, processed_requests_per_processor in expected_processed.items()
-            for execution_id, post_arguments in processed_requests_per_processor.items()
-            if execution_id in expected_matches
+            for execution_id, post_arguments in expected_processed.items()
         ]
         # this will be used to mock-delete the rerun requests that were
         # processed and serviced successfully

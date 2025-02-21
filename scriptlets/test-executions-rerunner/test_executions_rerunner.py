@@ -8,7 +8,6 @@ Note also that jenkins uses python 3.8
 
 from abc import ABC, abstractmethod
 from argparse import ArgumentParser
-from collections import defaultdict
 from functools import partial
 import logging
 from os import environ
@@ -243,7 +242,7 @@ class Github(RequestProcessor):
         )
 
 
-ProcessedRequests = Dict[str, Dict[int, Dict]]
+ProcessedRequests = Dict[int, Dict]
 
 
 class Rerunner:
@@ -252,13 +251,9 @@ class Rerunner:
     corresponding reruns.
     """
 
-    def __init__(self, processors: List[RequestProcessor]):
+    def __init__(self, processor: RequestProcessor):
         self.test_observer = TestObserverInterface()
-        # store the processors in a dict, accessible by class name
-        self.processors = {
-            type(processor).__name__: processor
-            for processor in processors
-        }
+        self.processor = processor
 
     def load_rerun_requests(self) -> List[Dict]:
         """
@@ -273,30 +268,24 @@ class Rerunner:
 
     def process_rerun_requests(self, rerun_requests: List[Dict]) -> ProcessedRequests:
         """
-        Process a list of rerun requests, selecting the appropriate processor
-        for each one of them.
+        Process a list of rerun requests, selecting the ones that the
+        processor can handle.
 
-        Return a dict that maps processor names to execution IDs
-        to the arguments required to trigger the corresponding rerun.
+        Return a dict that maps execution IDs to the arguments required
+        to trigger the corresponding rerun.
         """
-        processed_requests: ProcessedRequests = defaultdict(dict)
+        processed_requests: ProcessedRequests = {}
         for rerun_request in rerun_requests:
-            # for each request, find the first processor that can handle it
-            for processor_name, processor in self.processors.items():
-                try:
-                    post_arguments = processor.process(rerun_request)
-                except RequestProccesingError:
-                    pass
-                else:
-                    execution_id = rerun_request["test_execution_id"]
-                    processed_requests[processor_name][execution_id] = post_arguments
-                    break
-            else:
-                # none of the processors handled the rerun request
+            try:
+                post_arguments = self.processor.process(rerun_request)
+            except RequestProccesingError:
                 logging.warning(
                     "Unable to process this rerun request:\n%s",
                     str(rerun_request)
                 )
+            else:
+                execution_id = rerun_request["test_execution_id"]
+                processed_requests[execution_id] = post_arguments
         return processed_requests
 
     def submit_processed_requests(self, processed_requests: ProcessedRequests) -> List[int]:
@@ -306,23 +295,21 @@ class Rerunner:
         reruns that were successfully triggered.
         """
         execution_ids_submitted_requests = []
-        for processor_name, processed_requests_per_processor in processed_requests.items():
-            processor = self.processors[processor_name]
-            for execution_id, post_arguments in processed_requests_per_processor.items():
-                try:
-                    processor.submit(post_arguments)
-                except HTTPError as error:
-                    # unable to POST: log the error
-                    logging.error(
-                        "Response %s posting %s to %s",
-                        error,
-                        str(post_arguments),
-                        processor_name
-                    )
-                else:
-                    # mark this request as successfully serviced
-                    # (so that it can be removed from Test Observer's queue)
-                    execution_ids_submitted_requests.append(execution_id)
+        for execution_id, post_arguments in processed_requests.items():
+            try:
+                self.processor.submit(post_arguments)
+            except HTTPError as error:
+                # unable to POST: log the error
+                logging.error(
+                    "Response %s posting %s to %s",
+                    error,
+                    str(post_arguments),
+                    type(self.processor).__name__
+                )
+            else:
+                # mark this request as successfully serviced
+                # (so that it can be removed from Test Observer's queue)
+                execution_ids_submitted_requests.append(execution_id)
         return execution_ids_submitted_requests
 
     def delete_rerun_requests(self, execution_ids: List[int]) -> None:
@@ -360,22 +347,17 @@ def main():
         description="Process Test Observer rerun requests"
     )
     parser.add_argument(
-        "runner", nargs="+",
-        choices=["jenkins", "github"],
-        help="Specify which runner interfaces to include"
+        "processor", choices=["jenkins", "github"],
+        help="Specify which request rerun processor to use"
     )
     args = parser.parse_args()
-    runner_interfaces = []
-    for runner in args.runner:
-        if runner == "jenkins":
-            runner_interfaces.append(
-                Jenkins("admin", environ["JENKINS_API_TOKEN"])
-            )
-        else:
-            runner_interfaces.append(
-                Github(environ["GITHUB_TOKEN"])
-            )
-    Rerunner(runner_interfaces)#.run()
+
+    if args.processor == "jenkins":
+        processor = Jenkins("admin", environ["JENKINS_API_TOKEN"])
+    else:
+        processor = Github(environ["GITHUB_TOKEN"])
+
+    Rerunner(processor).run()
 
 
 if __name__ == "__main__":
