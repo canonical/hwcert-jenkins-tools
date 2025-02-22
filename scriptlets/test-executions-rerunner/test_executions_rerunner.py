@@ -342,12 +342,13 @@ class Rerunner:
         self.delete_rerun_requests(submitted_requests)
 
 
-def main():
+def create_rerunner_from_args():
     parser = ArgumentParser(
         description="Process Test Observer rerun requests"
     )
     parser.add_argument(
         "processor", choices=["jenkins", "github"],
+        nargs="?", default="jenkins",
         help="Specify which request rerun processor to use"
     )
     args = parser.parse_args()
@@ -355,10 +356,10 @@ def main():
     if args.processor == "jenkins":
         processor = Jenkins("admin", environ["JENKINS_API_TOKEN"])
     else:
-        processor = Github(environ["GITHUB_TOKEN"])
-
-    Rerunner(processor).run()
+        processor = Github(environ["GH_TOKEN"])
+    return Rerunner(processor)
 
 
 if __name__ == "__main__":
-    main()
+    rerunner = create_rerunner_from_args()
+    rerunner.run()
