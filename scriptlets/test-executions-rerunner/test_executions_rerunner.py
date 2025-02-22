@@ -280,7 +280,8 @@ class Rerunner:
                 post_arguments = self.processor.process(rerun_request)
             except RequestProccesingError:
                 logging.warning(
-                    "Unable to process this rerun request:\n%s",
+                    "%s is unable to process this rerun request:\n%s",
+                    type(self.processor).__name__,
                     str(rerun_request)
                 )
             else:
@@ -354,7 +355,10 @@ def create_rerunner_from_args():
     args = parser.parse_args()
 
     if args.processor == "jenkins":
-        processor = Jenkins("admin", environ["JENKINS_API_TOKEN"])
+        processor = Jenkins(
+            environ.get("JENKINS_USERNAME") or "admin",
+            environ["JENKINS_API_TOKEN"]
+        )
     else:
         processor = Github(environ["GH_TOKEN"])
     return Rerunner(processor)
