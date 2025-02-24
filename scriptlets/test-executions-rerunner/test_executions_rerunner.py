@@ -12,7 +12,7 @@ from functools import partial
 import logging
 from os import environ
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional, NamedTuple
 
 from requests import Session
 from requests.adapters import HTTPAdapter
@@ -79,10 +79,15 @@ class RequestProccesingError(ValueError):
     """
 
 
-# this is what the RequestProcessor class (below) produces when it
-# processes a rerun request: a dict containing POST arguments that
-# will trigger the corresponding rerun
-PostArguments = Dict
+class PostArguments(NamedTuple):
+    """
+    The POST arguments that would trigger a rerun.
+
+    This is what the `RequestProcessor` class (below) produces
+    when it processes a rerun request.
+    """
+    url: str
+    json: Optional[Dict] = None
 
 
 class RequestProcessor(ABC):
@@ -114,9 +119,14 @@ class RequestProcessor(ABC):
 
         Raises an HTTPError if the operation fails.
         """
-        logging.info("POST %s", post_arguments)
+        post_arguments_dict = {
+            field: value
+            for field, value in post_arguments._asdict().items()
+            if value is not None
+        }
+        logging.info("POST %s", post_arguments_dict)
         response = requests.post(
-            **{**self.constant_post_arguments, **post_arguments}
+            **{**self.constant_post_arguments, **post_arguments_dict}
         )
         response.raise_for_status()
 
@@ -169,7 +179,7 @@ class JenkinsProcessor(RequestProcessor):
                 f"{cls.__name__} cannot process family '{family}' "
                 f"in rerun request {rerun_request}"
             )
-        return {"url": url, "json": json}
+        return PostArguments(url=url, json=json)
 
     @classmethod
     def extract_rerun_url_from_ci_link(cls, ci_link: str) -> str:
@@ -224,7 +234,7 @@ class GithubProcessor(RequestProcessor):
                 f"in rerun request {rerun_request}"
             ) from error
         url = cls.extract_rerun_url_from_ci_link(ci_link)
-        return {"url": url}
+        return PostArguments(url=url)
 
     @classmethod
     def extract_rerun_url_from_ci_link(cls, ci_link: str) -> str:
