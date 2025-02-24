@@ -3,7 +3,7 @@ import pytest
 import requests_mock
 
 from test_executions_rerunner import (
-    Jenkins, Github,
+    JenkinsProcessor, GithubProcessor,
     Rerunner, RequestProccesingError,
     TestObserverInterface
 )
@@ -18,7 +18,7 @@ def test_jenkins_no_ci_link():
         "family": "deb"
     }
     with pytest.raises(RequestProccesingError):
-        Jenkins.process(rerun_request)
+        JenkinsProcessor.process(rerun_request)
 
 
 @pytest.mark.parametrize(
@@ -37,7 +37,7 @@ def test_jenkins_invalid_ci_link(ci_link):
         "family": "deb"
     }
     with pytest.raises(RequestProccesingError):
-        Jenkins.process(rerun_request)
+        JenkinsProcessor.process(rerun_request)
 
 
 def test_jenkins_no_family():
@@ -47,7 +47,7 @@ def test_jenkins_no_family():
         "ci_link": f"{job_link}/123",
     }
     with pytest.raises(RequestProccesingError):
-        Jenkins.process(rerun_request)
+        JenkinsProcessor.process(rerun_request)
 
 
 def test_jenkins_invalid_family():
@@ -58,7 +58,7 @@ def test_jenkins_invalid_family():
         "family": "image",
     }
     with pytest.raises(RequestProccesingError):
-        Jenkins.process(rerun_request)
+        JenkinsProcessor.process(rerun_request)
 
 
 def test_github_no_ci_link():
@@ -66,7 +66,7 @@ def test_github_no_ci_link():
         "test_execution_id": 1,
     }
     with pytest.raises(RequestProccesingError):
-        Github.process(rerun_request)
+        GithubProcessor.process(rerun_request)
 
 
 @pytest.mark.parametrize(
@@ -84,7 +84,7 @@ def test_github_invalid_ci_link(ci_link):
         "ci_link": ci_link
     }
     with pytest.raises(RequestProccesingError):
-        Github.process(rerun_request)
+        GithubProcessor.process(rerun_request)
 
 
 # miscellaneous pieces of data to help with tests;
@@ -92,10 +92,10 @@ def test_github_invalid_ci_link(ci_link):
 
 # what the headers towards Jenkins and Github should look like
 headers = {
-    "Jenkins": {
+    JenkinsProcessor.__name__: {
         "Authorization": f"Basic {base64.b64encode(b'admin:jtoken').decode()}"
     },
-    "Github": {
+    GithubProcessor.__name__: {
         "Accept": "application/vnd.github+json",
         "Authorization": "Bearer ghtoken"
     },
@@ -128,13 +128,13 @@ rerun_requests = [
 ]
 
 # processors for rerun requests, i.e. interfaces towards Jenkins and Github
-jenkins = Jenkins("admin", "jtoken")
-github = Github("ghtoken")
+jenkins = JenkinsProcessor("admin", "jtoken")
+github = GithubProcessor("ghtoken")
 
 # the expected result of Rerunner.process_rerun_requests;
 # this allows one-to-one checking of how each rerun request is processed
 expected_processed_per_processor = {
-    "Jenkins": {
+    JenkinsProcessor.__name__: {
         1: {
             "url": "http://10.102.156.15:8080/job/snap-job/buildWithParameters",
             "json": {"TEST_OBSERVER_REPORTING": True}
@@ -144,7 +144,7 @@ expected_processed_per_processor = {
             "json": {"TEST_OBSERVER_REPORTING": True, "TESTPLAN": "full"}
         },
     },
-    "Github": {
+    GithubProcessor.__name__: {
         4: {
             "url": "https://api.github.com/repos/canonical/fake-repo/actions/runs/13/rerun",
         },

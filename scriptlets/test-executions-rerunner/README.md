@@ -38,24 +38,24 @@ Rerun requests do not need to come from Test Observer. You can create your own
 rerun requests, process them (even just to check that they are valid) and
 use them to trigger reruns either on Jenkins or Github.
 
-To achieve this, only the `Jenkins` or `Github` classes for processing rerun
-requests are required. There is no interaction with Test Observer so neither
-a `TestObserverInterface` nor a `Rerunner` is necessary. The `Rerunner` uses
-`Jenkins` or `Github` for the part of its functionality that involves
-processing or triggering rerun requests.
+To achieve this, only the `JenkinsProcessor` or `GithubProcessor` classes for
+processing rerun requests are required. There is no interaction with
+Test Observer so neither a `TestObserverInterface` nor a `Rerunner` is necessary.
+The `Rerunner` uses `JenkinsProcessor` or `GithubProcessor` for the part of its
+functionality that involves processing or triggering rerun requests.
 
 ### Process a rerun request (without submitting it)
 
 ```
-from test_executions_rerunner import Jenkins
+from test_executions_rerunner import JenkinsProcessor
 rerun_request = {'ci_link': 'http://10.102.156.15:8080/job/cert-rpi400-arm64-core24-beta/29/', 'family': 'snap'}
-Jenkins.process(rerun_request)
+JenkinsProcessor.process(rerun_request)
 ```
 
 ```
-from test_executions_rerunner import Github
+from test_executions_rerunner import GithubProcessor
 rerun_request = {'ci_link': 'https://github.com/canonical/certification-lab-ci/actions/runs/13326600211/job/37221100567'}
-Github.process(rerun_request)
+GithubProcessor.process(rerun_request)
 ```
 
 In both cases the `process` method returns a dict with the (rerun-related) POST arguments that would trigger a rerun.
@@ -79,17 +79,17 @@ In order to actually trigger a rerun, an instance of the processor class is requ
 created with the necessary authentication data:
 
 ```
-from test_executions_rerunner import Jenkins
+from test_executions_rerunner import JenkinsProcessor
 rerun_request = {'ci_link': 'http://10.102.156.15:8080/job/cert-rpi400-arm64-core24-beta/29/', 'family': 'snap'}
-jenkins = Jenkins(<user>, <token>)
+jenkins = JenkinsProcessor(<user>, <token>)
 post_arguments = jenkins.process(rerun_request)
 jenkins.submit(post_arguments)
 ```
 
 ```
-from test_executions_rerunner import Github
+from test_executions_rerunner import GithubProcessor
 rerun_request = {'ci_link': 'https://github.com/canonical/certification-lab-ci/actions/runs/13326600211/job/37221100567'}
-github = Github(<token>)
+github = GithubProcessor(<token>)
 post_arguments = github.process(rerun_request)
 github.submit(post_arguments)
 ```
@@ -107,8 +107,8 @@ a `Rerunner` goes through in order to retrieve rerun requests, process them
 and trigger the corresponding reruns.
 
 ```
-from test_executions_rerunner import Jenkins, Github
-github = Github(<token>)
+from test_executions_rerunner import JenkinsProcessor, GithubProcessor
+github = GithubProcessor(<token>)
 rerunner = Rerunner(github)
 rerun_requests = rerunner.load_rerun_requests()
 processed_requests = rerunner.process_rerun_requests(rerun_requests)

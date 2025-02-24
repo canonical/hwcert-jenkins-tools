@@ -115,7 +115,7 @@ class RequestProcessor(ABC):
         response.raise_for_status()
 
 
-class Jenkins(RequestProcessor):
+class JenkinsProcessor(RequestProcessor):
     """
     Process Test Observer rerun requests for Jenkins jobs
     """
@@ -186,7 +186,7 @@ class Jenkins(RequestProcessor):
         )
 
 
-class Github(RequestProcessor):
+class GithubProcessor(RequestProcessor):
     """
     Process Test Observer rerun requests for Github workflows
 
@@ -349,12 +349,12 @@ def create_rerunner_from_args():
     args = parser.parse_args()
 
     if args.processor == "jenkins":
-        processor = Jenkins(
+        processor = JenkinsProcessor(
             environ.get("JENKINS_USERNAME") or "admin",
             environ["JENKINS_API_TOKEN"]
         )
     else:
-        processor = Github(environ["GH_TOKEN"])
+        processor = GithubProcessor(environ["GH_TOKEN"])
     return Rerunner(processor)
 
 
