@@ -332,14 +332,8 @@ class Rerunner:
         Collect, service and remove rerun requests
         """
         rerun_requests = self.load_rerun_requests()
-        if not rerun_requests:
-            return
         processed_requests = self.process_rerun_requests(rerun_requests)
-        if not processed_requests:
-            return
         submitted_requests = self.submit_processed_requests(processed_requests)
-        if not submitted_requests:
-            return
         self.delete_rerun_requests(submitted_requests)
 
 
