@@ -49,7 +49,7 @@ class TestObserverInterface:
             "test-executions/reruns"
         )
 
-    def load(self) -> List[dict]:
+    def get(self) -> List[dict]:
         """
         Return the rerun requests currently queued in Test Observer.
 
@@ -259,7 +259,7 @@ class Rerunner:
         """
         Return rerun requests retrieved from Test Observer
         """
-        rerun_requests = self.test_observer.load()
+        rerun_requests = self.test_observer.get()
         logging.info(
             "Received the following rerun requests:\n%s",
             str(rerun_requests)

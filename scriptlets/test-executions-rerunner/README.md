@@ -1,12 +1,12 @@
 ## Interacting with Test Observer
 
-A `TestObserverInterface` can be used to load the rerun requests that are
+A `TestObserverInterface` can be used to retrieve the rerun requests that are
 currently queued on Test Observer or delete (some of) them.
 
 ```
 from test_executions_rerunner import TestObserverInterface
 test_observer = TestObserverInterface()
-test_observer.load()
+test_observer.get()
 ```
 
 This might just return an empty list but, if any rerun requests are actually queued
@@ -30,7 +30,7 @@ then the `load` will return something akin to this:
 ```
 
 The `Rerunner` uses a `TestObserverInterface` for the part of its functionality
-that involces interacting with Test Observer.
+that involves interacting with Test Observer.
 
 ## Reruns on Jenkins on Github
 
