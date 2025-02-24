@@ -79,6 +79,12 @@ class RequestProccesingError(ValueError):
     """
 
 
+# this is what the RequestProcessor class (below) produces when it
+# processes a rerun request: a dict containing POST arguments that
+# will trigger the corresponding rerun
+PostArguments = Dict
+
+
 class RequestProcessor(ABC):
     """
     An abstract class for processing Test Observer rerun requests and
@@ -92,7 +98,7 @@ class RequestProcessor(ABC):
 
     @classmethod
     @abstractmethod
-    def process(cls, rerun_request: dict) -> Dict:
+    def process(cls, rerun_request: dict) -> PostArguments:
         """
         Return a dict containing POST arguments that will trigger a rerun,
         based on a Test Observer rerun request.
@@ -102,7 +108,7 @@ class RequestProcessor(ABC):
         """
         raise NotImplementedError
 
-    def submit(self, post_arguments: Dict) -> None:
+    def submit(self, post_arguments: PostArguments) -> None:
         """
         Combine all available arguments for triggering a rerun and submit them.
 
@@ -130,7 +136,7 @@ class JenkinsProcessor(RequestProcessor):
         super().__init__({"auth": auth})
 
     @classmethod
-    def process(cls, rerun_request: dict) -> Dict:
+    def process(cls, rerun_request: dict) -> PostArguments:
         try:
             ci_link = rerun_request["ci_link"]
         except KeyError as error:
@@ -209,7 +215,7 @@ class GithubProcessor(RequestProcessor):
         )
 
     @classmethod
-    def process(cls, rerun_request: dict) -> Dict:
+    def process(cls, rerun_request: dict) -> PostArguments:
         try:
             ci_link = rerun_request["ci_link"]
         except KeyError as error:
@@ -242,7 +248,9 @@ class GithubProcessor(RequestProcessor):
         )
 
 
-ProcessedRequests = Dict[int, Dict]
+# the Rerunner class (below) maps TestObserver execution IDs to
+# the POST arguments that would trigger the corresponding rerun
+ProcessedRequests = Dict[int, PostArguments]
 
 
 class Rerunner:
