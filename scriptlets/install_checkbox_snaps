@@ -96,20 +96,30 @@ connect() {
 
 set -e
 
-if [[ "$#" != "3" ]]; then
-  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk frontend_name frontend_track"
+if [[ "$#" -ne "1" ]]; then
+  echo "Usage: $(basename ${BASH_SOURCE[0]}) frontend=track/risk"
   exit 1
+fi
+
+# parse the first argument to determine the frontend specification
+FRONTEND_SPEC=$1
+IFS='=' read -r FRONTEND_NAME FRONTEND_CHANNEL <<< "$FRONTEND_SPEC"
+IFS='/' read -r FRONTEND_TRACK RISK <<< "$FRONTEND_CHANNEL"
+if [ -z "$FRONTEND_NAME" ] || [ -z "$FRONTEND_TRACK" ] || [ -z "$RISK" ]; then
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) frontend=track/risk"
+    log --error "$FRONTEND_SPEC is not a valid Checkbox frontend specification"
+    exit 1
 fi
 
 log "Installing Checkbox snaps"
 
-export RISK=$1
-export FRONTEND_NAME=$2
-export FRONTEND_TRACK=$3
+export FRONTEND_NAME
+export FRONTEND_TRACK
+export RISK
+
 # get the store token from the device, if available
 export STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
 export RUNTIME_NAME=$(get_runtime $STORE)
-FRONTEND_CHANNEL="$FRONTEND_TRACK/$RISK"
 RUNTIME_CHANNEL="latest/$RISK"
 
 echo "Installing runtime snap: $RUNTIME_NAME from $RUNTIME_CHANNEL"
