@@ -4,17 +4,23 @@
 #
 # Description:
 #
-# Installs Checkbox snap (runtime + frontend) on the DUT. Also installs
-# Checkbox on the agent from source matching the version on the DUT
+# Installs Checkbox snaps, i.e. runtime(s) + frontend) on the DUT.
+# Also installs Checkbox on the agent from source, matching the version on the DUT.
 # Finally the installation on the DUT is verified to check that the machine is
 # ready to run tests.
+# 
+# Accepts a Checkbox frontend snap specification in the form: frontend=track/risk
+# as a required positional argument. Additional frontends can be installed
+# by the --additional argument followed by more specifications.
+#
 # The `risk` parameter can be either "stable", "beta", "edge" and is used for
 #   both runtime and frontend
-# The `frontend_name` can be any of the frontend snaps (eg. checkbox,
+# The `frontend` can be any of the frontend snaps (eg. checkbox,
 #   checkbox-tillamook).
-# The `frontend_track` parameter can be any valid track name (eg. 22.04, uc16).
+# The `track` parameter can be any valid track name (eg. 22.04, uc16).
 #   It is also used to appropriately install the snap (decide if a snap is
 #   classic or strict)
+#
 # If the Checkbox frontend is private, set UBUNTU_STORE_AUTH to <exported-login credentials base64>,
 #   which can be obtained using `snapcraft export-login <export-login file>`.
 
@@ -23,6 +29,8 @@ usage() {
 }
 
 parse_snap_specification() {
+    # check that the first argument is in the form <name>=<track>/<risk> and
+    # display <name>, <track> and <risk> separated by spaces, or fail otherwise
     local SPEC="$1"
     # break up the specification string and validate
     IFS='=' read -r NAME CHANNEL <<< "$SPEC"
@@ -43,6 +51,9 @@ get_ubuntu_arch() {
 }
 
 get_runtime() {
+    # deduce and display the name of the Checkbox runtime, given
+    # the name, track and risk of a Checkbox frontend
+    # (the STORE and UBUNTU_STORE_AUTH may also need to have been set globally)
     local FRONTEND_NAME=$1
     local FRONTEND_TRACK=$2
     local RISK=$3
@@ -83,6 +94,10 @@ get_runtime() {
 }
 
 install_checkbox_frontend_snap_on_device() {
+    # install a checkbox frontend snap, given its name, track and risk
+    # (first attempt to install it as a strict snap, using --devmode,
+    # and revert to --classic if that fails)
+    # side effect: a global boolean variable STRICT_FRONTEND is set
     local FRONTEND_NAME=$1
     local FRONTEND_TRACK=$2
     local RISK=$3
@@ -103,7 +118,8 @@ install_checkbox_frontend_snap_on_device() {
         snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
     _run sudo snap ack $FRONTEND_NAME.assert
     set +e
-    _run sudo snap install --no-wait --devmode $FRONTEND_NAME.snap
+
+    _run sudo snap install --no-wait --devmode $FRONTEND_NAME.snap > /dev/null 2>&1
     SNAP_INSTALL_STATUS=$?
     set -e
 
@@ -111,7 +127,7 @@ install_checkbox_frontend_snap_on_device() {
         echo "Failed to install $FRONTEND_NAME as a strict snap"
         echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a classic snap, using --classic)"
         STRICT_FRONTEND=false
-        _run sudo snap install --no-wait --classic $FRONTEND_NAME.snap
+        _run sudo snap install --no-wait --classic $FRONTEND_NAME.snap > /dev/null 2>&1
     fi
     wait_for_snap_changes
 }
@@ -197,11 +213,12 @@ export STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
 export RUNTIME_NAME=$(get_runtime $FRONTEND_NAME $FRONTEND_TRACK $RISK)
 RUNTIME_CHANNEL="latest/$RISK"
 
+# install Checkbox runtime
 echo "Installing runtime snap: $RUNTIME_NAME from $RUNTIME_CHANNEL"
 _run sudo snap install --no-wait $RUNTIME_NAME --channel=$RUNTIME_CHANNEL
 wait_for_snap_changes
 
-# install the primary frontend on top of the runtime
+# install the primary Checkbox frontend on top of the runtime
 install_checkbox_frontend_snap_on_device $FRONTEND_NAME $FRONTEND_TRACK $RISK
 
 if $STRICT_FRONTEND; then
@@ -209,14 +226,14 @@ if $STRICT_FRONTEND; then
     connect
 fi
 
-# run the configure hook of the frontend snap
+# run the configure hook of the primary Checkbox frontend
 _run sudo snap set $FRONTEND_NAME agent=enabled
 # note: setting "slave" instead of "agent" has been deprecated but is still necessary for some snaps
 _run sudo snap set $FRONTEND_NAME slave=enabled
 
+# install additional Checkbox frontend snaps (if required)
 for FRONTEND in "${FRONTENDS[@]:1}"; do
     read -r FRONTEND_NAME FRONTEND_TRACK RISK <<< "$FRONTEND"
-    # install additional frontend
     install_checkbox_frontend_snap_on_device $FRONTEND_NAME $FRONTEND_TRACK $RISK
     _run sudo snap stop --disable $FRONTEND_NAME.remote-slave
 done
@@ -228,7 +245,7 @@ done
 _run sudo snap refresh --no-wait $RUNTIME_NAME --channel=latest/$RISK
 wait_for_snap_changes
 
-# retrieve the primary frontend (again)
+# retrieve the primary Checkbox frontend (again)
 read -r FRONTEND_NAME FRONTEND_TRACK RISK <<< "${FRONTENDS[0]}"
 
 # restart the service, to make sure the latest version of the code is used
