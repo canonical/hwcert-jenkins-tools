@@ -221,11 +221,6 @@ wait_for_snap_changes
 # install the primary Checkbox frontend on top of the runtime
 install_checkbox_frontend_snap_on_device $FRONTEND_NAME $FRONTEND_TRACK $RISK
 
-if $STRICT_FRONTEND; then
-    # connect any unconnected frontend plugs to available plugs
-    connect
-fi
-
 # run the configure hook of the primary Checkbox frontend
 _run sudo snap set $FRONTEND_NAME agent=enabled
 # note: setting "slave" instead of "agent" has been deprecated but is still necessary for some snaps
@@ -237,6 +232,13 @@ for FRONTEND in "${FRONTENDS[@]:1}"; do
     install_checkbox_frontend_snap_on_device $FRONTEND_NAME $FRONTEND_TRACK $RISK
     _run sudo snap stop --disable $FRONTEND_NAME.remote-slave
 done
+
+if $STRICT_FRONTEND; then
+    # connect any unconnected frontend plugs to available plugs
+    connect
+    # note: so this needs to happen after the additional frontends have been installed
+    # _run sudo sudo snap connect checkbox-shiner:provider-ce-oem checkbox-ce-oem:provider-ce-oem
+fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
 # but we want RISK risk, so lets force it by re-installing it
