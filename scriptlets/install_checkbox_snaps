@@ -18,6 +18,24 @@
 # If the Checkbox frontend is private, set UBUNTU_STORE_AUTH to <exported-login credentials base64>,
 #   which can be obtained using `snapcraft export-login <export-login file>`.
 
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) frontend=track/risk [--additional frontend=track/risk+]"
+}
+
+parse_snap_specification() {
+    local SPEC="$1"
+    # break up the specification string and validate
+    IFS='=' read -r NAME CHANNEL <<< "$SPEC"
+    IFS='/' read -r TRACK RISK <<< "$CHANNEL"
+    if [ -z "$NAME" ] || [ -z "$TRACK" ] || [ -z "$RISK" ]; then
+        echo "'$SPEC' is not a valid snap specification in the form <snap>=<track>/<channel>" >&2
+        return 1
+    fi  
+    # print a space-separated list of the specification components
+    echo "$NAME $TRACK $RISK"
+    return 0
+}
+
 get_ubuntu_arch() {
     declare -A arch_map=([x86_64]=amd64 [aarch64]=arm64 [armv7l]=armhf [i686]=i386)
     UNAME_ARCH=$(_run "uname -m")
@@ -25,6 +43,11 @@ get_ubuntu_arch() {
 }
 
 get_runtime() {
+    local FRONTEND_NAME=$1
+    local FRONTEND_TRACK=$2
+    local RISK=$3
+    local RUNTIME_NAME
+
     # get the snap info from the snap store and extract the base
     SNAPSTORE_URL="https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base"
     SNAPINFO=$(curl -s -H 'Snap-Device-Series: 16' \
@@ -57,6 +80,40 @@ get_runtime() {
       RUNTIME_NAME="checkbox$(echo $BASE | sed -n 's/^core\([0-9]\{2\}\)$/\1/p' | grep .)"
     fi
     echo $RUNTIME_NAME
+}
+
+install_checkbox_frontend_snap_on_device() {
+    local FRONTEND_NAME=$1
+    local FRONTEND_TRACK=$2
+    local RISK=$3
+    local FRONTEND_CHANNEL=$FRONTEND_TRACK/$RISK
+
+    # install the frontend snap as a strict snap and revert to classic if that fails
+    # (strict snaps need a different install flag and the connections to be made)
+    echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a strict snap, using --devmode)"
+    STRICT_FRONTEND=true
+
+    # To install any snap, regardless of its visibility, on a non-authenticated device:
+    # 1. Download the snap using an exported valid token and the store ID, if any
+    # 2. Validate the snap to avoid using the --dangerous flag
+    # 3. Install the snap from the local file
+    _run \
+        ${STORE:+ UBUNTU_STORE_ID=$STORE} \
+        ${UBUNTU_STORE_AUTH:+ UBUNTU_STORE_AUTH=$UBUNTU_STORE_AUTH} \
+        snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
+    _run sudo snap ack $FRONTEND_NAME.assert
+    set +e
+    _run sudo snap install --no-wait --devmode $FRONTEND_NAME.snap
+    SNAP_INSTALL_STATUS=$?
+    set -e
+
+    if [ "$SNAP_INSTALL_STATUS" -ne 0 ]; then
+        echo "Failed to install $FRONTEND_NAME as a strict snap"
+        echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a classic snap, using --classic)"
+        STRICT_FRONTEND=false
+        _run sudo snap install --no-wait --classic $FRONTEND_NAME.snap
+    fi
+    wait_for_snap_changes
 }
 
 connect() {
@@ -96,71 +153,73 @@ connect() {
 
 set -e
 
-if [[ "$#" -ne "1" ]]; then
-  echo "Usage: $(basename ${BASH_SOURCE[0]}) frontend=track/risk"
-  exit 1
+# an array to store the Checkbox frontends to be installed
+declare -a FRONTENDS=()
+
+if [ "$#" -eq 0 ]; then
+    usage
+    echo "Error: Missing Checkbox frontend specification"
+    exit 1
 fi
 
-# parse the first argument to determine the frontend specification
-FRONTEND_SPEC=$1
-IFS='=' read -r FRONTEND_NAME FRONTEND_CHANNEL <<< "$FRONTEND_SPEC"
-IFS='/' read -r FRONTEND_TRACK RISK <<< "$FRONTEND_CHANNEL"
-if [ -z "$FRONTEND_NAME" ] || [ -z "$FRONTEND_TRACK" ] || [ -z "$RISK" ]; then
-    echo "Usage: $(basename ${BASH_SOURCE[0]}) frontend=track/risk"
-    log --error "$FRONTEND_SPEC is not a valid Checkbox frontend specification"
-    exit 1
+# parse the first argument, i.e. the "main" Checkbox frontend
+FRONTEND=$(parse_snap_specification "$1")
+[ $? -ne 0 ] && exit 1
+FRONTENDS+=($FRONTEND)
+shift
+
+if [ $# -gt 0 ]; then
+    # handle the separator flag
+    if [ "$1" != "--additional" ]; then
+        usage
+        echo "Error: use '--additional' to install additional Checkbox frontends" >&2
+        exit 1
+    fi
+    shift
+    # parse the remaining Checkbox frontends
+    while [ $# -gt 0 ]; do
+        FRONTEND=$(parse_snap_specification "$1")
+        [ $? -ne 0 ] && exit 1
+        FRONTENDS+=($FRONTEND)
+        shift
+    done
 fi
 
 log "Installing Checkbox snaps"
 
-export FRONTEND_NAME
-export FRONTEND_TRACK
-export RISK
+# retrieve the primary frontend
+read -r FRONTEND_NAME FRONTEND_TRACK RISK <<< "$FRONTENDS[0]"
 
 # get the store token from the device, if available
 export STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
-export RUNTIME_NAME=$(get_runtime $STORE)
+
+# use the frontend to derive the Checkbox runtime to be installed
+export RUNTIME_NAME=$(get_runtime $FRONTEND_NAME $FRONTEND_TRACK $RISK)
 RUNTIME_CHANNEL="latest/$RISK"
 
 echo "Installing runtime snap: $RUNTIME_NAME from $RUNTIME_CHANNEL"
 _run sudo snap install --no-wait $RUNTIME_NAME --channel=$RUNTIME_CHANNEL
 wait_for_snap_changes
 
-# install the frontend snap as a strict snap and revert to classic if that fails
-# (strict snaps need a different install flag and the connections to be made)
-echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a strict snap, using --devmode)"
-STRICT_FRONTEND=true
+# install the primary frontend on top of the runtime
+install_checkbox_frontend_snap_on_device $FRONTEND_NAME $FRONTEND_TRACK $RISK
 
-# To install any snap, regardless of its visibility, on a non-authenticated device:
-# 1. Download the snap using an exported valid token and the store ID, if any
-# 2. Validate the snap to avoid using the --dangerous flag
-# 3. Install the snap from the local file
-_run ${STORE:+ UBUNTU_STORE_ID=$STORE} \
-    ${UBUNTU_STORE_AUTH:+ UBUNTU_STORE_AUTH=$UBUNTU_STORE_AUTH} \
-    snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
-_run sudo snap ack $FRONTEND_NAME.assert
-set +e
-_run sudo snap install --no-wait --devmode $FRONTEND_NAME.snap
-SNAP_INSTALL_STATUS=$?
-set -e
-
-if [ "$SNAP_INSTALL_STATUS" -ne 0 ]; then
-    echo "Failed to install $FRONTEND_NAME as a strict snap"
-    echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a classic snap, using --classic)"
-    STRICT_FRONTEND=false
-    _run sudo snap install --no-wait --classic $FRONTEND_NAME.snap
+if $STRICT_FRONTEND; then
+    # connect any unconnected frontend plugs to available plugs
+    connect
 fi
-wait_for_snap_changes
 
 # run the configure hook of the frontend snap
 _run sudo snap set $FRONTEND_NAME agent=enabled
 # note: setting "slave" instead of "agent" has been deprecated but is still necessary for some snaps
 _run sudo snap set $FRONTEND_NAME slave=enabled
 
-if $STRICT_FRONTEND; then
-    # connect any unconnected frontend plugs to available plugs
-    connect
-fi
+for FRONTEND in "${FRONTENDS[@]:1}"; do
+    read -r FRONTEND_NAME FRONTEND_TRACK RISK <<< "$FRONTEND"
+    # install additional frontend
+    install_checkbox_frontend_snap_on_device $FRONTEND_NAME $FRONTEND_TRACK $RISK
+    _run sudo snap stop --disable $FRONTEND_NAME.remote-slave
+done
 
 # some versions of snapd seem to force dependencies to be stable in some situation
 # but we want RISK risk, so lets force it by re-installing it
