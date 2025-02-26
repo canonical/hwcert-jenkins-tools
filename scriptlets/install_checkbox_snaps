@@ -228,6 +228,9 @@ done
 _run sudo snap refresh --no-wait $RUNTIME_NAME --channel=latest/$RISK
 wait_for_snap_changes
 
+# retrieve the primary frontend (again)
+read -r FRONTEND_NAME FRONTEND_TRACK RISK <<< "${FRONTENDS[0]}"
+
 # restart the service, to make sure the latest version of the code is used
 _run sudo snap restart $FRONTEND_NAME
 
