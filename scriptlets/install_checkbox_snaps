@@ -108,6 +108,7 @@ install_checkbox_frontend_snap_on_device() {
     echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a strict snap, using --devmode)"
     STRICT_FRONTEND=true
 
+    set -x
     # To install any snap, regardless of its visibility, on a non-authenticated device:
     # 1. Download the snap using an exported valid token and the store ID, if any
     # 2. Validate the snap to avoid using the --dangerous flag
@@ -117,6 +118,7 @@ install_checkbox_frontend_snap_on_device() {
         ${UBUNTU_STORE_AUTH:+ UBUNTU_STORE_AUTH=$UBUNTU_STORE_AUTH} \
         snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
     _run sudo snap ack $FRONTEND_NAME.assert
+    set +x
     set +e
 
     _run sudo snap install --no-wait --devmode $FRONTEND_NAME.snap > /dev/null 2>&1
@@ -203,7 +205,7 @@ fi
 
 log "Installing Checkbox snaps"
 
-# retrieve the primary frontend
+# retrieve the primary frontend (used to derive the runtime)
 read -r FRONTEND_NAME FRONTEND_TRACK RISK <<< "${FRONTENDS[0]}"
 
 # get the store token from the device, if available
@@ -218,14 +220,6 @@ echo "Installing runtime snap: $RUNTIME_NAME from $RUNTIME_CHANNEL"
 _run sudo snap install --no-wait $RUNTIME_NAME --channel=$RUNTIME_CHANNEL
 wait_for_snap_changes
 
-# install the primary Checkbox frontend on top of the runtime
-install_checkbox_frontend_snap_on_device $FRONTEND_NAME $FRONTEND_TRACK $RISK
-
-# run the configure hook of the primary Checkbox frontend
-_run sudo snap set $FRONTEND_NAME agent=enabled
-# note: setting "slave" instead of "agent" has been deprecated but is still necessary for some snaps
-_run sudo snap set $FRONTEND_NAME slave=enabled
-
 # install additional Checkbox frontend snaps (if required)
 for FRONTEND in "${FRONTENDS[@]:1}"; do
     read -r FRONTEND_NAME FRONTEND_TRACK RISK <<< "$FRONTEND"
@@ -233,11 +227,18 @@ for FRONTEND in "${FRONTENDS[@]:1}"; do
     _run sudo snap stop --disable $FRONTEND_NAME.remote-slave
 done
 
+# install the primary Checkbox frontend
+read -r FRONTEND_NAME FRONTEND_TRACK RISK <<< "${FRONTENDS[0]}"
+install_checkbox_frontend_snap_on_device $FRONTEND_NAME $FRONTEND_TRACK $RISK
+
+# run the configure hook of the primary Checkbox frontend
+_run sudo snap set $FRONTEND_NAME agent=enabled
+# note: setting "slave" instead of "agent" has been deprecated but is still necessary for some snaps
+_run sudo snap set $FRONTEND_NAME slave=enabled
+
 if $STRICT_FRONTEND; then
     # connect any unconnected frontend plugs to available plugs
     connect
-    # note: so this needs to happen after the additional frontends have been installed
-    # _run sudo sudo snap connect checkbox-shiner:provider-ce-oem checkbox-ce-oem:provider-ce-oem
 fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
@@ -246,9 +247,6 @@ fi
 #       then this causes just 1 download
 _run sudo snap refresh --no-wait $RUNTIME_NAME --channel=latest/$RISK
 wait_for_snap_changes
-
-# retrieve the primary Checkbox frontend (again)
-read -r FRONTEND_NAME FRONTEND_TRACK RISK <<< "${FRONTENDS[0]}"
 
 # restart the service, to make sure the latest version of the code is used
 _run sudo snap restart $FRONTEND_NAME
