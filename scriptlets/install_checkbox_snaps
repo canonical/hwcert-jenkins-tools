@@ -165,7 +165,7 @@ fi
 # parse the first argument, i.e. the "main" Checkbox frontend
 FRONTEND=$(parse_snap_specification "$1")
 [ $? -ne 0 ] && exit 1
-FRONTENDS+=($FRONTEND)
+FRONTENDS+=("$FRONTEND")
 shift
 
 if [ $# -gt 0 ]; then
@@ -180,7 +180,7 @@ if [ $# -gt 0 ]; then
     while [ $# -gt 0 ]; do
         FRONTEND=$(parse_snap_specification "$1")
         [ $? -ne 0 ] && exit 1
-        FRONTENDS+=($FRONTEND)
+        FRONTENDS+=("$FRONTEND")
         shift
     done
 fi
@@ -188,7 +188,7 @@ fi
 log "Installing Checkbox snaps"
 
 # retrieve the primary frontend
-read -r FRONTEND_NAME FRONTEND_TRACK RISK <<< "$FRONTENDS[0]"
+read -r FRONTEND_NAME FRONTEND_TRACK RISK <<< "${FRONTENDS[0]}"
 
 # get the store token from the device, if available
 export STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
