@@ -224,7 +224,7 @@ wait_for_snap_changes
 for FRONTEND in "${FRONTENDS[@]:1}"; do
     read -r FRONTEND_NAME FRONTEND_TRACK RISK <<< "$FRONTEND"
     install_checkbox_frontend_snap_on_device $FRONTEND_NAME $FRONTEND_TRACK $RISK
-    _run sudo snap stop --disable $FRONTEND_NAME.remote-slave
+    _run sudo snap stop --disable $FRONTEND_NAME
 done
 
 # install the primary Checkbox frontend
