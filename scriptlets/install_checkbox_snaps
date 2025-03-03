@@ -238,7 +238,7 @@ _run sudo snap set $FRONTEND_NAME slave=enabled
 
 if $STRICT_FRONTEND; then
     # connect any unconnected frontend plugs to available plugs
-    connect
+    #connect
 fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
