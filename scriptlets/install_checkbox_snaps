@@ -77,8 +77,11 @@ get_runtime() {
         ) |
         .base' <<< $SNAPINFO
     )
+    echo "DEGUB: $FRONTEND_NAME $FRONTEND_TRACK/$RISK" >&2
+    echo "DEBUG: SNAPINFO=$SNAPINFO" >&2
+    echo "DEBUG: BASE=$BASE" >&2
     # use the base as a heuristic to derive the Checkbox runtime
-    if [ "$BASE" = "null" ]; then
+    if [ "$BASE" = "null" ] || [ -z "$BASE" ]; then
       # no base:" fall back to using the Core version
       # (the final "grep ." will cause the command to fail if there's no match)
       RUNTIME_NAME="checkbox$(_run "cat /etc/os-release" | sed -n 's/PRETTY_NAME="Ubuntu Core \([0-9]\{2\}\)"$/\1/p' | grep .)"
@@ -108,7 +111,6 @@ install_checkbox_frontend_snap_on_device() {
     echo "Installing frontend snap: $FRONTEND_NAME from $FRONTEND_CHANNEL (as a strict snap, using --devmode)"
     STRICT_FRONTEND=true
 
-    set -x
     # To install any snap, regardless of its visibility, on a non-authenticated device:
     # 1. Download the snap using an exported valid token and the store ID, if any
     # 2. Validate the snap to avoid using the --dangerous flag
@@ -118,9 +120,8 @@ install_checkbox_frontend_snap_on_device() {
         ${UBUNTU_STORE_AUTH:+ UBUNTU_STORE_AUTH=$UBUNTU_STORE_AUTH} \
         snap download $FRONTEND_NAME --channel=$FRONTEND_CHANNEL --basename=$FRONTEND_NAME
     _run sudo snap ack $FRONTEND_NAME.assert
-    set +x
+    
     set +e
-
     _run sudo snap install --no-wait --devmode $FRONTEND_NAME.snap > /dev/null 2>&1
     SNAP_INSTALL_STATUS=$?
     set -e
@@ -135,38 +136,21 @@ install_checkbox_frontend_snap_on_device() {
 }
 
 connect() {
-    # Collect unconnected frontend plugs (strip out the frontend name)
-    FRONTEND_PLUGS=$(_run "snap connections $FRONTEND_NAME" | awk '$3 == "-" {print $2}' | sed -n "s/$FRONTEND_NAME:\(.*\)$/\1/p")
-    # Collect unconnected runtime slots (strip out the runtime name)
-    # and keep them in a set (for quicker membership tests)
-    RUNTIME_SLOTS=$(_run snap connections "$RUNTIME_NAME" | awk '$2 == "-" {print $3}' | sed -n "s/$RUNTIME_NAME:\(.*\)$/\1/p")
-    declare -A RUNTIME_SLOT_SET
-    for SLOT in $RUNTIME_SLOTS; do RUNTIME_SLOT_SET[$SLOT]=$SLOT; done
-    # For each unconnected frontend plug, check if you can connect it to a matching runtime slot
-    while read -r PLUG; do
-        SLOT=${RUNTIME_SLOT_SET[$PLUG]}
-        if [ -n "$SLOT" ]; then
-            echo "Connecting $FRONTEND_NAME:$PLUG to $RUNTIME_NAME:$SLOT"
-            # input from /dev/null prevents ssh from consuming the standard input
-            _run sudo snap connect $FRONTEND_NAME:$PLUG $RUNTIME_NAME:$SLOT < /dev/null
-        fi
-    done <<< "$FRONTEND_PLUGS"
-    # Collect unconnected frontend plugs and their corresponding (non-content) interface
-    FRONTEND_PLUGS=$(_run "snap connections $FRONTEND_NAME" | awk '$3 == "-" && $1 != "content" {print $2, $1}')
-    # Collect slots and their corresponding (non-content) interface
-    # and create an interface -> slot mapping (for quicker checks)
-    SLOTS=$(_run "snap connections --all" | awk '$3 ~ ":" && $1 != "content" {print $3, $1}')
-    declare -A INTERFACE_SLOT_MAP
-    while IFS=' ' read -r SLOT INTERFACE; do INTERFACE_SLOT_MAP[$INTERFACE]=$SLOT; done <<< "$SLOTS"
-    # For each unconnected frontend plug, check if you can connect it to a slot on a matching interface
-    while IFS=' ' read -r PLUG INTERFACE; do
-        SLOT=${INTERFACE_SLOT_MAP[$INTERFACE]}
-        if [ -n "$SLOT" ]; then
-            echo "Connecting $PLUG to $SLOT"
-            # input from /dev/null prevents ssh from consuming the standard input
-            _run sudo snap connect $PLUG $SLOT < /dev/null
-        fi
-    done <<< "$FRONTEND_PLUGS"
+    # use the snapd API on the device to collect snap connection data
+    # (equivalent to `_run snap connections --all` but with detailed JSON output)
+    SNAP_CONNECTION_DATA=$(
+        printf 'GET /v2/connections?select=all HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' |
+        _run nc -U /run/snapd.socket |
+        grep -o '{.*}'
+    )
+    # process the snap connection data and retrieve the possible connections
+    CONNECTIONS=$(echo $SNAP_CONNECTION_DATA | snap_connections)
+    # perform the connections one-by-one
+    while IFS='/' read -r PLUG SLOT; do
+        echo "Connecting $PLUG to $SLOT"
+        # input from /dev/null prevents ssh from consuming the standard input
+        _run sudo snap connect $PLUG $SLOT < /dev/null
+    done <<< "$CONNECTIONS"
 }
 
 set -e
@@ -213,6 +197,7 @@ export STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
 
 # use the frontend to derive the Checkbox runtime to be installed
 export RUNTIME_NAME=$(get_runtime $FRONTEND_NAME $FRONTEND_TRACK $RISK)
+echo "DEBUG: RUNTIME=$RUNTIME_NAME"
 RUNTIME_CHANNEL="latest/$RISK"
 
 # install Checkbox runtime
@@ -238,7 +223,7 @@ _run sudo snap set $FRONTEND_NAME slave=enabled
 
 if $STRICT_FRONTEND; then
     # connect any unconnected frontend plugs to available plugs
-    #connect
+    connect
 fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
