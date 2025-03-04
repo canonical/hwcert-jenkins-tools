@@ -77,9 +77,6 @@ get_runtime() {
         ) |
         .base' <<< $SNAPINFO
     )
-    echo "DEGUB: $FRONTEND_NAME $FRONTEND_TRACK/$RISK" >&2
-    echo "DEBUG: SNAPINFO=$SNAPINFO" >&2
-    echo "DEBUG: BASE=$BASE" >&2
     # use the base as a heuristic to derive the Checkbox runtime
     if [ "$BASE" = "null" ] || [ -z "$BASE" ]; then
       # no base:" fall back to using the Core version
@@ -135,23 +132,6 @@ install_checkbox_frontend_snap_on_device() {
     wait_for_snap_changes
 }
 
-connect() {
-    # use the snapd API on the device to collect snap connection data
-    # (equivalent to `_run snap connections --all` but with detailed JSON output)
-    SNAP_CONNECTION_DATA=$(
-        printf 'GET /v2/connections?select=all HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' |
-        _run nc -U /run/snapd.socket |
-        grep -o '{.*}'
-    )
-    # process the snap connection data and retrieve the possible connections
-    CONNECTIONS=$(echo $SNAP_CONNECTION_DATA | snap_connections)
-    # perform the connections one-by-one
-    while IFS='/' read -r PLUG SLOT; do
-        echo "Connecting $PLUG to $SLOT"
-        # input from /dev/null prevents ssh from consuming the standard input
-        _run sudo snap connect $PLUG $SLOT < /dev/null
-    done <<< "$CONNECTIONS"
-}
 
 set -e
 
@@ -197,7 +177,6 @@ export STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
 
 # use the frontend to derive the Checkbox runtime to be installed
 export RUNTIME_NAME=$(get_runtime $FRONTEND_NAME $FRONTEND_TRACK $RISK)
-echo "DEBUG: RUNTIME=$RUNTIME_NAME"
 RUNTIME_CHANNEL="latest/$RISK"
 
 # install Checkbox runtime
@@ -223,7 +202,7 @@ _run sudo snap set $FRONTEND_NAME slave=enabled
 
 if $STRICT_FRONTEND; then
     # connect any unconnected frontend plugs to available plugs
-    connect
+    connect_checkbox_snaps
 fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
