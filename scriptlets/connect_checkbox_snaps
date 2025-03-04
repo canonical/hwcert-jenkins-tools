@@ -16,12 +16,17 @@ connect() {
     )
     # process the snap connection data and retrieve the possible connections
     CONNECTIONS=$(echo $SNAP_CONNECTION_DATA | snap_connections)
-    # perform the connections one-by-one
-    while IFS='/' read -r PLUG SLOT; do
-        echo "Connecting $PLUG to $SLOT"
-        # input from /dev/null prevents ssh from consuming the standard input
-        _run sudo snap connect $PLUG $SLOT < /dev/null
-    done <<< "$CONNECTIONS"
+
+    if [ -n "$CONNECTIONS" ]; then
+        # perform the connections one-by-one
+        while IFS='/' read -r PLUG SLOT; do
+            echo "Connecting $PLUG to $SLOT"
+            # input from /dev/null prevents ssh from consuming the standard input
+            _run sudo snap connect $PLUG $SLOT < /dev/null
+        done <<< "$CONNECTIONS"
+    else
+        echo "No possible connections detected"
+    fi
 }
 
 set -e
