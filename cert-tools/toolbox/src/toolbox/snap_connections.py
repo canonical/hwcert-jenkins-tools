@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""
+Read the output of the `connections` endpoint of the snapd API
+from standard input and write a list of possible plug-to-slot
+connections to standard output.
+"""
 
 from argparse import ArgumentParser
 from collections import defaultdict
@@ -8,6 +13,45 @@ import sys
 from typing import Callable, Dict, List, NamedTuple, Optional
 
 
+# dicts that describe snap plugs and slots
+# (they follow the schema of the snapd API `connections` endpoint)
+#
+# example of a plug dict:
+# ```
+# {
+#   "snap": "checkbox-mir",
+#   "plug": "graphics-core22",
+#   "interface": "content",
+#   "attrs": {
+#     "content": "graphics-core22",
+#     "default-provider": "mesa-core22",
+#   },
+#   "connections": [
+#     {
+#       "snap": "mesa-core22",
+#       "slot": "graphics-core22"
+#     }
+#   ]
+# }
+# ```
+# 
+# example of a slot dict:
+# ```
+# {
+#     "snap": "mesa-core22",
+#     "slot": "graphics-core22",
+#     "interface": "content",
+#     "attrs": {
+#         "content": "graphics-core22",
+#     },
+#     "connections": [
+#         {
+#             "snap": "checkbox-mir",
+#             "plug": "graphics-core22"
+#         }
+#     ]
+# }
+# ```
 PlugDict = Dict
 SlotDict = Dict
 
@@ -19,7 +63,7 @@ class Connection(NamedTuple):
     slot_name: str
 
     @classmethod
-    def from_dicts(cls, plug:PlugDict, slot: SlotDict) -> "Connection":
+    def from_dicts(cls, plug: PlugDict, slot: SlotDict) -> "Connection":
         return cls(
             plug_snap=plug["snap"],
             plug_name=plug["plug"],
@@ -52,6 +96,7 @@ class Connection(NamedTuple):
         )
 
 
+# any callable that processes a plug-to-dict connection and accepts/rejects it
 ConnectionFilter = Callable[[PlugDict, SlotDict], bool]
 
 
@@ -65,6 +110,10 @@ class Connector:
 
     @staticmethod
     def match_attributes(plug: PlugDict, slot: SlotDict) -> bool:
+        """
+        Return True if the (common) attributes of a plug and slot match,
+        or False otherwise.
+        """
         assert plug["interface"] == slot["interface"]
         try:
             plug_attributes = plug["attrs"]
@@ -78,6 +127,10 @@ class Connector:
         )
 
     def process(self, data):
+        """
+        Process the output of the `connections` endpoint of the snapd API
+        and return a list of possible connections (`Connection` objects).
+        """
         # record existing connections in a set (for fast checks)
         existing_connections = set()
         for connection in data["result"]["established"]:
@@ -134,6 +187,7 @@ def main():
     data_input = sys.stdin.read()
     data = json.loads(data_input)
     if args.snaps:
+        # create a filter function for the provided snaps
         def snap_filter(plug: PlugDict, _) -> bool:
             return plug["snap"] in set(args.snaps)
         connector = Connector(filters=[snap_filter])
