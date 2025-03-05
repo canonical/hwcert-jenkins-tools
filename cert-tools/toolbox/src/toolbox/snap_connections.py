@@ -8,14 +8,14 @@ import sys
 from typing import NamedTuple
 
 
-class SnapConnection(NamedTuple):
+class Connection(NamedTuple):
     plug_snap: str
     plug_name: str
     slot_snap: str
     slot_name: str
 
     @classmethod
-    def from_dicts(cls, plug, slot) -> "SnapConnection":
+    def from_dicts(cls, plug, slot) -> "Connection":
         return cls(
             plug_snap=plug["snap"],
             plug_name=plug["plug"],
@@ -24,7 +24,7 @@ class SnapConnection(NamedTuple):
         )
 
     @classmethod
-    def from_string(cls, string: str) -> "SnapConnection":
+    def from_string(cls, string: str) -> "Connection":
         match = re.match(
             r"^(?P<plug_snap>[\w-]+):(?P<plug_name>[\w-]+)"
             r"/(?P<slot_snap>[\w-]*):(?P<slot_name>[\w-]+)$",
@@ -48,57 +48,59 @@ class SnapConnection(NamedTuple):
         )
 
 
-def match_attributes(plug, slot) -> bool:
-    assert plug["interface"] == slot["interface"]
-    try:
-        plug_attributes = plug["attrs"]
-        slot_attributes = slot["attrs"]
-    except KeyError:
-        return True
-    common_attributes = set(plug_attributes.keys()) & set(slot_attributes.keys())
-    return all(
-        plug_attributes[attribute] == slot_attributes[attribute]
-        for attribute in common_attributes
-    )
+class Connector:
 
-
-def get_possible_connections(data):
-    # record existing connections in a set (for fast checks)
-    existing_connections = set()
-    for connection in data["result"]["established"]:
-        existing_connections.add(
-            SnapConnection.from_dicts(connection["plug"], connection["slot"])
+    @staticmethod
+    def match_attributes(plug, slot) -> bool:
+        assert plug["interface"] == slot["interface"]
+        try:
+            plug_attributes = plug["attrs"]
+            slot_attributes = slot["attrs"]
+        except KeyError:
+            return True
+        common_attributes = set(plug_attributes.keys()) & set(slot_attributes.keys())
+        return all(
+            plug_attributes[attribute] == slot_attributes[attribute]
+            for attribute in common_attributes
         )
 
-    # iterate over all *unconnected* plugs and create a map that
-    # associates each interface to a list of plugs for that interface
-    interface_map = defaultdict(list)
-    for plug in data["result"]["plugs"]:
-        if "connections" not in plug:
-            interface = plug["interface"]
-            interface_map[interface].append(plug)
+    def process(self, data):
+        # record existing connections in a set (for fast checks)
+        existing_connections = set()
+        for connection in data["result"]["established"]:
+            existing_connections.add(
+                Connection.from_dicts(connection["plug"], connection["slot"])
+            )
 
-    # iterate over all slots and check for matching plugs
-    possible_connections = set()
-    for slot in data["result"]["slots"]:
-        interface = slot["interface"]
-        if interface not in interface_map:
-            continue
-        # retrieve the plugs for that interface
-        plugs = interface_map[interface]
-        for plug in plugs:
-            # reject connections where the interface attributes don't match
-            if not match_attributes(plug, slot):
+        # iterate over all *unconnected* plugs and create a map that
+        # associates each interface to a list of plugs for that interface
+        interface_map = defaultdict(list)
+        for plug in data["result"]["plugs"]:
+            if "connections" not in plug:
+                interface = plug["interface"]
+                interface_map[interface].append(plug)
+
+        # iterate over all slots and check for matching plugs
+        possible_connections = set()
+        for slot in data["result"]["slots"]:
+            interface = slot["interface"]
+            if interface not in interface_map:
                 continue
-            # reject connections on the same snap
-            if plug["snap"] == slot["snap"]:
-                continue
-            # reject existing connections
-            connection = SnapConnection.from_dicts(plug, slot)
-            if connection in existing_connections:
-                continue
-            possible_connections.add(connection)
-    return possible_connections
+            # retrieve the plugs for that interface
+            plugs = interface_map[interface]
+            for plug in plugs:
+                # reject connections where the interface attributes don't match
+                if not self.match_attributes(plug, slot):
+                    continue
+                # reject connections on the same snap
+                if plug["snap"] == slot["snap"]:
+                    continue
+                # reject existing connections
+                connection = Connection.from_dicts(plug, slot)
+                if connection in existing_connections:
+                    continue
+                possible_connections.add(connection)
+        return possible_connections
 
 
 def main():
@@ -108,14 +110,14 @@ def main():
         help='Only connect plugs for these snaps'
     )
     parser.add_argument(
-        '--force', nargs='+', type=SnapConnection.from_string,
+        '--force', nargs='+', type=Connection.from_string,
         help='Force additional connections'
     )
     args = parser.parse_args()
 
     data_input = sys.stdin.read()
     data = json.loads(data_input)
-    connections = get_possible_connections(data)
+    connections = Connector().process(data)
 
     for connection in sorted(connections) + (args.force or []):
         print(connection)
