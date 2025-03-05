@@ -84,14 +84,20 @@ def get_possible_connections(data):
         interface = slot["interface"]
         if interface not in interface_map:
             continue
+        # retrieve the plugs for that interface
         plugs = interface_map[interface]
         for plug in plugs:
-            if match_attributes(plug, slot):
-                connection = SnapConnection.from_dicts(plug, slot)
-                # only keep connections that haven't already been made
-                if connection not in existing_connections:
-                    possible_connections.add(connection)
-
+            # reject connections where the interface attributes don't match
+            if not match_attributes(plug, slot):
+                continue
+            # reject connections on the same snap
+            if plug["snap"] == slot["snap"]:
+                continue
+            # reject existing connections
+            connection = SnapConnection.from_dicts(plug, slot)
+            if connection in existing_connections:
+                continue
+            possible_connections.add(connection)
     return possible_connections
 
 
