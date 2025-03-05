@@ -70,12 +70,13 @@ def get_possible_connections(data):
             SnapConnection.from_dicts(connection["plug"], connection["slot"])
         )
 
-    # iterate over all plugs and create a map that
+    # iterate over all *unconnected* plugs and create a map that
     # associates each interface to a list of plugs for that interface
     interface_map = defaultdict(list)
     for plug in data["result"]["plugs"]:
-        interface = plug["interface"]
-        interface_map[interface].append(plug)
+        if "connections" not in plug:
+            interface = plug["interface"]
+            interface_map[interface].append(plug)
 
     # iterate over all slots and check for matching plugs
     possible_connections = set()
