@@ -3,6 +3,15 @@
 Read the output of the `connections` endpoint of the snapd API
 from standard input and write a list of possible plug-to-slot
 connections to standard output.
+
+Ref: https://snapcraft.io/docs/snapd-api#heading--connections
+
+As an aid, here's one way of retrieving this data from the endpoint:
+```
+printf 'GET /v2/connections?select=all HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' | \
+nc -U /run/snapd.socket | \
+grep -o '{.*}'
+```
 """
 
 from argparse import ArgumentParser
@@ -10,7 +19,7 @@ from collections import defaultdict
 import json
 import re
 import sys
-from typing import Callable, Dict, List, NamedTuple, Optional
+from typing import Callable, Dict, List, NamedTuple, Optional, Set
 
 
 # dicts that describe snap plugs and slots
@@ -34,7 +43,7 @@ from typing import Callable, Dict, List, NamedTuple, Optional
 #   ]
 # }
 # ```
-# 
+#
 # example of a slot dict:
 # ```
 # {
@@ -126,10 +135,10 @@ class Connector:
             for attribute in common_attributes
         )
 
-    def process(self, data):
+    def process(self, data) -> Set[Connection]:
         """
         Process the output of the `connections` endpoint of the snapd API
-        and return a list of possible connections (`Connection` objects).
+        and return a set of possible connections (`Connection` objects).
         """
         # record existing connections in a set (for fast checks)
         existing_connections = set()
@@ -172,7 +181,7 @@ class Connector:
         return possible_connections
 
 
-def main():
+def main(args: Optional[List[str]] = None):
     parser = ArgumentParser()
     parser.add_argument(
         '--snaps', nargs='+', type=str,
@@ -182,10 +191,12 @@ def main():
         '--force', nargs='+', type=Connection.from_string,
         help='Force additional connections'
     )
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
+    # read from standard input and parse as JSON
     data_input = sys.stdin.read()
     data = json.loads(data_input)
+
     if args.snaps:
         # create a filter function for the provided snaps
         def snap_filter(plug: PlugDict, _) -> bool:
