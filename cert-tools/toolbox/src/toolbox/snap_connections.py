@@ -5,7 +5,11 @@ from collections import defaultdict
 import json
 import re
 import sys
-from typing import NamedTuple
+from typing import Callable, Dict, List, NamedTuple, Optional
+
+
+PlugDict = Dict
+SlotDict = Dict
 
 
 class Connection(NamedTuple):
@@ -15,7 +19,7 @@ class Connection(NamedTuple):
     slot_name: str
 
     @classmethod
-    def from_dicts(cls, plug, slot) -> "Connection":
+    def from_dicts(cls, plug:PlugDict, slot: SlotDict) -> "Connection":
         return cls(
             plug_snap=plug["snap"],
             plug_name=plug["plug"],
@@ -48,10 +52,19 @@ class Connection(NamedTuple):
         )
 
 
+ConnectionFilter = Callable[[PlugDict, SlotDict], bool]
+
+
 class Connector:
 
+    def __init__(self, filters: Optional[List[ConnectionFilter]] = None):
+        if not filters:
+            self.filters = [lambda plug, slot: True]
+        else:
+            self.filters = filters
+
     @staticmethod
-    def match_attributes(plug, slot) -> bool:
+    def match_attributes(plug: PlugDict, slot: SlotDict) -> bool:
         assert plug["interface"] == slot["interface"]
         try:
             plug_attributes = plug["attrs"]
@@ -97,6 +110,9 @@ class Connector:
                     continue
                 # reject existing connections
                 connection = Connection.from_dicts(plug, slot)
+                # reject connections that don't satisfy all filters
+                if not all(filter(plug, slot) for filter in self.filters):
+                    continue
                 if connection in existing_connections:
                     continue
                 possible_connections.add(connection)
@@ -117,7 +133,13 @@ def main():
 
     data_input = sys.stdin.read()
     data = json.loads(data_input)
-    connections = Connector().process(data)
+    if args.snaps:
+        def snap_filter(plug: PlugDict, _) -> bool:
+            return plug["snap"] in set(args.snaps)
+        connector = Connector(filters=[snap_filter])
+    else:
+        connector = Connector()
+    connections = connector.process(data)
 
     for connection in sorted(connections) + (args.force or []):
         print(connection)
