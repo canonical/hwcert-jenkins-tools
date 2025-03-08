@@ -9,6 +9,26 @@ from toolbox import snap_connections
 from toolbox.snap_connections import Connection, Connector
 
 
+"""
+      {
+        "snap": "pi",
+        "slot": "bcm-gpio-1",
+        "interface": "gpio",
+        "attrs": {
+          "number": 1
+        }
+      },
+      {
+        "snap": "pi",
+        "slot": "bcm-gpio-10",
+        "interface": "gpio",
+        "attrs": {
+          "number": 10
+        }
+      },
+
+"""
+
 class TestConnection:
 
     def test_from_dicts(self):
@@ -18,7 +38,6 @@ class TestConnection:
             "interface": "content",
             "attrs": {
                 "content": "graphics-core22",
-                "default-provider": "mesa-core22",
             }
         }
         slot = {
@@ -31,27 +50,21 @@ class TestConnection:
         }
 
         connection = Connection.from_dicts(plug, slot)
+        assert connection == Connection(
+            "checkbox-mir", "graphics-core22", "mesa-core22", "graphics-core22"
+        )
 
-        assert connection.plug_snap == "checkbox-mir"
-        assert connection.plug_name == "graphics-core22"
-        assert connection.slot_snap == "mesa-core22"
-        assert connection.slot_name == "graphics-core22"
-
-    def test_from_string_with_hyphens(self):
-        connection = Connection.from_string("snap-name:plug-name/slot-snap:slot-name")
-
-        assert connection.plug_snap == "snap-name"
-        assert connection.plug_name == "plug-name"
-        assert connection.slot_snap == "slot-snap"
-        assert connection.slot_name == "slot-name"
+    def test_from_string(self): 
+        connection = Connection.from_string("checkbox:checkbox-runtime/checkbox24:checkbox-runtime")
+        assert connection == Connection(
+            "checkbox", "checkbox-runtime", "checkbox24", "checkbox-runtime"
+        )
 
     def test_from_string_empty_slot_snap(self):
-        connection = Connection.from_string("snap1:plug1/:slot1")
-
-        assert connection.plug_snap == "snap1"
-        assert connection.plug_name == "plug1"
-        assert connection.slot_snap == "snapd"  # Default value
-        assert connection.slot_name == "slot1"
+        connection = Connection.from_string("console-conf:snapd-control/:snapd-control")
+        assert connection == Connection(
+            "console-conf", "snapd-control", "snapd", "snapd-control"
+        )
 
     def test_from_string_invalid(self):
         with pytest.raises(ValueError):
@@ -65,13 +78,12 @@ class TestConnection:
 
     def test_string_representation(self):
         connection = Connection(
-            plug_snap="snap1",
-            plug_name="plug1",
-            slot_snap="snap2",
-            slot_name="slot1"
+            plug_snap="checkbox",
+            plug_name="checkbox-runtime",
+            slot_snap="checkbox24",
+            slot_name="checkbox-runtime"
         )
-
-        assert str(connection) == "snap1:plug1/snap2:slot1"
+        assert str(connection) == "checkbox:checkbox-runtime/checkbox24:checkbox-runtime"
 
 
 class TestConnector:
@@ -126,54 +138,35 @@ class TestConnector:
     def test_process_with_existing_connections(self):
         data = {
             "result": {
-                "established": [
-                    {
-                        "plug": {
-                            "snap": "snap1",
-                            "plug": "plug1",
-                            "interface": "interface1"
-                        },
-                        "slot": {
-                            "snap": "snap2",
-                            "slot": "slot1",
-                            "interface": "interface1"
-                        }
-                    }
-                ],
                 "plugs": [
                     {
-                        "snap": "snap1",
-                        "plug": "plug1",
-                        "interface": "interface1",
+                        "snap": "connected-plug-snap",
+                        "plug": "plug",
+                        "interface": "interface",
                         "connections": [
                             {
-                                "snap": "snap2",
-                                "slot": "slot1"
+                                "snap": "connected-slot-snap",
+                                "slot": "slot"
                             }
                         ]
                     },
                     {
-                        "snap": "snap3",
-                        "plug": "plug3",
-                        "interface": "interface1"
+                        "snap": "disconnected-plug-snap",
+                        "plug": "plug",
+                        "interface": "interface"
                     }
                 ],
                 "slots": [
                     {
-                        "snap": "snap2",
-                        "slot": "slot1",
-                        "interface": "interface1",
+                        "snap": "slot-snap",
+                        "slot": "slot",
+                        "interface": "interface",
                         "connections": [
                             {
-                                "snap": "snap1",
-                                "plug": "plug1"
+                                "snap": "connected-plug-snap",
+                                "plug": "plug"
                             }
                         ]
-                    },
-                    {
-                        "snap": "snap2",
-                        "slot": "slot2",
-                        "interface": "interface1"
                     }
                 ]
             }
@@ -182,27 +175,24 @@ class TestConnector:
         connector = Connector()
         connections = sorted(connector.process(data))
 
-        # Should find two possible connections
-        assert len(connections) == 2
-        assert str(connections[0]) == "snap3:plug3/snap2:slot1"
-        assert str(connections[1]) == "snap3:plug3/snap2:slot2"
+        assert len(connections) == 1
+        assert str(connections[0]) == "disconnected-plug-snap:plug/slot-snap:slot"
 
     def test_process_same_snap_rejection(self):
         data = {
             "result": {
-                "established": [],
                 "plugs": [
                     {
-                        "snap": "snap1",
-                        "plug": "plug1",
-                        "interface": "interface1"
+                        "snap": "snap",
+                        "plug": "plug",
+                        "interface": "interface"
                     }
                 ],
                 "slots": [
                     {
-                        "snap": "snap1",  # Same snap as the plug
-                        "slot": "slot1",
-                        "interface": "interface1"
+                        "snap": "snap",  # Same snap as the plug
+                        "slot": "slot",
+                        "interface": "interface"
                     }
                 ]
             }
@@ -217,24 +207,23 @@ class TestConnector:
     def test_process_with_custom_filter(self):
         data = {
             "result": {
-                "established": [],
                 "plugs": [
                     {
                         "snap": "allowed-snap",
-                        "plug": "plug1",
-                        "interface": "interface1"
+                        "plug": "plug",
+                        "interface": "interface"
                     },
                     {
                         "snap": "rejected-snap",
-                        "plug": "plug2",
-                        "interface": "interface1"
+                        "plug": "plug",
+                        "interface": "interface"
                     }
                 ],
                 "slots": [
                     {
                         "snap": "slot-snap",
-                        "slot": "slot1",
-                        "interface": "interface1"
+                        "slot": "slot",
+                        "interface": "interface"
                     }
                 ]
             }
@@ -255,21 +244,20 @@ class TestConnector:
     def test_process_with_non_matching_attributes(self):
         data = {
             "result": {
-                "established": [],
                 "plugs": [
                     {
-                        "snap": "snap1",
-                        "plug": "plug1",
+                        "snap": "plug-snap",
+                        "plug": "plug",
                         "interface": "content",
-                        "attrs": {"content": "value1"}
+                        "attrs": {"content": "value"}
                     }
                 ],
                 "slots": [
                     {
-                        "snap": "snap2",
-                        "slot": "slot1",
+                        "snap": "slot-snap",
+                        "slot": "slot",
                         "interface": "content",
-                        "attrs": {"content": "value2"}  # Different value
+                        "attrs": {"content": "different-value"}
                     }
                 ]
             }
@@ -290,7 +278,6 @@ class TestMainFunction:
         # Prepare mock input data
         mock_data = {
             "result": {
-                "established": [],
                 "plugs": [
                     {
                         "snap": "plug-snap",
@@ -322,7 +309,6 @@ class TestMainFunction:
         # Prepare mock input data
         mock_data = {
             "result": {
-                "established": [],
                 "plugs": [
                     {
                         "snap": "allowed-plug-snap-1",
@@ -366,16 +352,15 @@ class TestMainFunction:
         # Prepare mock input data with no possible connections
         mock_data = {
             "result": {
-                "established": [],
                 "plugs": [],
                 "slots": []
             }
         }
         mock_stdin.read.return_value = json.dumps(mock_data)
 
-        test_args = ['--force', 'snap1:plug1/snap2:slot1']
+        test_args = ['--force', 'plug-snap:plug/slot-snap:slot']
         snap_connections.main(test_args)
 
         # Check the output - should include the forced connection
         output = mock_stdout.getvalue().strip()
-        assert output == "snap1:plug1/snap2:slot1"
+        assert output == "plug-snap:plug/slot-snap:slot"
