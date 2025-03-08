@@ -201,8 +201,9 @@ _run sudo snap set $FRONTEND_NAME agent=enabled
 _run sudo snap set $FRONTEND_NAME slave=enabled
 
 if $STRICT_FRONTEND; then
-    # connect any unconnected frontend plugs to available plugs
-    connect_checkbox_snaps
+    # connect any currently disconnected plugs to available slots
+    # note: this is *not* currently restricted to checkbox snaps
+    connect_snaps
 fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation

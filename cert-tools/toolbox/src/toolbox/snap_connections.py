@@ -170,6 +170,7 @@ class Connector:
                 # reject connections that don't satisfy all filters
                 if not all(filter(plug, slot) for filter in self.filters):
                     continue
+                connection = Connection.from_dicts(plug, slot)
                 possible_connections.add(connection)
         return possible_connections
 

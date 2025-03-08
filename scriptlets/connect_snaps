@@ -16,7 +16,7 @@ connect() {
     )
     # process the snap connection data and retrieve the possible connections
     # propagate any arguments directly to the snap_connections script)
-    CONNECTIONS=$(echo $SNAP_CONNECTION_DATA | snap_connections "$@")
+    CONNECTIONS=$(echo $SNAP_CONNECTION_DATA | snap_connections)
 
     if [ -n "$CONNECTIONS" ]; then
         # perform the connections one-by-one
@@ -32,4 +32,4 @@ connect() {
 
 set -e
 log "Auto-detecting possible snap connections"
-connect "$@"
+connect
