@@ -139,14 +139,11 @@ class Connector:
         """
         Process the output of the `connections` endpoint of the snapd API
         and return a set of possible connections (`Connection` objects).
-        """
-        # record existing connections in a set (for fast checks)
-        existing_connections = set()
-        for connection in data["result"]["established"]:
-            existing_connections.add(
-                Connection.from_dicts(connection["plug"], connection["slot"])
-            )
 
+        Note: the output will not include possible connections for plugs
+        that are already connected but it will connect a plug to multiple
+        slots if that plug is originally unconnected.
+        """
         # iterate over all *unconnected* plugs and create a map that
         # associates each interface to a list of plugs for that interface
         interface_map = defaultdict(list)
@@ -170,12 +167,8 @@ class Connector:
                 # reject connections on the same snap
                 if plug["snap"] == slot["snap"]:
                     continue
-                # reject existing connections
-                connection = Connection.from_dicts(plug, slot)
                 # reject connections that don't satisfy all filters
                 if not all(filter(plug, slot) for filter in self.filters):
-                    continue
-                if connection in existing_connections:
                     continue
                 possible_connections.add(connection)
         return possible_connections
