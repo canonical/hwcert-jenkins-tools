@@ -201,9 +201,10 @@ _run sudo snap set $FRONTEND_NAME agent=enabled
 _run sudo snap set $FRONTEND_NAME slave=enabled
 
 if $STRICT_FRONTEND; then
+    # extract just the names of the Checkbox frontend(s)
+    FRONTEND_NAMES=$(for FRONTEND in "${FRONTENDS[@]}"; do read FRONTEND_NAME REST <<< "$FRONTEND"; echo $FRONTEND_NAME; done)
     # connect any currently disconnected plugs to available slots
-    # note: this is *not* currently restricted to checkbox snaps
-    connect_snaps
+    connect_snaps $FRONTEND_NAMES
 fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
