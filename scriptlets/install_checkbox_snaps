@@ -78,12 +78,8 @@ get_runtime() {
         .base' <<< $SNAPINFO
     )
     # use the base as a heuristic to derive the Checkbox runtime
-    if [ "$BASE" = "null" ] || [ -z "$BASE" ]; then
-      # no base:" fall back to using the Core version
-      # (the final "grep ." will cause the command to fail if there's no match)
-      RUNTIME_NAME="checkbox$(_run "cat /etc/os-release" | sed -n 's/PRETTY_NAME="Ubuntu Core \([0-9]\{2\}\)"$/\1/p' | grep .)"
-    elif [ "$BASE" = "core" ]; then
-      # base: core -> runtime: checkbox16
+    if [ "$BASE" = "core" ] || [ "$BASE" = "null" ]; then
+      # base: core or undefined -> runtime: checkbox16
       RUNTIME_NAME=checkbox16
     else
       # base coreYY -> runtime checkboxYY
