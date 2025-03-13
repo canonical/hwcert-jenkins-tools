@@ -139,7 +139,7 @@ class JenkinsProcessor(RequestProcessor):
     # where Jenkins is deployed
     netloc = "10.102.156.15:8080"
     # what the path of Jenkins job run looks like
-    path_template = r"job/(?P<job_name>[\w-]+)/\d+"
+    path_template = r"job/(?P<job_name>[\w+-]+)/\d+"
 
     def __init__(self, user: str, password: str):
         auth = HTTPBasicAuth(user, password)
