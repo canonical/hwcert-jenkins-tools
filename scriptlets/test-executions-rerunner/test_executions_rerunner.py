@@ -154,6 +154,11 @@ class JenkinsProcessor(RequestProcessor):
                 f"{cls.__name__} cannot find ci_link "
                 f"in rerun request {rerun_request}"
             ) from error
+        if not ci_link:
+            raise RequestProccesingError(
+                f"{cls.__name__} empty ci_link "
+                f"in rerun request {rerun_request}"
+            )
         # extract the rerun URL from the ci_link
         url = cls.extract_rerun_url_from_ci_link(ci_link)
         # determine additional payload arguments
@@ -233,6 +238,11 @@ class GithubProcessor(RequestProcessor):
                 f"{cls.__name__} cannot find ci_link "
                 f"in rerun request {rerun_request}"
             ) from error
+        if not ci_link:
+            raise RequestProccesingError(
+                f"{cls.__name__} empty ci_link "
+                f"in rerun request {rerun_request}"
+            )
         url = cls.extract_rerun_url_from_ci_link(ci_link)
         return PostArguments(url=url)
 
