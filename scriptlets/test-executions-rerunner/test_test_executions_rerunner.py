@@ -21,6 +21,16 @@ def test_jenkins_no_ci_link():
         JenkinsProcessor.process(rerun_request)
 
 
+def test_jenkins_empty_ci_link():
+    rerun_request = {
+        "test_execution_id": 1,
+        "family": "deb",
+        "ci_link": None
+    }
+    with pytest.raises(RequestProccesingError):
+        JenkinsProcessor.process(rerun_request)
+
+
 @pytest.mark.parametrize(
     "ci_link",
     [
@@ -64,6 +74,15 @@ def test_jenkins_invalid_family():
 def test_github_no_ci_link():
     rerun_request = {
         "test_execution_id": 1,
+    }
+    with pytest.raises(RequestProccesingError):
+        GithubProcessor.process(rerun_request)
+
+
+def test_github_empty_ci_link():
+    rerun_request = {
+        "test_execution_id": 1,
+        "ci_link": "",
     }
     with pytest.raises(RequestProccesingError):
         GithubProcessor.process(rerun_request)
