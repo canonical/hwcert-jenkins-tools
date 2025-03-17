@@ -9,26 +9,6 @@ from toolbox import snap_connections
 from toolbox.snap_connections import Connection, Connector
 
 
-"""
-      {
-        "snap": "pi",
-        "slot": "bcm-gpio-1",
-        "interface": "gpio",
-        "attrs": {
-          "number": 1
-        }
-      },
-      {
-        "snap": "pi",
-        "slot": "bcm-gpio-10",
-        "interface": "gpio",
-        "attrs": {
-          "number": 10
-        }
-      },
-
-"""
-
 class TestConnection:
 
     def test_from_dicts(self):
@@ -240,6 +220,43 @@ class TestConnector:
         assert len(connections) == 1
         connection = list(connections)[0]
         assert connection.plug_snap == "allowed-snap"
+
+    def test_process_multiple_slots_per_plug(self):
+        data = {
+            "result": {
+                "plugs": [
+                    {
+                        "snap": "checkbox",
+                        "plug": "gpio",
+                        "interface": "gpio"
+                    },
+                ],
+                "slots": [
+                    {
+                        "snap": "pi",
+                        "slot": "bcm-gpio-1",
+                        "interface": "gpio",
+                        "attrs": {
+                            "number": 1
+                        }
+                    },
+                    {
+                        "snap": "pi",
+                        "slot": "bcm-gpio-10",
+                        "interface": "gpio",
+                        "attrs": {
+                            "number": 10
+                        }
+                    },
+                ]
+            }
+        }
+
+        connector = Connector()
+        connections = connector.process(data)
+
+        # plug should be connected to both slots
+        assert len(connections) == 2
 
     def test_process_with_non_matching_attributes(self):
         data = {
