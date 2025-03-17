@@ -111,7 +111,7 @@ class TestConnector:
             "interface": "content",
             "attrs": {"attr2": "value2"}
         }
-        assert Connector.match_attributes(plug, slot) is True
+        assert Connector.match_attributes(plug, slot)
 
     def test_match_attributes_matching_attrs(self):
         plug = {
