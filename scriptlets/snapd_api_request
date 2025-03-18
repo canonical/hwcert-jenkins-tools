@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+# https://snapcraft.io/docs/snapd-api
+
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) endpoint [query-parameter]*"
+}
+
+request() {
+    # the first argument is the endpoint
+    ENDPOINT="/v2/$1"
+    shift
+    # the rest of the arguments are the (space-separated) query parameters
+    PARAMETERS="$@"
+    # for the query itself (if any parameters are provided):
+    # start with a ? and replace spaces with ampersands
+    QUERY=${PARAMETERS:+?"${PARAMETERS// /&}"}
+    # form the request and display it
+    URL=$ENDPOINT$QUERY
+    REQUEST="GET $URL HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
+    printf "%b" "$REQUEST"
+}
+
+# ensure endpoint is provided
+if [ "$#" -eq 0 ]; then
+    echo "Error: No endpoint specified" >&2
+    usage
+    exit 1
+fi
+
+# - create the request for the snapd API
+# - send the request to the snapd API socket on the device
+# - keep only the response JSON
+request "$@" | _run nc -U /run/snapd.socket | grep -o '{.*}'
