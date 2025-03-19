@@ -91,7 +91,7 @@ pipx install --spec $TOOLS_PATH/cert-tools/toolbox toolbox > /dev/null
 # (generally, a non-default DEVICE_USER needs to be set
 # prior to accessing the device for the first time)
 if check_for_scenario_file > /dev/null; then
-    DEVICE_USER="$(scenario environment.user)"
+    DEVICE_USER="$(scenario image.user)"
     [ "$?" -eq 0 ] && export DEVICE_USER && log "DEVICE_USER set to $DEVICE_USER"
 fi
 
