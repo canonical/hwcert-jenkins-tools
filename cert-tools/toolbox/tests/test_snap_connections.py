@@ -77,12 +77,12 @@ class TestConnector:
         slot = {"interface": "test"}
         assert connector.filters[0](plug, slot)
 
-    def test_match_attributes_no_attrs(self):
+    def test_matching_attributes_no_attrs(self):
         plug = {"interface": "test"}
         slot = {"interface": "test"}
-        assert Connector.match_attributes(plug, slot)
+        assert Connector.matching_attributes(plug, slot)
 
-    def test_match_attributes_no_common_attrs(self):
+    def test_matching_attributes_no_common_attrs(self):
         plug = {
             "interface": "content",
             "attrs": {"attr1": "value1"}
@@ -91,9 +91,9 @@ class TestConnector:
             "interface": "content",
             "attrs": {"attr2": "value2"}
         }
-        assert Connector.match_attributes(plug, slot)
+        assert Connector.matching_attributes(plug, slot)
 
-    def test_match_attributes_matching_attrs(self):
+    def test_matching_attributes_matching_attrs(self):
         plug = {
             "interface": "content",
             "attrs": {"content": "graphics-core22", "extra": "value"}
@@ -102,9 +102,9 @@ class TestConnector:
             "interface": "content",
             "attrs": {"content": "graphics-core22", "other": "data"}
         }
-        assert Connector.match_attributes(plug, slot)
+        assert Connector.matching_attributes(plug, slot)
 
-    def test_match_attributes_non_matching_attrs(self):
+    def test_matching_attributes_non_matching_attrs(self):
         plug = {
             "interface": "content",
             "attrs": {"content": "graphics-core22"}
@@ -113,7 +113,7 @@ class TestConnector:
             "interface": "content",
             "attrs": {"content": "different-value"}
         }
-        assert not Connector.match_attributes(plug, slot)
+        assert not Connector.matching_attributes(plug, slot)
 
     def test_process_with_existing_connections(self):
         data = {

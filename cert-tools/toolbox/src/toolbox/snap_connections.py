@@ -118,7 +118,7 @@ class Connector:
             self.filters = filters
 
     @staticmethod
-    def match_attributes(plug: PlugDict, slot: SlotDict) -> bool:
+    def matching_attributes(plug: PlugDict, slot: SlotDict) -> bool:
         """
         Return True if the (common) attributes of a plug and slot match,
         or False otherwise.
@@ -135,7 +135,7 @@ class Connector:
             for attribute in common_attributes
         )
 
-    def process(self, data) -> Set[Connection]:
+    def process(self, snap_connection_data) -> Set[Connection]:
         """
         Process the output of the `connections` endpoint of the snapd API
         and return a set of possible connections (`Connection` objects).
@@ -146,23 +146,23 @@ class Connector:
         """
         # iterate over all *unconnected* plugs and create a map that
         # associates each interface to a list of plugs for that interface
-        interface_map = defaultdict(list)
-        for plug in data["result"]["plugs"]:
+        interface_plugs = defaultdict(list)
+        for plug in snap_connection_data["result"]["plugs"]:
             if "connections" not in plug:
                 interface = plug["interface"]
-                interface_map[interface].append(plug)
+                interface_plugs[interface].append(plug)
 
         # iterate over all slots and check for matching plugs
         possible_connections = set()
-        for slot in data["result"]["slots"]:
+        for slot in snap_connection_data["result"]["slots"]:
             interface = slot["interface"]
-            if interface not in interface_map:
+            if interface not in interface_plugs:
                 continue
             # retrieve the plugs for that interface
-            plugs = interface_map[interface]
+            plugs = interface_plugs[interface]
             for plug in plugs:
                 # reject connections where the interface attributes don't match
-                if not self.match_attributes(plug, slot):
+                if not self.matching_attributes(plug, slot):
                     continue
                 # reject connections on the same snap
                 if plug["snap"] == slot["snap"]:
