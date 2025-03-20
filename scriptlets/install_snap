@@ -1,0 +1,26 @@
+usage() {
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) snap [channel]"
+}
+
+if [ "$#" -eq 0 ]; then
+    usage
+    echo "Error: Missing snap"
+    exit 1
+fi
+
+# process command-line arguments
+SNAP="$1"
+shift
+[ "$#" -gt 0 ] && CHANNEL="$2"
+
+# retrieve snap info from the device
+SNAPINFO=$(snapd_api_request snaps/$SNAP)
+
+# check if snap is already installed to decide on the action, i.e. install vs refresh
+# (if the snap is not installed the API call will return an error code)
+echo $SNAPINFO | jq -e '."status-code" == 200' > /dev/null
+[ "$?" -eq 0 ] && ACTION=refresh || ACTION=install
+
+# perform the snap action on the device
+_run sudo snap $ACTION --no-wait $SNAP ${CHANNEL:+--channel=$CHANNEL}
+wait_for_snap_changes
