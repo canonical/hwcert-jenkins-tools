@@ -187,9 +187,8 @@ def main(args: Optional[List[str]] = None):
     )
     args = parser.parse_args(args)
 
-    # read from standard input and parse as JSON
-    data_input = sys.stdin.read()
-    data = json.loads(data_input)
+    # parse standard input as JSON
+    snap_connection_data = json.load(sys.stdin)
 
     if args.snaps:
         # create a filter function for the provided snaps
@@ -198,9 +197,8 @@ def main(args: Optional[List[str]] = None):
         connector = Connector(filters=[snap_filter])
     else:
         connector = Connector()
-    connections = connector.process(data)
-
-    for connection in sorted(connections) + (args.force or []):
+    snap_connections = connector.process(snap_connection_data)
+    for connection in sorted(snap_connections) + (args.force or []):
         print(connection)
 
 
