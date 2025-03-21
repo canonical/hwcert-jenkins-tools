@@ -120,8 +120,24 @@ class Connector:
     @staticmethod
     def matching_attributes(plug: PlugDict, slot: SlotDict) -> bool:
         """
-        Return True if the (common) attributes of a plug and slot match,
-        or False otherwise.
+        Return True if the (common) attributes of a plug and slot match, or
+        if there are no common attributes and return False otherwise.
+
+        This is relevant in e.g. `content` interfaces where a connection
+        should be made only if the corresponding attributes match.
+
+        For example:
+        ```
+        plug = {
+            "interface": "content",
+            "attrs": {"content": "graphics-core22", "extra": "value"}
+        }
+        slot = {
+            "interface": "content",
+            "attrs": {"content": "graphics-core22", "other": "data"}
+        }
+        assert Connector.matching_attributes(plug, slot)
+        ```
         """
         assert plug["interface"] == slot["interface"]
         try:
