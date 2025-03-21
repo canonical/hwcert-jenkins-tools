@@ -175,21 +175,15 @@ class Connector:
                 interface = plug["interface"]
                 interface_plugs[interface].append(plug)
 
-        # iterate over all slots and check for matching plugs
-        possible_connections = set()
-        for slot in snap_connection_data["result"]["slots"]:
-            interface = slot["interface"]
-            if interface not in interface_plugs:
-                continue
-            # retrieve the plugs for that interface
-            plugs = interface_plugs[interface]
-            for plug in plugs:
-                # reject connections that don't satisfy all filtering predicates
-                if not all(predicate(plug, slot) for predicate in self.predicates):
-                    continue
-                connection = Connection.from_dicts(plug, slot)
-                possible_connections.add(connection)
-        return possible_connections
+        # iterate over all slots and check for plugs that satisfy all the
+        # filtering predicates to form the set of possible connections
+        return {
+            Connection.from_dicts(plug, slot)
+            for slot in snap_connection_data["result"]["slots"]
+            if (interface := slot["interface"]) in interface_plugs
+            for plug in interface_plugs[interface]
+            if all(predicate(plug, slot) for predicate in self.predicates)
+        }
 
 
 def main(args: Optional[List[str]] = None):
