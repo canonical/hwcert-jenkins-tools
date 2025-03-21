@@ -68,15 +68,6 @@ class TestConnection:
 
 class TestConnector:
 
-    def test_init_default_filters(self):
-        connector = Connector()
-        assert len(connector.filters) == 1
-
-        # Test that the default filter accepts everything
-        plug = {"interface": "test"}
-        slot = {"interface": "test"}
-        assert connector.filters[0](plug, slot)
-
     def test_matching_attributes_no_attrs(self):
         plug = {"interface": "test"}
         slot = {"interface": "test"}
@@ -114,6 +105,10 @@ class TestConnector:
             "attrs": {"content": "different-value"}
         }
         assert not Connector.matching_attributes(plug, slot)
+
+    def test_init_default_predicates(self):
+        connector = Connector()
+        assert len(connector.predicates) == 2
 
     def test_process_with_existing_connections(self):
         data = {
@@ -184,7 +179,7 @@ class TestConnector:
         # Should reject connections on the same snap
         assert len(connections) == 0
 
-    def test_process_with_custom_filter(self):
+    def test_process_with_custom_predicate(self):
         data = {
             "result": {
                 "plugs": [
@@ -210,10 +205,10 @@ class TestConnector:
         }
 
         # Only allow connections from "allowed-snap"
-        def filter_func(plug, slot):
+        def predicate(plug, slot):
             return plug["snap"] == "allowed-snap"
 
-        connector = Connector(filters=[filter_func])
+        connector = Connector(predicates=[predicate])
         connections = connector.process(data)
 
         # Should only find one connection from allowed-snap
@@ -322,7 +317,7 @@ class TestMainFunction:
 
     @patch('sys.stdin')
     @patch('sys.stdout', new_callable=StringIO)
-    def test_main_with_snaps_filter(self, mock_stdout, mock_stdin):
+    def test_main_with_snaps_predicate(self, mock_stdout, mock_stdin):
         # Prepare mock input data
         mock_data = {
             "result": {

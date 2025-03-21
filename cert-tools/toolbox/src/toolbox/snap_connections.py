@@ -106,16 +106,23 @@ class Connection(NamedTuple):
 
 
 # any callable that processes a plug-to-dict connection and accepts/rejects it
-ConnectionFilter = Callable[[PlugDict, SlotDict], bool]
+ConnectionPredicate = Callable[[PlugDict, SlotDict], bool]
 
 
 class Connector:
 
-    def __init__(self, filters: Optional[List[ConnectionFilter]] = None):
-        if not filters:
-            self.filters = [lambda plug, slot: True]
-        else:
-            self.filters = filters
+    def __init__(self, predicates: Optional[List[ConnectionPredicate]] = None):
+        # specify the predicate functions that will be used to select or
+        # filter out possible connections between plus and slots
+        self.predicates = [
+            # select connections where the interface attributes match
+            self.matching_attributes,
+            # select connections only on different snaps
+            lambda plug, slot: plug["snap"] != slot["snap"]
+        ]
+        # additional user-provided filtering predicates
+        if predicates:
+            self.predicates.extend(predicates)
 
     @staticmethod
     def matching_attributes(plug: PlugDict, slot: SlotDict) -> bool:
@@ -177,14 +184,8 @@ class Connector:
             # retrieve the plugs for that interface
             plugs = interface_plugs[interface]
             for plug in plugs:
-                # reject connections where the interface attributes don't match
-                if not self.matching_attributes(plug, slot):
-                    continue
-                # reject connections on the same snap
-                if plug["snap"] == slot["snap"]:
-                    continue
-                # reject connections that don't satisfy all filters
-                if not all(filter(plug, slot) for filter in self.filters):
+                # reject connections that don't satisfy all filtering predicates
+                if not all(predicate(plug, slot) for predicate in self.predicates):
                     continue
                 connection = Connection.from_dicts(plug, slot)
                 possible_connections.add(connection)
@@ -207,10 +208,10 @@ def main(args: Optional[List[str]] = None):
     snap_connection_data = json.load(sys.stdin)
 
     if args.snaps:
-        # create a filter function for the provided snaps
-        def snap_filter(plug: PlugDict, _) -> bool:
+        # create a predicate function for the provided snaps
+        def snap_select(plug: PlugDict, _) -> bool:
             return plug["snap"] in set(args.snaps)
-        connector = Connector(filters=[snap_filter])
+        connector = Connector(predicates=[snap_select])
     else:
         connector = Connector()
     snap_connections = connector.process(snap_connection_data)
