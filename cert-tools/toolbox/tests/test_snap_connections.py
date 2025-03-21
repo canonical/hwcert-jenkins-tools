@@ -349,7 +349,7 @@ class TestMainFunction:
         }
         mock_stdin.read.return_value = json.dumps(mock_data)
 
-        test_args = ['--snaps', 'allowed-plug-snap-1', 'allowed-plug-snap-2']
+        test_args = ['--only-plug-snaps', 'allowed-plug-snap-1', 'allowed-plug-snap-2']
         snap_connections.main(test_args)
 
         # Check the output - should only include connections from allowed-snap
