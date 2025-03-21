@@ -1,0 +1,26 @@
+name: Test the launcher package
+on:
+  push:
+    branches-ignore:
+      - 'main'
+    paths:
+      - 'cert-tools/launcher/**'
+      - '.github/workflows/test_launcher.yaml'
+concurrency:
+  # Cancel inprogress runs if new commit pushed
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test-launcher-tools:
+    name: Test the launcher package
+    runs-on: [self-hosted, jammy, x64]
+    defaults:
+      run:
+        working-directory: cert-tools/launcher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - run: pip install .[dev]
+      - run: pytest

@@ -85,6 +85,7 @@ install_packages pipx python3-venv sshpass jq python3-pymacaroons > /dev/null
 
 log "Installing agent tools"
 pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
+pipx install --spec $TOOLS_PATH/cert-tools/toolbox toolbox > /dev/null
 
 # grab DEVICE_USER from the scenario file, if possible
 # (generally, a non-default DEVICE_USER needs to be set

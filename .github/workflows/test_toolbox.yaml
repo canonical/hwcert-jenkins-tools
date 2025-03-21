@@ -1,22 +1,22 @@
-name: Test certification tools
+name: Test the toolbox package
 on:
   push:
     branches-ignore:
       - 'main'
     paths:
-      - 'cert-tools/**'
-      - '.github/workflows/test_cert_tools.yaml'
+      - 'cert-tools/toolbox/**'
+      - '.github/workflows/test_toolbox.yaml'
 concurrency:
   # Cancel inprogress runs if new commit pushed
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  test-launcher-tools:
-    name: Test certification tools
+  test-package:
+    name: Test the toolbox package
     runs-on: [self-hosted, jammy, x64]
     defaults:
       run:
-        working-directory: cert-tools/launcher
+        working-directory: cert-tools/toolbox
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
