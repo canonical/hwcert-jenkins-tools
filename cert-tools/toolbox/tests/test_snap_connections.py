@@ -1,8 +1,7 @@
 import json
 import pytest
 from io import StringIO
-import sys
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # Import the module
 from toolbox import snap_connections
@@ -284,36 +283,9 @@ class TestConnector:
 
 class TestMainFunction:
 
-    @patch('sys.stdin')
-    @patch('sys.stdout', new_callable=StringIO)
-    def test_main_no_args(self, mock_stdout, mock_stdin):
-        # Prepare mock input data
-        mock_data = {
-            "result": {
-                "plugs": [
-                    {
-                        "snap": "plug-snap",
-                        "plug": "plug-name",
-                        "interface": "interface"
-                    }
-                ],
-                "slots": [
-                    {
-                        "snap": "slot-snap",
-                        "slot": "slot-name",
-                        "interface": "interface"
-                    }
-                ]
-            }
-        }
-        mock_stdin.read.return_value = json.dumps(mock_data)
-
-        test_args = []
-        snap_connections.main(test_args)
-
-        # Check the output
-        output = mock_stdout.getvalue().strip()
-        assert output == "plug-snap:plug-name/slot-snap:slot-name"
+    def test_main_no_args(self):
+        with pytest.raises(SystemExit):
+            snap_connections.main([])
 
     @patch('sys.stdin')
     @patch('sys.stdout', new_callable=StringIO)
@@ -349,7 +321,7 @@ class TestMainFunction:
         }
         mock_stdin.read.return_value = json.dumps(mock_data)
 
-        test_args = ['--only-plug-snaps', 'allowed-plug-snap-1', 'allowed-plug-snap-2']
+        test_args = ['allowed-plug-snap-1', 'allowed-plug-snap-2']
         snap_connections.main(test_args)
 
         # Check the output - should only include connections from allowed-snap
@@ -370,7 +342,8 @@ class TestMainFunction:
         }
         mock_stdin.read.return_value = json.dumps(mock_data)
 
-        test_args = ['--force', 'plug-snap:plug/slot-snap:slot']
+        # forced connection doesn't need to pertain to the specified snaps
+        test_args = ['other-snap', '--force', 'plug-snap:plug/slot-snap:slot']
         snap_connections.main(test_args)
 
         # Check the output - should include the forced connection

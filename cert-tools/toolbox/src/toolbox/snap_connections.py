@@ -189,8 +189,8 @@ class Connector:
 def main(args: Optional[List[str]] = None):
     parser = ArgumentParser()
     parser.add_argument(
-        '--only-plug-snaps', dest="plug_snaps", nargs='+', type=str,
-        help='Only connect plugs for these snaps'
+        "snaps", nargs='+', type=str,
+        help='Connect plugs for these snaps to slots on matching interfaces'
     )
     parser.add_argument(
         '--force', nargs='+', type=Connection.from_string,
@@ -201,13 +201,10 @@ def main(args: Optional[List[str]] = None):
     # parse standard input as JSON
     snap_connection_data = json.load(sys.stdin)
 
-    predicates = []
-    if args.plug_snaps:
-        # create a predicate function for the provided snaps
-        def snap_select(plug: PlugDict, _) -> bool:
-            return plug["snap"] in set(args.plug_snaps)
-        predicates.append(snap_select)
-
+    # create a predicate function for the provided snaps
+    def snap_select(plug: PlugDict, _) -> bool:
+        return plug["snap"] in set(args.snaps)
+    predicates = [snap_select]
     connector = Connector(predicates)
 
     snap_connections = connector.process(snap_connection_data)
