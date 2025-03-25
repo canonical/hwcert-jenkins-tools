@@ -101,27 +101,28 @@ class SnapInstaller:
         }
 
     @staticmethod
-    def action(snap: str, target_channel: SnapChannel, installed_channel: Optional[SnapChannel] = None):
-        if not installed_channel:
+    def action(snap: str, target_channel: SnapChannel, active_channel: Optional[SnapChannel] = None):
+        if not active_channel:
             return SnapAction("install", snap=snap, channel=target_channel)
-        if target_channel != installed_channel:
+        if target_channel != active_channel:
             return SnapAction("refresh", snap=snap, channel=target_channel)
-        return None
+        return SnapAction("refresh", snap=snap)
 
-    def process(self, installed: Iterable[SnapDict]):
-        installed_index = self.create_index(installed)
+    def process(self, active: Iterable[SnapDict]):
+        active_index = self.create_index(active)
         actions = []
-        for snap, installed_channel in installed_index.items():
+        # iterate over active, untargeted snaps and refresh to stable
+        for snap, active_channel in active_index.items():
             if snap not in self.target_index:
-                if installed_channel.risk != "stable":
-                    actions.append(
-                        SnapAction("refresh", snap, channel=installed_channel.stabilize())
-                    )
+                actions.append(
+                    self.action(snap, active_channel.stabilize(), active_channel)
+                )
+        # iterate over targeted staps and install or refresh to target
         for snap, target_channel in self.target_index.items():
-            installed_channel = installed_index.get(snap)
-            action = self.action(snap, target_channel, installed_channel)
-            if action:
-                actions.append(action)
+            active_channel = active_index.get(snap)
+            actions.append(
+                self.action(snap, target_channel, active_channel)
+            )
         return actions
 
 
