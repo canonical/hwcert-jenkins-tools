@@ -1,8 +1,7 @@
 import json
 import pytest
 from io import StringIO
-import sys
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # Import the module
 from toolbox import snap_connections
@@ -68,21 +67,12 @@ class TestConnection:
 
 class TestConnector:
 
-    def test_init_default_filters(self):
-        connector = Connector()
-        assert len(connector.filters) == 1
-
-        # Test that the default filter accepts everything
+    def test_matching_attributes_no_attrs(self):
         plug = {"interface": "test"}
         slot = {"interface": "test"}
-        assert connector.filters[0](plug, slot)
+        assert Connector.matching_attributes(plug, slot)
 
-    def test_match_attributes_no_attrs(self):
-        plug = {"interface": "test"}
-        slot = {"interface": "test"}
-        assert Connector.match_attributes(plug, slot)
-
-    def test_match_attributes_no_common_attrs(self):
+    def test_matching_attributes_no_common_attrs(self):
         plug = {
             "interface": "content",
             "attrs": {"attr1": "value1"}
@@ -91,9 +81,9 @@ class TestConnector:
             "interface": "content",
             "attrs": {"attr2": "value2"}
         }
-        assert Connector.match_attributes(plug, slot)
+        assert Connector.matching_attributes(plug, slot)
 
-    def test_match_attributes_matching_attrs(self):
+    def test_matching_attributes_matching_attrs(self):
         plug = {
             "interface": "content",
             "attrs": {"content": "graphics-core22", "extra": "value"}
@@ -102,9 +92,9 @@ class TestConnector:
             "interface": "content",
             "attrs": {"content": "graphics-core22", "other": "data"}
         }
-        assert Connector.match_attributes(plug, slot)
+        assert Connector.matching_attributes(plug, slot)
 
-    def test_match_attributes_non_matching_attrs(self):
+    def test_matching_attributes_non_matching_attrs(self):
         plug = {
             "interface": "content",
             "attrs": {"content": "graphics-core22"}
@@ -113,7 +103,11 @@ class TestConnector:
             "interface": "content",
             "attrs": {"content": "different-value"}
         }
-        assert not Connector.match_attributes(plug, slot)
+        assert not Connector.matching_attributes(plug, slot)
+
+    def test_init_default_predicates(self):
+        connector = Connector()
+        assert len(connector.predicates) == 2
 
     def test_process_with_existing_connections(self):
         data = {
@@ -184,7 +178,7 @@ class TestConnector:
         # Should reject connections on the same snap
         assert len(connections) == 0
 
-    def test_process_with_custom_filter(self):
+    def test_process_with_custom_predicate(self):
         data = {
             "result": {
                 "plugs": [
@@ -210,10 +204,10 @@ class TestConnector:
         }
 
         # Only allow connections from "allowed-snap"
-        def filter_func(plug, slot):
+        def predicate(plug, slot):
             return plug["snap"] == "allowed-snap"
 
-        connector = Connector(filters=[filter_func])
+        connector = Connector(predicates=[predicate])
         connections = connector.process(data)
 
         # Should only find one connection from allowed-snap
@@ -289,40 +283,13 @@ class TestConnector:
 
 class TestMainFunction:
 
-    @patch('sys.stdin')
-    @patch('sys.stdout', new_callable=StringIO)
-    def test_main_no_args(self, mock_stdout, mock_stdin):
-        # Prepare mock input data
-        mock_data = {
-            "result": {
-                "plugs": [
-                    {
-                        "snap": "plug-snap",
-                        "plug": "plug-name",
-                        "interface": "interface"
-                    }
-                ],
-                "slots": [
-                    {
-                        "snap": "slot-snap",
-                        "slot": "slot-name",
-                        "interface": "interface"
-                    }
-                ]
-            }
-        }
-        mock_stdin.read.return_value = json.dumps(mock_data)
-
-        test_args = []
-        snap_connections.main(test_args)
-
-        # Check the output
-        output = mock_stdout.getvalue().strip()
-        assert output == "plug-snap:plug-name/slot-snap:slot-name"
+    def test_main_no_args(self):
+        with pytest.raises(SystemExit):
+            snap_connections.main([])
 
     @patch('sys.stdin')
     @patch('sys.stdout', new_callable=StringIO)
-    def test_main_with_snaps_filter(self, mock_stdout, mock_stdin):
+    def test_main_with_snaps_predicate(self, mock_stdout, mock_stdin):
         # Prepare mock input data
         mock_data = {
             "result": {
@@ -354,7 +321,7 @@ class TestMainFunction:
         }
         mock_stdin.read.return_value = json.dumps(mock_data)
 
-        test_args = ['--snaps', 'allowed-plug-snap-1', 'allowed-plug-snap-2']
+        test_args = ['allowed-plug-snap-1', 'allowed-plug-snap-2']
         snap_connections.main(test_args)
 
         # Check the output - should only include connections from allowed-snap
@@ -375,7 +342,8 @@ class TestMainFunction:
         }
         mock_stdin.read.return_value = json.dumps(mock_data)
 
-        test_args = ['--force', 'plug-snap:plug/slot-snap:slot']
+        # forced connection doesn't need to pertain to the specified snaps
+        test_args = ['other-snap', '--force', 'plug-snap:plug/slot-snap:slot']
         snap_connections.main(test_args)
 
         # Check the output - should include the forced connection

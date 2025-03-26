@@ -106,22 +106,45 @@ class Connection(NamedTuple):
 
 
 # any callable that processes a plug-to-dict connection and accepts/rejects it
-ConnectionFilter = Callable[[PlugDict, SlotDict], bool]
+ConnectionPredicate = Callable[[PlugDict, SlotDict], bool]
 
 
 class Connector:
 
-    def __init__(self, filters: Optional[List[ConnectionFilter]] = None):
-        if not filters:
-            self.filters = [lambda plug, slot: True]
-        else:
-            self.filters = filters
+    def __init__(self, predicates: Optional[List[ConnectionPredicate]] = None):
+        # specify the predicate functions that will be used to select or
+        # filter out possible connections between plus and slots
+        self.predicates = [
+            # select connections where the interface attributes match
+            self.matching_attributes,
+            # select connections only on different snaps
+            lambda plug, slot: plug["snap"] != slot["snap"]
+        ]
+        # additional user-provided filtering predicates
+        if predicates:
+            self.predicates.extend(predicates)
 
     @staticmethod
-    def match_attributes(plug: PlugDict, slot: SlotDict) -> bool:
+    def matching_attributes(plug: PlugDict, slot: SlotDict) -> bool:
         """
-        Return True if the (common) attributes of a plug and slot match,
-        or False otherwise.
+        Return True if the (common) attributes of a plug and slot match, or
+        if there are no common attributes and return False otherwise.
+
+        This is relevant in e.g. `content` interfaces where a connection
+        should be made only if the corresponding attributes match.
+
+        For example:
+        ```
+        plug = {
+            "interface": "content",
+            "attrs": {"content": "graphics-core22", "extra": "value"}
+        }
+        slot = {
+            "interface": "content",
+            "attrs": {"content": "graphics-core22", "other": "data"}
+        }
+        assert Connector.matching_attributes(plug, slot)
+        ```
         """
         assert plug["interface"] == slot["interface"]
         try:
@@ -135,7 +158,7 @@ class Connector:
             for attribute in common_attributes
         )
 
-    def process(self, data) -> Set[Connection]:
+    def process(self, snap_connection_data) -> Set[Connection]:
         """
         Process the output of the `connections` endpoint of the snapd API
         and return a set of possible connections (`Connection` objects).
@@ -146,40 +169,28 @@ class Connector:
         """
         # iterate over all *unconnected* plugs and create a map that
         # associates each interface to a list of plugs for that interface
-        interface_map = defaultdict(list)
-        for plug in data["result"]["plugs"]:
+        interface_plugs = defaultdict(list)
+        for plug in snap_connection_data["result"]["plugs"]:
             if "connections" not in plug:
                 interface = plug["interface"]
-                interface_map[interface].append(plug)
+                interface_plugs[interface].append(plug)
 
-        # iterate over all slots and check for matching plugs
-        possible_connections = set()
-        for slot in data["result"]["slots"]:
-            interface = slot["interface"]
-            if interface not in interface_map:
-                continue
-            # retrieve the plugs for that interface
-            plugs = interface_map[interface]
-            for plug in plugs:
-                # reject connections where the interface attributes don't match
-                if not self.match_attributes(plug, slot):
-                    continue
-                # reject connections on the same snap
-                if plug["snap"] == slot["snap"]:
-                    continue
-                # reject connections that don't satisfy all filters
-                if not all(filter(plug, slot) for filter in self.filters):
-                    continue
-                connection = Connection.from_dicts(plug, slot)
-                possible_connections.add(connection)
-        return possible_connections
+        # iterate over all slots and check for plugs that satisfy all the
+        # filtering predicates to form the set of possible connections
+        return {
+            Connection.from_dicts(plug, slot)
+            for slot in snap_connection_data["result"]["slots"]
+            if (interface := slot["interface"]) in interface_plugs
+            for plug in interface_plugs[interface]
+            if all(predicate(plug, slot) for predicate in self.predicates)
+        }
 
 
 def main(args: Optional[List[str]] = None):
     parser = ArgumentParser()
     parser.add_argument(
-        '--snaps', nargs='+', type=str,
-        help='Only connect plugs for these snaps'
+        "snaps", nargs='+', type=str,
+        help='Connect plugs for these snaps to slots on matching interfaces'
     )
     parser.add_argument(
         '--force', nargs='+', type=Connection.from_string,
@@ -187,20 +198,17 @@ def main(args: Optional[List[str]] = None):
     )
     args = parser.parse_args(args)
 
-    # read from standard input and parse as JSON
-    data_input = sys.stdin.read()
-    data = json.loads(data_input)
+    # parse standard input as JSON
+    snap_connection_data = json.load(sys.stdin)
 
-    if args.snaps:
-        # create a filter function for the provided snaps
-        def snap_filter(plug: PlugDict, _) -> bool:
-            return plug["snap"] in set(args.snaps)
-        connector = Connector(filters=[snap_filter])
-    else:
-        connector = Connector()
-    connections = connector.process(data)
+    # create a predicate function for the provided snaps
+    def snap_select(plug: PlugDict, _) -> bool:
+        return plug["snap"] in set(args.snaps)
+    predicates = [snap_select]
+    connector = Connector(predicates)
 
-    for connection in sorted(connections) + (args.force or []):
+    snap_connections = connector.process(snap_connection_data)
+    for connection in sorted(snap_connections) + (args.force or []):
         print(connection)
 
 
