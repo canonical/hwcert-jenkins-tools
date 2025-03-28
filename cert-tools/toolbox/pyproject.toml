@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[project]
+name = "toolbox"
+version = "0.1.0"
+description = "Python scriptlets"
+authors = [
+    {name = "George Boukeas", email = "george.boukeas@canonical.com"},
+]
+requires-python = ">=3.8"
+
+[project.scripts]
+snap_connections = "toolbox.snap_connections:main"
+
+[project.optional-dependencies]
+dev = ["pytest"]

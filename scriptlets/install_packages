@@ -51,7 +51,7 @@ else
     fi
 fi
 
-([ -n "$NO_UPDATE" ] || sudo apt-get -qq update) && \
+[ -n "$NO_UPDATE" ] || sudo apt-get -qq update
 sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy $ACTION \
   -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" \
   "${package_args[@]}"
