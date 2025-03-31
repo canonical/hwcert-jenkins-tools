@@ -44,7 +44,6 @@ The rest needs to be refreshed to stable
 from argparse import ArgumentParser
 import json
 import re
-import sys
 from typing import Dict, Iterable, List, NamedTuple, Optional
 
 # dicts that describe snaps
@@ -65,14 +64,14 @@ class SnapChannel(NamedTuple):
 
     @classmethod
     def from_string(cls, string):
-        channel_template = r'^([\w-]+)(?:/([\w-]+)(?:/([\w-]+))?)?$'
+        channel_template = r'^(?:([\w-]+)(?:/([\w-]+)(?:/([\w-]+))?)?)?$'
         match = re.match(channel_template, string)
         if not match:
             raise ValueError(f"Cannot parse '{string}' as a snap channel")
         components = tuple(
             component for component in match.groups() if component
         )
-        if len(components) < 3 and components[0] in {"stable", "candidate", "beta", "edge"}:
+        if components and components[0] in {"stable", "candidate", "beta", "edge"}:
             components = (None, *components)
         return cls(*components)
 
@@ -100,7 +99,8 @@ class SnapInstaller:
     @staticmethod
     def create_index(snaps: Iterable[SnapDict]):
         return {
-            snap["name"]: SnapChannel.from_string(snap["channel"]) if "channel" in snap else None
+            snap["name"]: SnapChannel.from_string(snap["channel"])
+            if "channel" in snap else None
             for snap in snaps
         }
 
