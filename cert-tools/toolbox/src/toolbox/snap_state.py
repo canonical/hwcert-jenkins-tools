@@ -35,6 +35,10 @@ Instead, they can only be installed by someone who knows the branch name, and th
 After 30 days with no further updates, a branch will be closed automatically.
 The replacement snap will then be chosen as it would be with closed channels (see below).
 For example, beta/fix-for-bug123 will fall back to beta after the fix-for-bug123 branch is closed.
+
+Objective:
+You have a list of snaps (dict/objects) that need to be installed/refreshed from specific channels.
+The rest needs to be refreshed to stable
 """
 
 from argparse import ArgumentParser
@@ -64,7 +68,7 @@ class SnapChannel(NamedTuple):
         channel_template = r'^([\w-]+)(?:/([\w-]+)(?:/([\w-]+))?)?$'
         match = re.match(channel_template, string)
         if not match:
-            raise ValueError("Cannot parse 'channel' as a snap channel")
+            raise ValueError(f"Cannot parse '{string}' as a snap channel")
         components = tuple(
             component for component in match.groups() if component
         )
@@ -138,9 +142,6 @@ def main(args: Optional[List[str]] = None):
     )
     args = parser.parse_args(args)
 
-    #print(args.active)
-    #print(args.targets)
-
     installer = SnapInstaller(args.targets)
     actions = installer.process(args.active)
 
@@ -150,80 +151,3 @@ def main(args: Optional[List[str]] = None):
 
 if __name__ == "__main__":
     main()
-
-
-# You have a list of snaps (dict/objects) that need to be installed/refreshed
-# from specific channels. The rest needs to be refreshed to stable
-
-# read from standard input and parse as JSON
-'''
-data_input = sys.stdin.read()
-data = json.loads(data_input)
-
-for snap in data["result"]:
-    print(snap)
-
-channels = {
-    snap["name"]: snap["channel"]
-    for snap in data["result"]
-}
-
-for snap, channel in channels.items():
-    print(snap, channel)
-
-#with open("constraints.json") as constraint_file:
-#    constraints = json.load(constraint_file)
-'''
-#from snap_store import info
-
-
-'''
-# for testing?
-
-installed = [
-  {
-    "name": "network-manager",
-    "channel": "20/stable"
-  },
-  {
-    "name": "snapd",
-    "channel": "latest/beta"
-  },
-  {
-    "name": "bluez",
-    "channel": "latest/stable"
-  },
-  {
-    "name": "core",
-    "channel": "stable"
-  },
-  {
-    "name": "core20",
-    "channel": "latest/stable"
-  },
-  {
-    "name": "hbt-imx-kernel",
-    "channel": "latest/stable"
-  },
-  {
-    "name": "hon-x6med-gadget",
-    "channel": "latest/stable"
-  },
-  {
-    "name": "modem-manager",
-    "channel": "20/stable"
-  }
-]
-
-explicit = [
-    {
-        "name": "bluez"
-    }
-]
-
-tested = {
-    "name": "hbt-imx-kernel",
-    "channel": "latest/beta"
-}
-
-'''
