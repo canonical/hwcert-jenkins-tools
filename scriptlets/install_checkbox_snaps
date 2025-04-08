@@ -80,13 +80,16 @@ get_runtime() {
     # use the base as a heuristic to derive the Checkbox runtime
     if [ "$BASE" = "core" ] || [ "$BASE" = "null" ]; then
       # base: core or undefined -> runtime: checkbox16
-      RUNTIME_NAME=checkbox16
+      RUNTIME_SUFFIX=16
     else
       # base coreYY -> runtime checkboxYY
-      # (the final "grep ." will cause the command to fail if there's no match)
-      RUNTIME_NAME="checkbox$(echo $BASE | sed -n 's/^core\([0-9]\{2\}\)$/\1/p' | grep .)"
+      RUNTIME_SUFFIX=$(echo $BASE | sed -n 's/^core\([0-9]\{2\}\)$/\1/p')
     fi
-    echo $RUNTIME_NAME
+    if [ -z "$RUNTIME_SUFFIX" ]; then
+        echo "Unable to determine runtime for $FRONTEND_NAME=$FRONTEND_TRACK/$RISK"
+        return 1
+    fi
+    echo checkbox$RUNTIME_SUFFIX
 }
 
 install_checkbox_frontend_snap_on_device() {
@@ -173,6 +176,7 @@ export STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
 
 # use the frontend to derive the Checkbox runtime to be installed
 export RUNTIME_NAME=$(get_runtime $FRONTEND_NAME $FRONTEND_TRACK $RISK)
+[ "$?" -ne 0] && exit 1
 RUNTIME_CHANNEL="latest/$RISK"
 
 # install Checkbox runtime
