@@ -60,6 +60,7 @@ get_runtime() {
     local RUNTIME_NAME
 
     # get the snap info from the snap store and extract the base
+    set -x
     SNAPSTORE_URL="https://api.snapcraft.io/v2/snaps/info/$FRONTEND_NAME?fields=base"
     SNAPINFO=$(curl -s -H 'Snap-Device-Series: 16' \
         ${STORE:+ -H "Snap-Device-Store: $STORE"} \
