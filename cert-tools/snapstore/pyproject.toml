@@ -1,12 +1,11 @@
 [project]
-name = "snapstore"
+name = "toolbox"
 version = "0.3.0"
+description = "Tools for accessing the snap store"
 authors = [
-    {name = "George Boukeas", email = "george.boukeas@canonical.com"}
+    {name = "George Boukeas", email = "george.boukeas@canonical.com"},
     {name = "Paolo Gentili", email = "paolo.gentili@canonical.com"}
 ]
-description = "Tools for accessing the snap store"
-packages = [{include = "snapstore", from = "src"}]
 requires-python = ">=3.10"
 dependencies = ["requests", "pymacaroons"]
 
@@ -14,9 +13,12 @@ dependencies = ["requests", "pymacaroons"]
 get-auth = "snapstore.auth:cli"
 snapstore-info = "snapstore.info:cli"
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.0"
+[project.optional-dependencies]
+dev = ["pytest"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
