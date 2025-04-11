@@ -59,14 +59,12 @@ get_runtime() {
     local RISK=$3
     local RUNTIME_NAME
 
-    SNAPCRAFT_TOOLS_PATH=$TOOLS_PATH/cert-tools/snapcraft
     # get the snap info from the snap store and extract the base
-    SNAPINFO=$(
-        snapstore-info \
-        $RUNTIME_NAME $FRONTEND_TRACK/$RISK $(get_ubuntu_arch) ${STORE:+ --store $STORE} \
-        --fields base
+    SNAPINFO=$(snapstore-info \
+        $FRONTEND_NAME $FRONTEND_TRACK/$RISK $(get_ubuntu_arch) \
+        ${STORE:+ --store $STORE} --fields base
     )
-    BASE=$(jq -r '.base') <<< $SNAPINFO
+    BASE=$(jq -r '.base' <<< $SNAPINFO)
     # use the base as a heuristic to derive the Checkbox runtime
     if [ "$BASE" = "core" ] || [ "$BASE" = "null" ]; then
       # base: core or undefined -> runtime: checkbox16
@@ -166,7 +164,7 @@ export STORE=$(_run "snap model --assertion" | sed -n 's/^store:\s\(.*\)$/\1/p')
 
 # use the frontend to derive the Checkbox runtime to be installed
 export RUNTIME_NAME=$(get_runtime $FRONTEND_NAME $FRONTEND_TRACK $RISK)
-[ "$?" -ne 0] && exit 1
+[ "$?" -ne 0 ] && exit 1
 RUNTIME_CHANNEL="latest/$RISK"
 
 # install Checkbox runtime
