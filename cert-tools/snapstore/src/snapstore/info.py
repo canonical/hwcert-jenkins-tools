@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 import json
-from typing import Iterable
+from typing import Iterable, Optional
 
 from snapstore.client import SnapstoreClient
 
@@ -9,9 +9,9 @@ def info_from_endpoint_info(
     client: SnapstoreClient,
     snap: str,
     channel: str,
-    architecture: str | None = None, *,
-    store: str | None = None,
-    fields: Iterable[str] | None = None
+    architecture: Optional[str] = None, *,
+    store: Optional[str] = None,
+    fields: Optional[Iterable[str]] = None
 ):
     """
     Retrieve snap info from the `v2/snaps/info/{snap}` endpoint of
@@ -38,9 +38,9 @@ def info_from_endpoint_refresh(
     client: SnapstoreClient,
     snap: str,
     channel: str,
-    architecture: str | None = None, *,
-    store: str | None = None,
-    fields: Iterable[str] | None = None
+    architecture: Optional[str] = None, *,
+    store: Optional[str] = None,
+    fields: Optional[Iterable[str]] = None
 ):
     """
     Retrieve snap info for a single snap from the `v2/snaps/refresh` endpoint
@@ -50,10 +50,10 @@ def info_from_endpoint_refresh(
     response = client.info_from_refresh_one(
         snap, channel, architecture, store, fields
     )
-    return (
-        response["snap"] |
-        {"effective-channel": response["effective-channel"]}
-    )
+    return {
+        **response["snap"],
+        **{"effective-channel": response["effective-channel"]}
+    }
 
 
 def cli():

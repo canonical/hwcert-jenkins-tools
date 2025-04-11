@@ -2,7 +2,7 @@
 """
 import requests
 import os
-from typing import Iterable
+from typing import Iterable, Optional
 
 from snapstore.auth import AuthClient
 
@@ -11,13 +11,13 @@ class SnapstoreClient:
 
     snapstore_url = "https://api.snapcraft.io"
 
-    def __init__(self, token: str | None = None):
+    def __init__(self, token: Optional[str] = None):
         self.token = token or os.environ.get("UBUNTU_STORE_AUTH")
 
     def create_headers(
         self,
-        store: str | None,
-        headers: dict | None = None
+        store: Optional[str] = None,
+        headers: Optional[dict] = None
     ) -> dict:
         if headers is None:
             headers = {}
@@ -25,19 +25,19 @@ class SnapstoreClient:
             AuthClient.authorization_from_token(self.token)
             if self.token else None
         )
-        return (
-            headers |
-            {"Snap-Device-Series": "16"} |
-            ({"Snap-Device-Store": store} if store else {}) |
-            ({"Authorization": authorization} if authorization else {})
-        )
+        return {
+            "Snap-Device-Series": "16",
+            **headers,
+            **({"Snap-Device-Store": store} if store else {}),
+            **({"Authorization": authorization} if authorization else {})
+        }
 
     def get(
         self,
         endpoint: str,
-        store: str | None,
-        headers: dict | None = None,
-        params: dict | None = None
+        store: Optional[str] = None,
+        headers: Optional[dict] = None,
+        params: Optional[dict] = None
     ):
         response = requests.get(
             f"{self.snapstore_url}/{endpoint}",
@@ -52,8 +52,8 @@ class SnapstoreClient:
         self,
         endpoint: str,
         payload: dict,
-        store: str | None,
-        headers: dict | None = None,
+        store: Optional[str] = None,
+        headers: Optional[dict] = None,
     ):
         response = requests.post(
             f"{self.snapstore_url}/{endpoint}",
@@ -67,9 +67,9 @@ class SnapstoreClient:
     def info(
         self,
         snap: str,
-        architecture: str | None = None,
-        store: str | None = None,
-        fields: Iterable[str] | None = None
+        architecture: Optional[str] = None,
+        store: Optional[str] = None,
+        fields: Optional[Iterable[str]] = None
     ) -> dict:
         """
         Submit a GET request to the `v2/snaps/info/{snap}` endpoint of
@@ -91,8 +91,8 @@ class SnapstoreClient:
         snap: str,
         channel: str,
         architecture: str,
-        store: str | None = None,
-        fields: Iterable[str] | None = None,
+        store: Optional[str] = None,
+        fields: Optional[Iterable[str]] = None,
     ) -> dict:
         """
         Submit a POST request to the `v2/snaps/refresh` endpoint of the
