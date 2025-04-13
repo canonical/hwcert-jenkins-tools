@@ -2,6 +2,8 @@
 """
 To authenticate a request to snapcraft APIs,
 the user must bind the discharge macaroon to the root macaroon.
+
+Ref: https://documentation.ubuntu.com/enterprise-store/main/reference/api-authentication
 """
 
 from argparse import ArgumentParser
@@ -13,6 +15,10 @@ import requests
 
 
 class AuthClient:
+    """
+    Collection of methods to handle the authentication process and generate
+    the value of the "Authorization" header for rquests to the snap Store.
+    """
 
     refresh_endpoint = "https://login.ubuntu.com/api/v2/tokens/refresh"
     whoami_endpoint = "https://dashboard.snapcraft.io/api/v2/tokens/whoami"
@@ -45,7 +51,6 @@ class AuthClient:
         """
         Return the value of the "Authorization" header field from the root
         and discharge macaroons.
-        Ref: https://documentation.ubuntu.com/enterprise-store/main/reference/api-authentication
         """
         bound = root.prepare_for_request(discharge)
         return (

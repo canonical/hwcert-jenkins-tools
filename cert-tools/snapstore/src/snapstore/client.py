@@ -1,13 +1,20 @@
 """
+A client for interacting with endpoints of the snap Store API.
+
+Ref: https://api.snapcraft.io/docs/
 """
+
 import requests
 import os
-from typing import Iterable, Optional
+from typing import Optional
 
 from snapstore.auth import AuthClient
 
 
 class SnapstoreClient:
+    """
+    Interact with endpoints of the snap Store API
+    """
 
     snapstore_url = "https://api.snapcraft.io"
 
@@ -19,6 +26,10 @@ class SnapstoreClient:
         store: Optional[str] = None,
         headers: Optional[dict] = None
     ) -> dict:
+        """
+        Return a dict containing the headers for all HTTP requests to the
+        snap Store API (combine "standard" headers request-specific ones).
+        """
         if headers is None:
             headers = {}
         authorization = (
@@ -35,10 +46,14 @@ class SnapstoreClient:
     def get(
         self,
         endpoint: str,
+        params: Optional[dict] = None,
         store: Optional[str] = None,
         headers: Optional[dict] = None,
-        params: Optional[dict] = None
     ):
+        """
+        Submit a GET request to an endpoint of the snap Store API
+        and return a dict with the contents of the response.
+        """
         response = requests.get(
             f"{self.snapstore_url}/{endpoint}",
             headers=self.create_headers(store, headers),
@@ -55,6 +70,10 @@ class SnapstoreClient:
         store: Optional[str] = None,
         headers: Optional[dict] = None,
     ):
+        """
+        Submit a POST request to an endpoint of the snap Store API
+        and return a dict with the contents of the response.
+        """
         response = requests.post(
             f"{self.snapstore_url}/{endpoint}",
             headers=self.create_headers(store, headers),
@@ -63,66 +82,3 @@ class SnapstoreClient:
         )
         response.raise_for_status()
         return response.json()
-
-    def info(
-        self,
-        snap: str,
-        architecture: Optional[str] = None,
-        store: Optional[str] = None,
-        fields: Optional[Iterable[str]] = None
-    ) -> dict:
-        """
-        Submit a GET request to the `v2/snaps/info/{snap}` endpoint of
-        the snap Store and return the contents of the response.
-        """
-        params = {}
-        if architecture:
-            params["architecture"] = architecture
-        if fields:
-            params["fields"] = ",".join(field.strip() for field in fields)
-        return self.get(
-            endpoint=f"v2/snaps/info/{snap}",
-            store=store,
-            params=params
-        )
-
-    def info_from_refresh_one(
-        self,
-        snap: str,
-        channel: str,
-        architecture: str,
-        store: Optional[str] = None,
-        fields: Optional[Iterable[str]] = None,
-    ) -> dict:
-        """
-        Submit a POST request to the `v2/snaps/refresh` endpoint of the
-        snap Store and return the contents of the response.
-        """
-        payload = {
-            "context": [],
-            "actions": [
-                {
-                    "name": snap,
-                    "channel": channel,
-                    "action": "download",
-                    "instance-key": "",
-                }
-            ]
-        }
-        if fields:
-            payload["fields"] = sorted(fields)
-        response = self.post(
-            endpoint="v2/snaps/refresh",
-            store=store,
-            headers={"Snap-Device-Architecture": architecture},
-            payload=payload
-        )
-        results = response["results"]
-        if len(results) != 1:
-            raise ValueError(
-                f"Multiple results for {snap}={channel} on {architecture}"
-            )
-        result = results[0]
-        if "error" in result:
-            raise ValueError(result["error"]["message"])
-        return result
