@@ -30,15 +30,13 @@ class SnapstoreClient:
         Return a dict containing the headers for all HTTP requests to the
         snap Store API (combine "standard" headers request-specific ones).
         """
-        if headers is None:
-            headers = {}
         authorization = (
             AuthClient.authorization_from_token(self.token)
             if self.token else None
         )
         return {
             "Snap-Device-Series": "16",
-            **headers,
+            **(headers if headers else {}),
             **({"Snap-Device-Store": store} if store else {}),
             **({"Authorization": authorization} if authorization else {})
         }
