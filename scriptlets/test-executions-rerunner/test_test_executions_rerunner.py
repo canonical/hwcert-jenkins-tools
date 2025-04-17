@@ -9,6 +9,11 @@ from test_executions_rerunner import (
 )
 
 
+# processors for rerun requests, i.e. interfaces towards Jenkins and Github
+jenkins = JenkinsProcessor("admin", "jtoken")
+github = GithubProcessor("ghtoken")
+
+
 # collection of tests to check that the Jenkins and Github
 # request processors fail when they should
 
@@ -18,7 +23,7 @@ def test_jenkins_no_ci_link():
         "family": "deb"
     }
     with pytest.raises(RequestProccesingError):
-        JenkinsProcessor(user="", password="").process(rerun_request)
+        jenkins.process(rerun_request)
 
 
 def test_jenkins_empty_ci_link():
@@ -28,7 +33,7 @@ def test_jenkins_empty_ci_link():
         "ci_link": None
     }
     with pytest.raises(RequestProccesingError):
-        JenkinsProcessor.process(rerun_request)
+        jenkins.process(rerun_request)
 
 
 @pytest.mark.parametrize(
@@ -47,7 +52,7 @@ def test_jenkins_invalid_ci_link(ci_link):
         "family": "deb"
     }
     with pytest.raises(RequestProccesingError):
-        JenkinsProcessor(user="", password="").process(rerun_request)
+        jenkins.process(rerun_request)
 
 
 def test_jenkins_no_family():
@@ -57,7 +62,7 @@ def test_jenkins_no_family():
         "ci_link": f"{job_link}/123",
     }
     with pytest.raises(RequestProccesingError):
-        JenkinsProcessor(user="", password="").process(rerun_request)
+        jenkins.process(rerun_request)
 
 
 def test_jenkins_invalid_family():
@@ -68,7 +73,7 @@ def test_jenkins_invalid_family():
         "family": "image",
     }
     with pytest.raises(RequestProccesingError):
-        JenkinsProcessor(user="", password="").process(rerun_request)
+        jenkins.process(rerun_request)
 
 
 def test_github_no_ci_link():
@@ -76,7 +81,7 @@ def test_github_no_ci_link():
         "test_execution_id": 1,
     }
     with pytest.raises(RequestProccesingError):
-        JenkinsProcessor(user="", password="").process(rerun_request)
+        github.process(rerun_request)
 
 
 def test_github_empty_ci_link():
@@ -85,7 +90,7 @@ def test_github_empty_ci_link():
         "ci_link": "",
     }
     with pytest.raises(RequestProccesingError):
-        GithubProcessor.process(rerun_request)
+        github.process(rerun_request)
 
 
 @pytest.mark.parametrize(
@@ -103,7 +108,7 @@ def test_github_invalid_ci_link(ci_link):
         "ci_link": ci_link
     }
     with pytest.raises(RequestProccesingError):
-        JenkinsProcessor(user="", password="").process(rerun_request)
+        github.process(rerun_request)
 
 
 # miscellaneous pieces of data to help with tests;
@@ -145,10 +150,6 @@ rerun_requests = [
         "ci_link": "https://github.com/canonical/fake-repo/actions/runs/39/job/117",
     },
 ]
-
-# processors for rerun requests, i.e. interfaces towards Jenkins and Github
-jenkins = JenkinsProcessor("admin", "jtoken")
-github = GithubProcessor("ghtoken")
 
 # the expected result of Rerunner.process_rerun_requests;
 # this allows one-to-one checking of how each rerun request is processed

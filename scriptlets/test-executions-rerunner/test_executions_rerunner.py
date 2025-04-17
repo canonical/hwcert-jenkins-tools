@@ -154,7 +154,7 @@ class JenkinsProcessor(RequestProcessor):
             ) from error
         if not ci_link:
             raise RequestProccesingError(
-                f"{cls.__name__} empty ci_link "
+                f"{type(self).__name__} empty ci_link "
                 f"in rerun request {rerun_request}"
             )
         # extract the rerun URL from the ci_link
