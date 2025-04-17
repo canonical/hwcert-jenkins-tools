@@ -217,7 +217,7 @@ class GithubProcessor(RequestProcessor):
     # what the path of Gitgub workflow run looks like
     path_template = r"canonical/(?P<repo>[\w-]+)/actions/runs/(?P<run_id>\d+)/job/\d+"
 
-    def __init__(self, api_token: str):
+    def __init__(self, api_token: str, repo: Optional[str] = None):
         super().__init__(
             {
                 "headers": {
@@ -226,6 +226,7 @@ class GithubProcessor(RequestProcessor):
                 }
             }
         )
+        self.repo = repo
 
     def process(self, rerun_request: dict) -> PostArguments:
         try:
@@ -243,8 +244,7 @@ class GithubProcessor(RequestProcessor):
         url = self.extract_rerun_url_from_ci_link(ci_link)
         return PostArguments(url=url)
 
-    @classmethod
-    def extract_rerun_url_from_ci_link(cls, ci_link: str) -> str:
+    def extract_rerun_url_from_ci_link(self, ci_link: str) -> str:
         """
         Return the rerun URL for a Github workflow, as determined by
         the ci_link in a rerun request.
@@ -253,14 +253,20 @@ class GithubProcessor(RequestProcessor):
         """
         url_components = urlparse(ci_link)
         path = url_components.path.strip("/")
-        match = re.match(cls.path_template, path)
-        if url_components.netloc != cls.netloc or not match:
+        match = re.match(self.path_template, path)
+        if url_components.netloc != self.netloc or not match:
             raise RequestProccesingError(
-                f"{cls.__name__} cannot process ci_link {ci_link}"
+                f"{type(self).__name__} cannot process ci_link {ci_link}"
+            )
+        repo = match.group('repo')
+        if self.repo and self.repo != repo:
+            raise RequestProccesingError(
+                f"{type(self).__name__} repository in ci_link {ci_link}"
+                f"doesn't match {self.repo}"
             )
         return (
             f"https://api.github.com/repos/"
-            f"canonical/{match.group('repo')}/"
+            f"canonical/{repo}/"
             f"actions/runs/{match.group('run_id')}/rerun"
         )
 
