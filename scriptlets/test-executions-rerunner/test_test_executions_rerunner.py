@@ -18,7 +18,7 @@ def test_jenkins_no_ci_link():
         "family": "deb"
     }
     with pytest.raises(RequestProccesingError):
-        JenkinsProcessor.process(rerun_request)
+        JenkinsProcessor(user="", password="").process(rerun_request)
 
 
 def test_jenkins_empty_ci_link():
@@ -47,7 +47,7 @@ def test_jenkins_invalid_ci_link(ci_link):
         "family": "deb"
     }
     with pytest.raises(RequestProccesingError):
-        JenkinsProcessor.process(rerun_request)
+        JenkinsProcessor(user="", password="").process(rerun_request)
 
 
 def test_jenkins_no_family():
@@ -57,7 +57,7 @@ def test_jenkins_no_family():
         "ci_link": f"{job_link}/123",
     }
     with pytest.raises(RequestProccesingError):
-        JenkinsProcessor.process(rerun_request)
+        JenkinsProcessor(user="", password="").process(rerun_request)
 
 
 def test_jenkins_invalid_family():
@@ -68,7 +68,7 @@ def test_jenkins_invalid_family():
         "family": "image",
     }
     with pytest.raises(RequestProccesingError):
-        JenkinsProcessor.process(rerun_request)
+        JenkinsProcessor(user="", password="").process(rerun_request)
 
 
 def test_github_no_ci_link():
@@ -76,7 +76,7 @@ def test_github_no_ci_link():
         "test_execution_id": 1,
     }
     with pytest.raises(RequestProccesingError):
-        GithubProcessor.process(rerun_request)
+        JenkinsProcessor(user="", password="").process(rerun_request)
 
 
 def test_github_empty_ci_link():
@@ -103,7 +103,7 @@ def test_github_invalid_ci_link(ci_link):
         "ci_link": ci_link
     }
     with pytest.raises(RequestProccesingError):
-        GithubProcessor.process(rerun_request)
+        JenkinsProcessor(user="", password="").process(rerun_request)
 
 
 # miscellaneous pieces of data to help with tests;
