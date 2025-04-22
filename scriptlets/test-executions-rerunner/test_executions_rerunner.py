@@ -101,9 +101,8 @@ class RequestProcessor(ABC):
         # (suitable e.g. for authorization)
         self.constant_post_arguments = constant_post_arguments
 
-    @classmethod
     @abstractmethod
-    def process(cls, rerun_request: dict) -> PostArguments:
+    def process(self, rerun_request: dict) -> PostArguments:
         """
         Return a dict containing POST arguments that will trigger a rerun,
         based on a Test Observer rerun request.
@@ -145,29 +144,28 @@ class JenkinsProcessor(RequestProcessor):
         auth = HTTPBasicAuth(user, password)
         super().__init__({"auth": auth})
 
-    @classmethod
-    def process(cls, rerun_request: dict) -> PostArguments:
+    def process(self, rerun_request: dict) -> PostArguments:
         try:
             ci_link = rerun_request["ci_link"]
         except KeyError as error:
             raise RequestProccesingError(
-                f"{cls.__name__} cannot find ci_link "
+                f"{type(self).__name__} cannot find ci_link "
                 f"in rerun request {rerun_request}"
             ) from error
         if not ci_link:
             raise RequestProccesingError(
-                f"{cls.__name__} empty ci_link "
+                f"{type(self).__name__} empty ci_link "
                 f"in rerun request {rerun_request}"
             )
         # extract the rerun URL from the ci_link
-        url = cls.extract_rerun_url_from_ci_link(ci_link)
+        url = self.extract_rerun_url_from_ci_link(ci_link)
         # determine additional payload arguments
         # based on the artifact family in the rerun request
         try:
             family = rerun_request["family"]
         except KeyError as error:
             raise RequestProccesingError(
-                f"{cls.__name__} cannot find family "
+                f"{type(self).__name__} cannot find family "
                 f"in rerun request {rerun_request}"
             ) from error
         if family == "deb":
@@ -181,7 +179,7 @@ class JenkinsProcessor(RequestProcessor):
             }
         else:
             raise RequestProccesingError(
-                f"{cls.__name__} cannot process family '{family}' "
+                f"{type(self).__name__} cannot process family '{family}' "
                 f"in rerun request {rerun_request}"
             )
         return PostArguments(url=url, json=json)
@@ -219,7 +217,7 @@ class GithubProcessor(RequestProcessor):
     # what the path of Gitgub workflow run looks like
     path_template = r"canonical/(?P<repo>[\w-]+)/actions/runs/(?P<run_id>\d+)/job/\d+"
 
-    def __init__(self, api_token: str):
+    def __init__(self, api_token: str, repo: Optional[str] = None):
         super().__init__(
             {
                 "headers": {
@@ -228,26 +226,25 @@ class GithubProcessor(RequestProcessor):
                 }
             }
         )
+        self.repo = repo
 
-    @classmethod
-    def process(cls, rerun_request: dict) -> PostArguments:
+    def process(self, rerun_request: dict) -> PostArguments:
         try:
             ci_link = rerun_request["ci_link"]
         except KeyError as error:
             raise RequestProccesingError(
-                f"{cls.__name__} cannot find ci_link "
+                f"{type(self).__name__} cannot find ci_link "
                 f"in rerun request {rerun_request}"
             ) from error
         if not ci_link:
             raise RequestProccesingError(
-                f"{cls.__name__} empty ci_link "
+                f"{type(self).__name__} empty ci_link "
                 f"in rerun request {rerun_request}"
             )
-        url = cls.extract_rerun_url_from_ci_link(ci_link)
+        url = self.extract_rerun_url_from_ci_link(ci_link)
         return PostArguments(url=url)
 
-    @classmethod
-    def extract_rerun_url_from_ci_link(cls, ci_link: str) -> str:
+    def extract_rerun_url_from_ci_link(self, ci_link: str) -> str:
         """
         Return the rerun URL for a Github workflow, as determined by
         the ci_link in a rerun request.
@@ -256,14 +253,20 @@ class GithubProcessor(RequestProcessor):
         """
         url_components = urlparse(ci_link)
         path = url_components.path.strip("/")
-        match = re.match(cls.path_template, path)
-        if url_components.netloc != cls.netloc or not match:
+        match = re.match(self.path_template, path)
+        if url_components.netloc != self.netloc or not match:
             raise RequestProccesingError(
-                f"{cls.__name__} cannot process ci_link {ci_link}"
+                f"{type(self).__name__} cannot process ci_link {ci_link}"
+            )
+        repo = match.group('repo')
+        if self.repo and self.repo != repo:
+            raise RequestProccesingError(
+                f"{type(self).__name__} repository in ci_link {ci_link}"
+                f"doesn't match {self.repo}"
             )
         return (
             f"https://api.github.com/repos/"
-            f"canonical/{match.group('repo')}/"
+            f"canonical/{repo}/"
             f"actions/runs/{match.group('run_id')}/rerun"
         )
 
@@ -374,6 +377,10 @@ def create_rerunner_from_args():
         nargs="?", default="jenkins",
         help="Specify which request rerun processor to use"
     )
+    # only for Github processor but too simple to justify using subparsers
+    parser.add_argument(
+        "--repo", help="Name of Github repository"
+    )
     args = parser.parse_args()
 
     if args.processor == "jenkins":
@@ -382,7 +389,7 @@ def create_rerunner_from_args():
             environ["JENKINS_API_TOKEN"]
         )
     else:
-        processor = GithubProcessor(environ["GH_TOKEN"])
+        processor = GithubProcessor(environ["GH_TOKEN"], repo=args.repo)
     return Rerunner(processor)
 
 
