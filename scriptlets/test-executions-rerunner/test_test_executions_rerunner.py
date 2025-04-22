@@ -1,6 +1,7 @@
 import base64
 import pytest
 import requests_mock
+from pytest import fixture
 
 from test_executions_rerunner import (
     JenkinsProcessor, GithubProcessor,
@@ -10,14 +11,26 @@ from test_executions_rerunner import (
 
 
 # processors for rerun requests, i.e. interfaces towards Jenkins and Github
-jenkins = JenkinsProcessor("admin", "jtoken")
-github = GithubProcessor("ghtoken")
+
+@fixture
+def jenkins():
+    return JenkinsProcessor("admin", "jtoken")
+
+
+@fixture
+def github():
+    return GithubProcessor("ghtoken")
+
+
+@fixture
+def github_with_repo():
+    return GithubProcessor("ghtoken", repo="fake-repo")
 
 
 # collection of tests to check that the Jenkins and Github
 # request processors fail when they should
 
-def test_jenkins_no_ci_link():
+def test_jenkins_no_ci_link(jenkins):
     rerun_request = {
         "test_execution_id": 1,
         "family": "deb"
@@ -26,7 +39,7 @@ def test_jenkins_no_ci_link():
         jenkins.process(rerun_request)
 
 
-def test_jenkins_empty_ci_link():
+def test_jenkins_empty_ci_link(jenkins):
     rerun_request = {
         "test_execution_id": 1,
         "family": "deb",
@@ -45,7 +58,7 @@ def test_jenkins_empty_ci_link():
         "invalid-url",
     ]
 )
-def test_jenkins_invalid_ci_link(ci_link):
+def test_jenkins_invalid_ci_link(jenkins, ci_link):
     rerun_request = {
         "test_execution_id": 1,
         "ci_link": ci_link,
@@ -55,7 +68,7 @@ def test_jenkins_invalid_ci_link(ci_link):
         jenkins.process(rerun_request)
 
 
-def test_jenkins_no_family():
+def test_jenkins_no_family(jenkins):
     job_link = "http://10.102.156.15:8080/job/fake-job"
     rerun_request = {
         "test_execution_id": 1,
@@ -65,7 +78,7 @@ def test_jenkins_no_family():
         jenkins.process(rerun_request)
 
 
-def test_jenkins_invalid_family():
+def test_jenkins_invalid_family(jenkins):
     job_link = "http://10.102.156.15:8080/job/fake-job"
     rerun_request = {
         "test_execution_id": 1,
@@ -76,7 +89,7 @@ def test_jenkins_invalid_family():
         jenkins.process(rerun_request)
 
 
-def test_github_no_ci_link():
+def test_github_no_ci_link(github):
     rerun_request = {
         "test_execution_id": 1,
     }
@@ -84,7 +97,7 @@ def test_github_no_ci_link():
         github.process(rerun_request)
 
 
-def test_github_empty_ci_link():
+def test_github_empty_ci_link(github):
     rerun_request = {
         "test_execution_id": 1,
         "ci_link": "",
@@ -102,13 +115,27 @@ def test_github_empty_ci_link():
         "invalid-url",
     ]
 )
-def test_github_invalid_ci_link(ci_link):
+def test_github_invalid_ci_link(github, ci_link):
     rerun_request = {
         "test_execution_id": 1,
         "ci_link": ci_link
     }
     with pytest.raises(RequestProccesingError):
         github.process(rerun_request)
+
+
+def test_github_repo(github_with_repo):
+    rerun_request = {
+        "test_execution_id": 1,
+        "ci_link": "https://github.com/canonical/fake-repo/actions/runs/13/job/39",
+    }
+    github_with_repo.process(rerun_request)
+    rerun_request = {
+        "test_execution_id": 2,
+        "ci_link": "https://github.com/canonical/other-repo/actions/runs/13/job/39",
+    }
+    with pytest.raises(RequestProccesingError):
+        github_with_repo.process(rerun_request)
 
 
 # miscellaneous pieces of data to help with tests;
@@ -176,12 +203,12 @@ expected_processed_per_processor = {
 
 
 @pytest.fixture
-def rerunner_jenkins():
+def rerunner_jenkins(jenkins):
     return Rerunner(jenkins)
 
 @pytest.fixture
-def rerunner_github():
-    return Rerunner(github)
+def rerunner_github(github_with_repo):
+    return Rerunner(github_with_repo)
 
 
 def test_does_nothing_when_no_reruns_requested(rerunner_jenkins):
