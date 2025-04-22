@@ -377,6 +377,10 @@ def create_rerunner_from_args():
         nargs="?", default="jenkins",
         help="Specify which request rerun processor to use"
     )
+    # only for Github processor but too simple to justify using subparsers
+    parser.add_argument(
+        "--repo", help="Name of Github repository"
+    )
     args = parser.parse_args()
 
     if args.processor == "jenkins":
@@ -385,7 +389,7 @@ def create_rerunner_from_args():
             environ["JENKINS_API_TOKEN"]
         )
     else:
-        processor = GithubProcessor(environ["GH_TOKEN"])
+        processor = GithubProcessor(environ["GH_TOKEN"], repo=args.repo)
     return Rerunner(processor)
 
 
