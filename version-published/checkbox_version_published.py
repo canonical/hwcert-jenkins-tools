@@ -147,13 +147,22 @@ def check_snaps_availability(
 ) -> None:
     print("Checking if the snaps are available ...")
     # Record of snaps for which we've already fetched the data from the store.
+    # avoid re-querying the store for the same snap name. Leaving the function
+    # invalidates the cache, as we expect the situation to be constantly
+    # evolving
+    local_store_cache = {}
+
     for snap_spec in snap_specs:
         # Only fetch from the store if not already fetched and not already
         # available.
         if snaps_available[snap_spec]:
             continue
         try:
-            store_response = get_snap_info_from_store(snap_spec.name)
+            if snap_spec.name not in local_store_cache:
+                local_store_cache[snap_spec.name] = get_snap_info_from_store(
+                    snap_spec.name
+                )
+            store_response = local_store_cache[snap_spec.name]
             snaps_available[snap_spec] = is_snap_available(
                 snap_spec, store_response
             )
@@ -212,26 +221,15 @@ def get_package_specs(yaml_content: dict, version: str) -> List[PackageSpec]:
     return package_specs
 
 
-def url_header_check(url: str) -> bool:
-    """
-    Check whether the url header is available.
-    :param url: the url to check
-    :return: True if the header is available, False otherwise
-    """
-    try:
-        response = requests.head(url)
-        if response.status_code == 200:
-            return True
-    except requests.ConnectionError:
-        print(f"Failed to connect to the URL: {url}")
-    return False
-
-
 def check_packages_availability(
     package_specs: List[PackageSpec],
     packages_available: Dict[PackageSpec, bool],
 ) -> None:
     print("Checking if the packages are available ...")
+    # avoid re-querying LP for the same deb. Leaving the function
+    # invalidates the cache, as we expect the situation to be constantly
+    # evolving
+    local_lp_cache = {}
 
     for package_spec in package_specs:
         if packages_available[package_spec]:
@@ -239,10 +237,14 @@ def check_packages_availability(
         url = (
             f"http://ppa.launchpad.net/checkbox-dev/{package_spec.channel}"
             f"/ubuntu/pool/main/c/{package_spec.source}"
-            f"/{package_spec.package}_{package_spec.version}~ubuntu"
+        )
+        name = (
+            f"{package_spec.package}_{package_spec.version}~ubuntu"
             f"{package_spec.ubuntu_version}.1_{package_spec.arch}.deb"
         )
-        packages_available[package_spec] = url_header_check(url)
+        if url not in local_lp_cache:
+            local_lp_cache[url] = requests.get(url)
+        packages_available[package_spec] = name in local_lp_cache[url].text
 
     # Print the list of packages that were not found.
     not_available = [
