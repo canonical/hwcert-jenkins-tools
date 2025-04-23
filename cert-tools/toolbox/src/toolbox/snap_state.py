@@ -99,8 +99,11 @@ class SnapInstaller:
     @staticmethod
     def create_index(snaps: Iterable[SnapDict]):
         return {
-            snap["name"]: SnapChannel.from_string(snap["channel"])
-            if "channel" in snap else None
+            snap["name"]: (
+                SnapChannel.from_string(channel)
+                if "channel" in snap and (channel := snap["channel"])
+                else None
+            )
             for snap in snaps
         }
 
