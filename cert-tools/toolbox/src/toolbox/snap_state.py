@@ -101,7 +101,12 @@ class SnapInstaller:
         return {
             snap["name"]: (
                 SnapChannel.from_string(channel)
-                if "channel" in snap and (channel := snap["channel"])
+                if (
+                    "channel" in snap and
+                    (channel := snap["channel"]) or
+                    "tracking-channel" in snap and
+                    (channel := snap["tracking-channel"])
+                )
                 else None
             )
             for snap in snaps
