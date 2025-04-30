@@ -13,7 +13,14 @@ from itertools import repeat
 from paramiko.config import SSHConfig
 
 
+formatter = logging.Formatter('[%(levelname)s] %(name)s: %(message)s')
+
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)
+handler.setFormatter(formatter)
+
 logger = logging.Logger(__name__)
+logger.addHandler(handler)
 
 
 CommandType = Union[str, Iterable[str]]
@@ -129,7 +136,7 @@ class LabDevice(RemoteHost):
 
 
 class ScriptResult(NamedTuple):
-    content: Any
+    content: Optional[Any] = None
     exited: Optional[int] = 0
 
 
@@ -164,18 +171,20 @@ class Retry(Script, id='retry'):
 
     def run(self) -> ScriptResult:
         result = self.script.run()
-        if not self.successful(result):
-            for wait in self.waits:
-                logger.info(
-                    "%s returned %d, retrying%s",
-                    self.id,
-                    result.exited,
-                    f" in {wait} seconds" if wait else ""
-                )
-                sleep(wait)
-                result = self.script.run()
-                if self.successful(result):
-                    return result
+        if self.successful(result):
+            return result
+        for wait in self.waits:
+            logger.info(
+                "%s returned %d, retrying%s",
+                self.id,
+                result.exited,
+                f" in {wait} seconds" if wait else ""
+            )
+            sleep(wait)
+            result = self.script.run()
+            if self.successful(result):
+                return result
+        return ScriptResult(exited=1)
 
 
 class CheckStatus(Script, id='check-for-ssh'):
@@ -187,7 +196,7 @@ class CheckStatus(Script, id='check-for-ssh'):
     def run(self) -> ScriptResult:
         allowed_message = ", ".join(self.allow)
         logger.info(
-            "Checking if %s is fully up and running (%s)",
+            "Checking status of '%s' (allowed: %s)",
             self.device.host,
             allowed_message
         )
@@ -215,4 +224,6 @@ class WaitStatus(Script, id='wait-for-ssh'):
         )
 
     def run(self) -> ScriptResult:
-        return self.script.run()
+        result = self.script.run()
+        if result.exited != 0:
+            logger.error("Unable to complete '%s'", self.id)
