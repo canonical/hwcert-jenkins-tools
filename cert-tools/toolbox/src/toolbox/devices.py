@@ -135,10 +135,10 @@ class ScriptResult(NamedTuple):
 
 class Script(ABC):
 
-    name: Optional[str] = None
+    id: Optional[str] = None
 
-    def __init_subclass__(cls, name: str):
-        cls.name = name
+    def __init_subclass__(cls, *, id: str):
+        cls.id = id
 
     def __init__(self, device: Device):
         self.device = device
@@ -148,7 +148,7 @@ class Script(ABC):
         raise NotImplementedError
 
 
-class Retry(Script, name='retry'):
+class Retry(Script, id='retry'):
 
     def __init__(
         self,
@@ -168,7 +168,7 @@ class Retry(Script, name='retry'):
             for wait in self.waits:
                 logger.info(
                     "%s returned %d, retrying%s",
-                    self.name,
+                    self.id,
                     result.exited,
                     f" in {wait} seconds" if wait else ""
                 )
@@ -178,7 +178,7 @@ class Retry(Script, name='retry'):
                     return result
 
 
-class CheckStatus(Script, name='check-for-ssh'):
+class CheckStatus(Script, id='check-for-ssh'):
 
     def __init__(self, device: RemoteHost, allow: Optional[Iterable[str]] = None):
         super().__init__(device)
@@ -200,7 +200,7 @@ class CheckStatus(Script, name='check-for-ssh'):
         return ScriptResult(exited=exit_code, content=status)
 
 
-class WaitStatus(Script, name='wait-for-ssh'):
+class WaitStatus(Script, id='wait-for-ssh'):
 
     def __init__(
         self,
