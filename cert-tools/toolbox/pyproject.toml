@@ -7,15 +7,20 @@ package-dir = {"" = "src"}
 
 [project]
 name = "toolbox"
-version = "0.1.0"
+version = "1.0.0"
 description = "Python scriptlets"
 authors = [
     {name = "George Boukeas", email = "george.boukeas@canonical.com"},
 ]
 requires-python = ">=3.8"
-
+dependencies = [
+    "fabric>=3.2.2",
+]
 [project.scripts]
 snap_connections = "toolbox.snap_connections:main"
+snap_state = "toolbox.snap_state:main"
+_run = "toolbox.cli:run"
+wait_for_ssh = "toolbox.cli:wait_for_ssh"
 
 [project.optional-dependencies]
 dev = ["pytest"]
