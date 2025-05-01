@@ -171,3 +171,10 @@ This repo contains `stacker`, a purpose-built Python tool that offers this funct
 stacker --output checkbox.conf launcher.conf manifest.conf --description "A description"
 ```
 
+## What about the rest?
+
+This repo contains additional tools and even more scriptlets.
+Some of these are used under the hood by the scripts that are described here.
+Others are simply used in other workflows.
+However, the scripts in this overview provide the essential functionality
+for performing scripted testing.
