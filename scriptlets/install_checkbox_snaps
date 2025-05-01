@@ -193,16 +193,19 @@ if $STRICT_FRONTEND; then
     FRONTEND_NAMES=$(for FRONTEND in "${FRONTENDS[@]}"; do read FRONTEND_NAME REST <<< "$FRONTEND"; echo $FRONTEND_NAME; done)
     # connect any currently disconnected plugs to available slots
     connect_snaps $FRONTEND_NAMES
+    wait_for_snap_changes
 fi
 
 # some versions of snapd seem to force dependencies to be stable in some situation
 # but we want RISK risk, so lets force it by re-installing it
 # Note: this is done twice because if snapd doesn't force the stable dependency
 #       then this causes just 1 download
+log "Refreshing Checkbox runtime"
 _run sudo snap refresh --no-wait $RUNTIME_NAME --channel=latest/$RISK
 wait_for_snap_changes
 
 # restart the service, to make sure the latest version of the code is used
+log "Restarting Checkbox service"
 _run sudo snap restart $FRONTEND_NAME
 
 export CHECKBOX_VERSION=$(_run $FRONTEND_NAME.checkbox-cli --version)
