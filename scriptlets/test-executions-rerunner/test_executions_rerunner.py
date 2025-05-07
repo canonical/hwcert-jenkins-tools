@@ -303,12 +303,9 @@ class Rerunner:
     """
 
     def __init__(
-        self,
-        processor: RequestProcessor,
-        family: Optional[str] = None,
-        limit: Optional[int] = None
+        self, interface: TestObserverInterface, processor: RequestProcessor
     ):
-        self.test_observer = TestObserverInterface(family=family, limit=limit)
+        self.test_observer = interface
         self.processor = processor
 
     def load_rerun_requests(self) -> List[Dict]:
@@ -421,7 +418,13 @@ def create_rerunner_from_args():
         )
     else:
         processor = GithubProcessor(environ["GH_TOKEN"], repo=args.repo)
-    return Rerunner(processor)
+
+    return Rerunner(
+        interface=TestObserverInterface(
+            family=args.family, limit=args.limit
+        ),
+        processor=processor
+    )
 
 
 if __name__ == "__main__":

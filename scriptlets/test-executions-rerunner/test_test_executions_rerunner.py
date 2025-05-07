@@ -214,11 +214,11 @@ expected_processed_per_processor = {
 
 @pytest.fixture
 def rerunner_jenkins(jenkins):
-    return Rerunner(jenkins)
+    return Rerunner(TestObserverInterface(), jenkins)
 
 @pytest.fixture
 def rerunner_github(github_with_repo):
-    return Rerunner(github_with_repo)
+    return Rerunner(TestObserverInterface(), github_with_repo)
 
 
 def test_does_nothing_when_no_reruns_requested(rerunner_jenkins):
