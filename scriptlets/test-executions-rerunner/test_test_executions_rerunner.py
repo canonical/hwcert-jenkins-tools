@@ -10,6 +10,16 @@ from test_executions_rerunner import (
 )
 
 
+def test_test_observer_interface_params():
+    interface = TestObserverInterface()
+    assert interface.create_get_params() == {}
+    interface = TestObserverInterface(family="deb")
+    assert interface.create_get_params() == {"family": "deb"}
+    interface = TestObserverInterface(limit=100)
+    assert interface.create_get_params() == {"limit": 100}
+    interface = TestObserverInterface(family="snap", limit=1000)
+
+
 # processors for rerun requests, i.e. interfaces towards Jenkins and Github
 
 @fixture
