@@ -46,4 +46,5 @@ $TOOLS_PATH/version-published/checkout_to_version.py ~/checkbox "$VERSION"
 
 # install checkbox from source
 pipx install --spec checkbox/checkbox-ng checkbox-ng
+pipx inject checkbox-ng "urwid<3"
 sudo rm -rf checkbox
