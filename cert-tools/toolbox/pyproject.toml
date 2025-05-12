@@ -15,12 +15,16 @@ authors = [
 requires-python = ">=3.8"
 dependencies = [
     "fabric>=3.2.2",
+    "snapstore @ ../snapstore"
 ]
 [project.scripts]
 snap_connections = "toolbox.snap_connections:main"
 snap_state = "toolbox.snap_state:main"
 _run = "toolbox.cli:run"
-wait_for_ssh = "toolbox.cli:wait_for_ssh"
+wait-for-ssh = "toolbox.cli:wait_for_ssh_entry_point"
+wait_for_ssh = "toolbox.cli:wait_for_ssh_entry_point"
+wait-for-snap-changes = "toolbox.cli:wait_for_snap_changes_entry_point"
+wait_for_snap_changes = "toolbox.cli:wait_for_snap_changes_entry_point"
 
 [project.optional-dependencies]
 dev = ["pytest"]

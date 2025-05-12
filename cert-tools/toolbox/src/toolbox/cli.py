@@ -1,10 +1,11 @@
 from argparse import ArgumentParser, REMAINDER
-from itertools import repeat
 import logging
 import sys
 
-from toolbox.devices import LabDevice
-from toolbox.devices import WaitStatus
+from toolbox.scripts.devices import LabDevice
+from toolbox.scripts.direct import wait_for_running
+from toolbox.scripts.retries import Linear
+from toolbox.scripts.snaps import SnapdAPIClient, SnapManager
 
 
 logger = logging.Logger(__name__)
@@ -27,7 +28,7 @@ def run():
     LabDevice().run(args.command)
 
 
-def wait_for_ssh():
+def wait_for_ssh_entry_point():
 
     parser = ArgumentParser(description="Wait until the device is running")
     parser.add_argument(
@@ -53,14 +54,35 @@ def wait_for_ssh():
     )
     args = parser.parse_args()
 
-    allow = set(args.allow)
+    allowed = set(args.allow or tuple())
     if args.allow_degraded:
-        allow.add("degraded")
+        allowed.add("degraded")
     if args.allow_starting:
-        allow.add("starting")
+        allowed.add("starting")
 
-    WaitStatus(
+    wait_for_running(
         device=LabDevice(),
-        allow=allow,
-        waits=repeat(args.delay, args.times)
-    ).run()
+        allowed=allowed,
+        policy=Linear(times=args.times, delay=args.delay)
+    )
+
+
+def wait_for_snap_changes_entry_point():
+
+    parser = ArgumentParser(
+        description="Wait until all snap changes are complete"
+    )
+    parser.add_argument(
+        "--times", type=int, default=180, help="Number of tries"
+    )
+    parser.add_argument(
+        "--delay", type=int, default=30, help="Delay between retries"
+    )
+    args = parser.parse_args()
+
+    device = LabDevice()
+    client = SnapdAPIClient(device)
+    manager = SnapManager(client)
+    manager.wait_for_snap_changes(
+        policy=Linear(times=args.times, delay=args.delay)
+    )
