@@ -5,10 +5,19 @@
 # Also include any additional files, specified using the --include argument
 
 usage() {
-    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--include <file>*]"
+    echo "Usage: $(basename ${BASH_SOURCE[0]}) [--no-delete] [--include <file>*]"
 }
 
+# default to deleting the artifacts folder before collecting
+DELETE=true
+
 if [ "$#" -gt 0 ]; then
+
+    if [ "$1" = "--no-delete" ]; then
+        unset DELETE
+        shift
+    fi
+
     if [ "$1" != "--include" ]; then
         usage
         echo "Error: unknown argument $1"
@@ -21,7 +30,7 @@ fi
 [ -n "$INCLUDED" ] && INCLUDED_MESSAGE=" (including $INCLUDED)"
 log "Collecting artifacts$INCLUDED_MESSAGE"
 
-rm -rf artifacts && mkdir artifacts
+[ -n "$DELETE" ] && rm -rf artifacts && mkdir artifacts
 find ~ -name 'submission_*.junit.xml' -exec mv {} artifacts/junit.xml \;
 find ~ -name 'submission_*.html' -exec mv {} artifacts/submission.html \;
 find ~ -name 'submission_*.tar.xz' -exec mv {} artifacts/submission.tar.xz \;
