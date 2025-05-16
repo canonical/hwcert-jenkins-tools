@@ -46,7 +46,6 @@ class SnapdAPIClient:
         return json.loads(response_data)
 
 
-'''
 class SnapChannel(NamedTuple):
     track: Optional[str] = None
     risk: Optional[str] = None
@@ -70,12 +69,15 @@ class SnapChannel(NamedTuple):
 
     def stabilize(self):
         return self._replace(risk="stable")
-'''
+
+
+class SnapInstallError(RuntimeError):
+    pass
 
 
 class SnapManager:
 
-    incomplete = {"Doing", "Undoing", "Wait", "Do", "Undo"}
+    # incomplete = {"Doing", "Undoing", "Wait", "Do", "Undo"}
 
     def __init__(self, client: SnapdAPIClient):
         self.client = client
@@ -92,14 +94,21 @@ class SnapManager:
         )
         return response["result"]
 
+    def get_change(self, id: str):
+        response = self.client.get(endpoint=f"changes/{id}")
+        return response["result"]
+
     def check_snap_complete(self) -> bool:
         changes = self.get_changes()
-        statuses = set(change["status"] for change in changes)
-        complete = not statuses.intersection(self.incomplete)
+        # complete = not statuses.intersection(self.incomplete)
+        complete = all(change["ready"] for change in changes)
+        if complete:
+            return True
         for change in changes:
-            if change["status"] in statuses.intersection(self.incomplete):
-                print(f"{change['id']} {change['status']}: {change['summary']}")
-        return complete
+            # if change["status"] in statuses.intersection(self.incomplete):
+            if not change["ready"]:
+                print(f"{change['id']} {change['ready']} {change['status']}: {change['summary']}")
+        return False
 
     def check_snap_complete_and_reboot(self) -> bool:
         complete = self.check_snap_complete()
@@ -136,8 +145,23 @@ class SnapManager:
         if options:
             command.extend(options)
         command_result = self.device.run(command)
+        if command_result.exited != 0:
+            raise SnapInstallError(command_result.stderr)
+        snap_change_id = command_result.stdout.strip()
+        if not snap_change_id:
+            return True
         wait_result = self.wait_for_snap_changes(policy=Linear(times=30, delay=10))
-        return command_result.exited == 0 and wait_result
+        snap_change = self.get_change(snap_change_id)
+        if not wait_result:
+            raise SnapInstallError(
+                f"Snap change {snap_change_id} timed-out: "
+                f"{snap_change['summary']}"
+            )
+        if not snap_change["status"] == "Done":
+            raise SnapInstallError(
+                f"Snap change {snap_change_id} incomplete: "
+                f"{snap_change['status']}"
+            )
 
     def execute_plan(self, packages):
         for package in packages:
@@ -152,8 +176,6 @@ class SnapManager:
 
 
 """
-
-
 class SnapAction(NamedTuple):
     action: str
     snap: str
