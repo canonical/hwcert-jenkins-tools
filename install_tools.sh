@@ -84,9 +84,9 @@ log "Installing agent dependencies"
 install_packages pipx python3-venv sshpass jq > /dev/null
 
 log "Installing agent tools"
-pipx install --spec $TOOLS_PATH/cert-tools/launcher launcher > /dev/null
-pipx install --spec $TOOLS_PATH/cert-tools/toolbox toolbox > /dev/null
-pipx install --spec $TOOLS_PATH/cert-tools/snapstore snapstore > /dev/null
+pipx install $TOOLS_PATH/cert-tools/launcher > /dev/null
+pipx install $TOOLS_PATH/cert-tools/toolbox > /dev/null
+pipx install $TOOLS_PATH/cert-tools/snapstore > /dev/null
 
 # grab DEVICE_USER from the scenario file, if possible
 # (generally, a non-default DEVICE_USER needs to be set
