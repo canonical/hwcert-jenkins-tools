@@ -1,7 +1,7 @@
 import requests
 import unittest
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from checkbox_version_published import (
     SnapSpec,
@@ -10,7 +10,6 @@ from checkbox_version_published import (
     get_snap_info_from_store,
     is_snap_available,
     check_snaps_availability,
-    url_header_check,
     get_package_specs,
     check_packages_availability,
     check_availability,
@@ -121,15 +120,17 @@ class TestIsSnapAvailable(unittest.TestCase):
             arch=["amd64"],
         )
         store_response = {
-            "channel-map": [{
-                "channel": {
-                    "name": "latest/stable",
-                    "architecture": "amd64",
-                    "track": "latest",
-                    "risk": "stable",
-                },
-                "version": "1.0",
-            }]
+            "channel-map": [
+                {
+                    "channel": {
+                        "name": "latest/stable",
+                        "architecture": "amd64",
+                        "track": "latest",
+                        "risk": "stable",
+                    },
+                    "version": "1.0",
+                }
+            ]
         }
 
         result = is_snap_available(snap_example, store_response)
@@ -143,15 +144,17 @@ class TestIsSnapAvailable(unittest.TestCase):
             arch=["amd64"],
         )
         store_response = {
-            "channel-map": [{
-                "channel": {
-                    "name": "latest/stable",
-                    "architecture": "amd64",
-                    "track": "latest",
-                    "risk": "stable",
-                },
-                "version": "1.0",
-            }]
+            "channel-map": [
+                {
+                    "channel": {
+                        "name": "latest/stable",
+                        "architecture": "amd64",
+                        "track": "latest",
+                        "risk": "stable",
+                    },
+                    "version": "1.0",
+                }
+            ]
         }
 
         result = is_snap_available(snap_example, store_response)
@@ -165,15 +168,17 @@ class TestIsSnapAvailable(unittest.TestCase):
             arch=["amd64"],
         )
         store_response = {
-            "channel-map": [{
-                "channel": {
-                    "name": "latest/stable",
-                    "architecture": "amd64",
-                    "track": "latest",
-                    "risk": "stable",
-                },
-                "version": "1.0",
-            }]
+            "channel-map": [
+                {
+                    "channel": {
+                        "name": "latest/stable",
+                        "architecture": "amd64",
+                        "track": "latest",
+                        "risk": "stable",
+                    },
+                    "version": "1.0",
+                }
+            ]
         }
 
         result = is_snap_available(snap_example, store_response)
@@ -187,15 +192,17 @@ class TestIsSnapAvailable(unittest.TestCase):
             arch=["arm64"],
         )
         store_response = {
-            "channel-map": [{
-                "channel": {
-                    "name": "latest/stable",
-                    "architecture": "amd64",
-                    "track": "latest",
-                    "risk": "stable",
-                },
-                "version": "1.0",
-            }]
+            "channel-map": [
+                {
+                    "channel": {
+                        "name": "latest/stable",
+                        "architecture": "amd64",
+                        "track": "latest",
+                        "risk": "stable",
+                    },
+                    "version": "1.0",
+                }
+            ]
         }
 
         result = is_snap_available(snap_example, store_response)
@@ -209,15 +216,17 @@ class TestIsSnapAvailable(unittest.TestCase):
             arch=["amd64"],
         )
         store_response = {
-            "channel-map": [{
-                "channel": {
-                    "name": "stable",
-                    "architecture": "amd64",
-                    "track": "latest",
-                    "risk": "stable",
-                },
-                "version": "1.0",
-            }]
+            "channel-map": [
+                {
+                    "channel": {
+                        "name": "stable",
+                        "architecture": "amd64",
+                        "track": "latest",
+                        "risk": "stable",
+                    },
+                    "version": "1.0",
+                }
+            ]
         }
 
         result = is_snap_available(snap_example, store_response)
@@ -231,15 +240,17 @@ class TestIsSnapAvailable(unittest.TestCase):
             arch=["amd64"],
         )
         store_response = {
-            "channel-map": [{
-                "channel": {
-                    "name": "custom/beta",
-                    "architecture": "amd64",
-                    "track": "custom",
-                    "risk": "beta",
-                },
-                "version": "1.0",
-            }]
+            "channel-map": [
+                {
+                    "channel": {
+                        "name": "custom/beta",
+                        "architecture": "amd64",
+                        "track": "custom",
+                        "risk": "beta",
+                    },
+                    "version": "1.0",
+                }
+            ]
         }
 
         result = is_snap_available(snap_example, store_response)
@@ -330,40 +341,6 @@ class TestCheckSnapsAvailability(unittest.TestCase):
         self.assertFalse(snaps_available[self.snap_specs[1]])
 
 
-class TestIsPackageAvailable(unittest.TestCase):
-    url_example = (
-        "http://ppa.launchpad.net/checkbox-dev/edge/ubuntu/pool/main/c/"
-        "test/test-deb_1.0_amd64.deb"
-    )
-
-    @patch("requests.head")
-    def test_successful_request(self, mock_head):
-        # Mocking the response from launchpad
-        mock_response = requests.Response()
-        mock_response.status_code = 200
-        mock_head.return_value = mock_response
-        result = url_header_check(self.url_example)
-
-        self.assertTrue(result)
-
-    @patch("requests.head")
-    def test_no_package_request(self, mock_head):
-        # Mocking the response from launchpad
-        mock_response = requests.Response()
-        mock_response.status_code = 404
-        mock_head.return_value = mock_response
-        result = url_header_check(self.url_example)
-
-        self.assertFalse(result)
-
-    @patch("requests.head")
-    def test_request_raises_error(self, mock_head):
-        # Mocking the response from launchpad
-        mock_head.side_effect = requests.ConnectionError
-        result = url_header_check(self.url_example)
-        self.assertFalse(result)
-
-
 class TestGetPackageSpecs(unittest.TestCase):
     def test_get_package_specs(self):
         sample_yaml_content = {
@@ -409,11 +386,13 @@ class TestGetPackageSpecs(unittest.TestCase):
     def test_invalid_yaml_structure(self):
         # Test case for invalid YAML structure
         yaml_content = {
-            "required-packages": [{
-                "name": "checkbox22",
-                "channels": ["latest/edge"],
-                "architectures": ["amd64"],
-            }]
+            "required-packages": [
+                {
+                    "name": "checkbox22",
+                    "channels": ["latest/edge"],
+                    "architectures": ["amd64"],
+                }
+            ]
         }
         version = "3.0-dev10"
         with self.assertRaises(KeyError):
@@ -434,11 +413,20 @@ class TestCheckPackagesAvailability(unittest.TestCase):
             PackageSpec("edge", "src2", "pkg2", "3.0~dev10", "22.04", "arm64"),
         ]
 
-    @patch("checkbox_version_published.url_header_check")
-    def test_all_packages_available(self, mock_url_check):
-        # Mock url_header_check to simulate all packages being available
-        mock_url_check.return_value = True
+    def get_available_package_html(self, package_spec: PackageSpec):
+        name = (
+            f"{package_spec.package}_{package_spec.version}~ubuntu"
+            f"{package_spec.ubuntu_version}.1_{package_spec.arch}.deb"
+        )
+        return f"<td><a href={name}>{name}</a></td>"
 
+    @patch("requests.get")
+    def test_all_packages_available(self, mock_url_get):
+        # Mock url_header_check to simulate all packages being available
+        mock_url_get.side_effect = [
+            MagicMock(text=self.get_available_package_html(x))
+            for x in self.package_specs
+        ]
         packages_available = {
             package_spec: False for package_spec in self.package_specs
         }
@@ -446,14 +434,14 @@ class TestCheckPackagesAvailability(unittest.TestCase):
 
         self.assertTrue(all(packages_available.values()))
 
-    @patch("checkbox_version_published.url_header_check")
-    def test_some_packages_not_available(self, mock_url_check):
-        # Mock url_header_check to simulate some packages not being available
-        mock_url_check.side_effect = [
-            True,
-            False,
-        ]  # First package available, second not
-
+    @patch("requests.get")
+    def test_some_packages_not_available(self, mock_url_get):
+        mock_url_get.side_effect = [
+            MagicMock(
+                text=self.get_available_package_html(self.package_specs[0])
+            ),
+            MagicMock(text=""),
+        ]
         packages_available = {
             package_spec: False for package_spec in self.package_specs
         }
@@ -462,11 +450,13 @@ class TestCheckPackagesAvailability(unittest.TestCase):
         self.assertTrue(packages_available[self.package_specs[0]])
         self.assertFalse(packages_available[self.package_specs[1]])
 
-    @patch("checkbox_version_published.url_header_check")
-    def test_only_retry_packages_not_available(self, mock_url_check):
+    @patch("requests.get")
+    def test_only_retry_packages_not_available(self, mock_url_get):
         # Mock url_header_check to simulate some packages not being available
         # and check that only those packages are retried
-        mock_url_check.side_effect = [True]
+        mock_url_get.return_value.text = self.get_available_package_html(
+            self.package_specs[1]
+        )
 
         # The first package is already available, the second is not
         packages_available = {
@@ -477,7 +467,7 @@ class TestCheckPackagesAvailability(unittest.TestCase):
         check_packages_availability(self.package_specs, packages_available)
 
         # The first package is not checked again
-        mock_url_check.assert_called_once()
+        mock_url_get.assert_called_once()
         # All packages are available
         self.assertTrue(all(packages_available.values()))
 
@@ -542,11 +532,13 @@ class TestMain(unittest.TestCase):
         ]
 
         yaml_content = {
-            "required-snaps": [{
-                "name": "snap1",
-                "channels": ["edge"],
-                "architectures": ["amd64", "armhf"],
-            }],
+            "required-snaps": [
+                {
+                    "name": "snap1",
+                    "channels": ["edge"],
+                    "architectures": ["amd64", "armhf"],
+                }
+            ],
             "required-packages": [
                 {
                     "channel": "edge",
