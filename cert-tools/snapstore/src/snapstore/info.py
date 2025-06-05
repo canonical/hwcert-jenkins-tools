@@ -1,19 +1,16 @@
-"""
-Retrieve snap info through the snap Store API
-
-Ref:
-- https://api.snapcraft.io/docs/refresh.html
-- https://api.snapcraft.io/docs/info.html
-"""
-
-from argparse import ArgumentParser
-import json
 from typing import Iterable, Optional
 
 from snapstore.client import SnapstoreClient
 
 
-class Info:
+class SnapstoreInfo:
+    """
+    Retrieve snap info through the snap Store API
+
+    Ref:
+    - https://api.snapcraft.io/docs/refresh.html
+    - https://api.snapcraft.io/docs/info.html
+    """
 
     def __init__(self, client: SnapstoreClient):
         self.client = client
@@ -120,7 +117,7 @@ class Info:
         self,
         snap: str,
         channel: str,
-        architecture: Optional[str] = None, *,
+        architecture: str, *,
         store: Optional[str] = None,
         fields: Optional[Iterable[str]] = None
     ):
@@ -136,43 +133,3 @@ class Info:
             **response["snap"],
             **{"effective-channel": response["effective-channel"]}
         }
-
-
-def cli():
-    parser = ArgumentParser(
-        description='Retrieve snap info from the Store'
-    )
-    parser.add_argument("snap", type=str)
-    parser.add_argument("channel", type=str)
-    parser.add_argument("arch", type=str)
-    parser.add_argument("--store", type=str)
-    parser.add_argument(
-        "--fields", nargs="+",
-        help=(
-            "fields to include in the response "
-            "(see https://api.snapcraft.io/docs/refresh.html "
-            "or https://api.snapcraft.io/docs/info.html)"
-        )
-    )
-    parser.add_argument(
-        "--use-info", dest="refresh", action="store_false",
-        help="use `v2/snaps/info` endpoint (default is `v2/snaps/refresh`)"
-    )
-    args = parser.parse_args()
-
-    info = Info(client=SnapstoreClient())
-    retriever = (
-        info.info_from_refresh if args.refresh else info.info
-    )
-    result = retriever(
-        snap=args.snap,
-        channel=args.channel,
-        architecture=args.arch,
-        store=args.store,
-        fields=args.fields,
-    )
-
-    # display as JSON so that the result can be parsed with jq
-    print(
-        json.dumps(result)
-    )
