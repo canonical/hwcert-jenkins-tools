@@ -18,9 +18,9 @@ class SnapstoreInfo:
     def raw_info_snap(
         self,
         snap: str,
-        architecture: Optional[str] = None,
-        store: Optional[str] = None,
-        fields: Optional[Iterable[str]] = None
+        architecture: str | None = None,
+        store: str | None = None,
+        fields: Iterable[str] | None = None
     ) -> dict:
         """
         Return info for a specific snap, as retrieved from the
@@ -47,8 +47,8 @@ class SnapstoreInfo:
         snap: str,
         channel: str,
         architecture: str,
-        store: Optional[str] = None,
-        fields: Optional[Iterable[str]] = None,
+        store: str | None = None,
+        fields: Iterable[str] | None = None,
     ) -> dict:
         """
         Return info for a specific snap, as retrieved from the
@@ -89,9 +89,9 @@ class SnapstoreInfo:
         self,
         snap: str,
         channel: str,
-        architecture: Optional[str] = None, *,
-        store: Optional[str] = None,
-        fields: Optional[Iterable[str]] = None
+        architecture: str | None = None, *,
+        store: str | None = None,
+        fields: Iterable[str] | None = None
     ):
         """
         Return info for a specific snap. Use the `v2/snaps/info/{snap}`
@@ -118,8 +118,8 @@ class SnapstoreInfo:
         snap: str,
         channel: str,
         architecture: str, *,
-        store: Optional[str] = None,
-        fields: Optional[Iterable[str]] = None
+        store: str | None = None,
+        fields: Iterable[str] | None = None
     ):
         """
         Return info for a specific snap. Use the `v2/snaps/refresh`
