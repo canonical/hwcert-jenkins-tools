@@ -1,6 +1,6 @@
 [project]
 name = "snapstore"
-version = "0.4.0"
+version = "0.4.1"
 description = "Tools for accessing the snap store"
 authors = [
     {name = "George Boukeas", email = "george.boukeas@canonical.com"},
@@ -10,7 +10,6 @@ requires-python = ">=3.10"
 dependencies = ["craft-store"]
 
 [project.scripts]
-get-auth = "snapstore.cli:authorization_cli"
 snapstore-info = "snapstore.cli:info_cli"
 
 [project.optional-dependencies]

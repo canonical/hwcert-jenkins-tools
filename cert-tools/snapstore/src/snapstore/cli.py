@@ -1,45 +1,10 @@
 from argparse import ArgumentParser
 import json
-import os
 from typing import Iterable
 
-from craft_store.errors import CraftStoreError
-
-from snapstore.craft import create_base_client, create_ubuntu_one_store_client
+from snapstore.craft import create_base_client
 from snapstore.client import SnapstoreClient
 from snapstore.info import SnapstoreInfo
-
-
-def get_authorization(token_environment_variable: str):
-    try:
-        base_client = create_ubuntu_one_store_client(
-            token_environment_variable
-        )
-    except CraftStoreError as error:
-        raise ValueError(
-            "Unable to authenticate "
-            f"using token in '{token_environment_variable}' ({error})"
-        ) from error
-    return base_client._get_authorization_header()
-
-
-def authorization_cli():
-    parser = ArgumentParser()
-    parser.add_argument(
-        "--token-environment-variable",
-        dest="variable",
-        type=str,
-        default="UBUNTU_STORE_AUTH",
-        help="Variable containing token returned by `snapcraft export-login`",
-    )
-    args = parser.parse_args()
-
-    if args.variable not in os.environ:
-        raise ValueError(
-            f"Environment variable {args.variable} is not set"
-        )
-
-    print(get_authorization(token_environment_variable=args.variable))
 
 
 def get_info(
