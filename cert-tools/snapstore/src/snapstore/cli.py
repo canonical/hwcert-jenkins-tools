@@ -46,7 +46,7 @@ def get_snap_info(info: SnapstoreInfo, args: Namespace) -> dict:
     """
     snap = args.snap
     channel = SnapChannel.from_string(args.channel)
-    architecture = snap.architecture
+    architecture = args.architecture
     store = args.store
     fields = args.fields
 
