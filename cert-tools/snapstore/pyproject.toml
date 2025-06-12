@@ -1,6 +1,6 @@
 [project]
 name = "snapstore"
-version = "0.4.1"
+version = "0.5"
 description = "Tools for accessing the snap store"
 authors = [
     {name = "George Boukeas", email = "george.boukeas@canonical.com"},
@@ -13,7 +13,7 @@ dependencies = ["craft-store"]
 snap-info = "snapstore.cli:info_cli"
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "pytest-mock", "tox"]
 
 [build-system]
 requires = ["setuptools>=64", "wheel"]
