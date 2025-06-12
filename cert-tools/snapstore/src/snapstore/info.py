@@ -1,6 +1,7 @@
-from typing import Iterable, Optional
+from typing import Iterable
 
 from snapstore.client import SnapstoreClient
+from snapstore.snaps import SnapSpecifier
 
 
 class SnapstoreInfo:
@@ -15,7 +16,7 @@ class SnapstoreInfo:
     def __init__(self, client: SnapstoreClient):
         self.client = client
 
-    def raw_info_snap(
+    def get_snap_info(
         self,
         snap: str,
         architecture: str | None = None,
@@ -42,16 +43,15 @@ class SnapstoreInfo:
             store=store,
         )
 
-    def raw_refresh_one(
+    def get_refresh_info(
         self,
-        snap: str,
-        channel: str,
+        snap_specifiers: Iterable[SnapSpecifier],
         architecture: str,
         store: str | None = None,
         fields: Iterable[str] | None = None,
     ) -> dict:
         """
-        Return info for a specific snap, as retrieved from the
+        Return info for a collection of snaps, as retrieved from the
         `v2/snaps/refresh` endpoint of the snap Store API.
 
         Ref: https://api.snapcraft.io/docs/refresh.html
@@ -60,11 +60,12 @@ class SnapstoreInfo:
             "context": [],
             "actions": [
                 {
-                    "name": snap,
-                    "channel": channel,
+                    "name": snap.name,
+                    "channel": str(snap.channel),
                     "action": "download",
-                    "instance-key": "",
+                    "instance-key": snap.name,
                 }
+                for snap in snap_specifiers
             ]
         }
         if fields:
@@ -75,61 +76,4 @@ class SnapstoreInfo:
             store=store,
             headers={"Snap-Device-Architecture": architecture},
         )
-        results = response["results"]
-        if len(results) != 1:
-            raise ValueError(
-                f"Multiple results for {snap}={channel} on {architecture}"
-            )
-        result = results[0]
-        if "error" in result:
-            raise ValueError(result["error"]["message"])
-        return result
-
-    def info(
-        self,
-        snap: str,
-        channel: str,
-        architecture: str | None = None, *,
-        store: str | None = None,
-        fields: Iterable[str] | None = None
-    ):
-        """
-        Return info for a specific snap. Use the `v2/snaps/info/{snap}`
-        endpoint of the snap Store API and return the entry from the
-        channel map that matches a specific channel and architecture.
-        """
-        try:
-            track, risk = channel.split("/")
-        except ValueError as error:
-            raise ValueError(
-                f"{channel} is not formatted as track/risk"
-            ) from error
-        response = self.raw_info_snap(snap, architecture, store, fields)
-        for entry in response["channel-map"]:
-            channel_dict = entry["channel"]
-            if channel_dict["track"] == track and channel_dict["risk"] == risk:
-                return entry
-        raise ValueError(
-            f"No info for {snap}={channel} on {architecture}"
-        )
-
-    def info_from_refresh(
-        self,
-        snap: str,
-        channel: str,
-        architecture: str, *,
-        store: str | None = None,
-        fields: Iterable[str] | None = None
-    ):
-        """
-        Return info for a specific snap. Use the `v2/snaps/refresh`
-        endpoint of the snap Store API and return the "snap" field of the
-        result, along with the "effective channel".
-        """
-        response = self.raw_refresh_one(
-            snap, channel, architecture, store, fields
-        )
-        return {
-            **response["snap"],
-            **{"effective-channel": response["effective-channel"]}
-        }
+        return response["results"]

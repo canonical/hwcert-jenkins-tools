@@ -46,7 +46,7 @@ class SnapstoreClient:
         params: dict | None = None,
         store: str | None = None,
         headers: dict | None = None,
-    ):
+    ) -> dict:
         """
         Submit a GET request to an endpoint of the snap Store API
         and return a dict with the contents of the response.
@@ -67,7 +67,7 @@ class SnapstoreClient:
         payload: dict,
         store: str | None = None,
         headers: dict | None = None,
-    ):
+    ) -> dict:
         """
         Submit a POST request to an endpoint of the snap Store API
         and return a dict with the contents of the response.
