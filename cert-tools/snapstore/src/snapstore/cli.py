@@ -1,41 +1,20 @@
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 import json
-from typing import Iterable
+from typing import List
 
 from snapstore.craft import create_base_client
 from snapstore.client import SnapstoreClient
 from snapstore.info import SnapstoreInfo
+from snapstore.snaps import SnapSpecifier, SnapChannel
 
 
-def get_info(
-    client: SnapstoreClient,
-    snap: str,
-    channel: str,
-    architecture: str | None = None,
-    store: str | None = None,
-    fields: Iterable[str] | None = None,
-    refresh_flag: bool = True
-) -> dict:
-    info = SnapstoreInfo(client)
-    retriever = (
-        info.info_from_refresh if refresh_flag else info.info
-    )
-    return retriever(
-        snap=snap,
-        channel=channel,
-        architecture=architecture,
-        store=store,
-        fields=fields,
-    )
-
-
-def info_cli():
+def get_info_arguments(args: List[str] | None = None) -> Namespace:
     parser = ArgumentParser(
         description='Retrieve snap info from the Store'
     )
     parser.add_argument("snap", type=str)
     parser.add_argument("channel", type=str)
-    parser.add_argument("arch", type=str)
+    parser.add_argument("architecture", type=str)
     parser.add_argument("--store", type=str)
     parser.add_argument(
         "--fields", nargs="+",
@@ -56,18 +35,90 @@ def info_cli():
         default="UBUNTU_STORE_AUTH",
         help="Variable containing token returned by `snapcraft export-login`",
     )
-    args = parser.parse_args()
+    return parser.parse_args(args)
 
-    base_client = create_base_client(token_environment_variable=args.variable)
-    info = get_info(
-        client=SnapstoreClient(base_client),
-        snap=args.snap,
-        channel=args.channel,
-        architecture=args.arch,
-        store=args.store,
-        fields=args.fields,
-        refresh_flag=args.refresh,
+
+def get_snap_info(info: SnapstoreInfo, args: Namespace) -> dict:
+    """
+    Return info for a specific snap. Use the `v2/snaps/info/{snap}`
+    endpoint of the snap Store API and return the entry from the
+    channel map that matches a specific channel and architecture.
+    """
+    snap = args.snap
+    channel = SnapChannel.from_string(args.channel)
+    architecture = snap.architecture
+    store = args.store
+    fields = args.fields
+
+    response = info.get_snap_info(
+        snap=snap,
+        architecture=architecture,
+        store=store,
+        fields=fields,
     )
 
+    # locate the matching channel entry in the channel map and return it
+    for entry in response["channel-map"]:
+        channel_dict = entry["channel"]
+        if (
+            channel_dict["track"] == channel.track and
+            channel_dict["risk"] == channel.risk
+        ):
+            return entry
+
+    # no matching entry
+    raise ValueError(
+        f"No info for {snap}={channel} on {architecture}"
+    )
+
+
+def get_refresh_info(info: SnapstoreInfo, args: Namespace) -> dict:
+    """
+    Return info for a specific snap. Use the `v2/snaps/refresh`
+    endpoint of the snap Store API and return the "snap" field of the
+    result, along with the "effective channel".
+    """
+    snap = SnapSpecifier.from_string(f"{args.snap}={args.channel}")
+    architecture = args.architecture
+    store = args.store
+    fields = args.fields
+
+    response = info.get_refresh_info(
+        snap_specifiers=[snap],
+        architecture=architecture,
+        store=store,
+        fields=fields,
+    )
+
+    # extract what should be a single result from the response
+    if len(response) != 1:
+        raise ValueError(
+            f"Multiple results for {snap} on {architecture}"
+        )
+    result = response[0]
+
+    # check for errors
+    if result["result"] == "error":
+        raise ValueError(
+            f"{snap}@{architecture}: {result['error']['message']}"
+        )
+
+    # process and return the result
+    return {
+        **result["snap"],
+        **{"effective-channel": result["effective-channel"]}
+    }
+
+
+def info_cli():
+    args = get_info_arguments()
+    base_client = create_base_client(token_environment_variable=args.variable)
+    client = SnapstoreClient(base_client)
+    info = SnapstoreInfo(client)
+    if args.refresh:
+        result = get_refresh_info(info, args)
+    else:
+        result = get_snap_info(info, args)
+
     # display as JSON so that the result can be parsed with jq
-    print(json.dumps(info))
+    print(json.dumps(result))
