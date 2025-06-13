@@ -3,8 +3,8 @@ from pytest import mark, raises
 from snapstore.info import SnapstoreInfo
 from snapstore.cli import (
     get_info_arguments,
-    get_snap_info,
-    get_refresh_info
+    _get_snap_info,
+    _get_refresh_info
 )
 
 
@@ -83,9 +83,9 @@ class TestGetSnapInfo:
                     "version": "1.0.1"
                 }
             ]
-        }                
+        }
 
-        result = get_snap_info(info, args)
+        result = _get_snap_info(info, args)
 
         assert result == {
             "channel": {"track": "latest", "risk": "beta"},
@@ -115,7 +115,7 @@ class TestGetSnapInfo:
         }
 
         with raises(ValueError):
-            get_snap_info(info, args)
+            _get_snap_info(info, args)
 
 
 class TestGetRefreshInfo:
@@ -138,7 +138,7 @@ class TestGetRefreshInfo:
             }
         ]
 
-        result = get_refresh_info(info, args)
+        result = _get_refresh_info(info, args)
 
         expected_result = {
             "revision": 123,
@@ -164,4 +164,4 @@ class TestGetRefreshInfo:
         ]
 
         with raises(ValueError, match=error_message):
-            get_refresh_info(info, args)
+            _get_refresh_info(info, args)

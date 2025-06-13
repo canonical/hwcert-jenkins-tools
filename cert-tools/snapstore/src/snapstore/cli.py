@@ -38,7 +38,7 @@ def get_info_arguments(args: List[str] | None = None) -> Namespace:
     return parser.parse_args(args)
 
 
-def get_snap_info(info: SnapstoreInfo, args: Namespace) -> dict:
+def _get_snap_info(info: SnapstoreInfo, args: Namespace) -> dict:
     """
     Return info for a specific snap. Use the `v2/snaps/info/{snap}`
     endpoint of the snap Store API and return the entry from the
@@ -72,7 +72,7 @@ def get_snap_info(info: SnapstoreInfo, args: Namespace) -> dict:
     )
 
 
-def get_refresh_info(info: SnapstoreInfo, args: Namespace) -> dict:
+def _get_refresh_info(info: SnapstoreInfo, args: Namespace) -> dict:
     """
     Return info for a specific snap. Use the `v2/snaps/refresh`
     endpoint of the snap Store API and return the "snap" field of the
@@ -116,9 +116,9 @@ def info_cli():
     client = SnapstoreClient(base_client)
     info = SnapstoreInfo(client)
     if args.refresh:
-        result = get_refresh_info(info, args)
+        result = _get_refresh_info(info, args)
     else:
-        result = get_snap_info(info, args)
+        result = _get_snap_info(info, args)
 
     # display as JSON so that the result can be parsed with jq
     print(json.dumps(result))
