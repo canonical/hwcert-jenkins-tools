@@ -1,7 +1,7 @@
 name: Test the snapstore package
 on:
-  push:
-    branches-ignore:
+  pull_request:
+    branches:
       - 'main'
     paths:
       - 'cert-tools/snapstore/**'
