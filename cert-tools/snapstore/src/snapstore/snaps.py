@@ -13,6 +13,8 @@ class SnapChannel:
 
     @classmethod
     def from_string(cls, string):
+        # template for matching snap channels in the form track/risk/branch
+        # (only one of the components is required)
         channel_template = r'^(?:([\w.-]+)(?:/([\w-]+)(?:/([\w-]+))?)?)?$'
         match = re.match(channel_template, string)
         if not match:
@@ -35,6 +37,8 @@ class SnapSpecifier:
 
     @classmethod
     def from_string(cls, string):
+        # template for matching snap specifiers in the form snap=channel
+        # (only one of the components is required)
         specifier_template = r'^([\w-]+)=(.+)$'
         match = re.match(specifier_template, string)
         if not match:
