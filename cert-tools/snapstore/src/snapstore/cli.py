@@ -9,24 +9,25 @@ from snapstore.snaps import SnapSpecifier, SnapChannel
 
 
 def get_info_arguments(args: List[str] | None = None) -> Namespace:
-    parser = ArgumentParser(
-        description='Retrieve snap info from the Store'
-    )
+    parser = ArgumentParser(description="Retrieve snap info from the Store")
     parser.add_argument("snap", type=str)
     parser.add_argument("channel", type=str)
     parser.add_argument("architecture", type=str)
     parser.add_argument("--store", type=str)
     parser.add_argument(
-        "--fields", nargs="+",
+        "--fields",
+        nargs="+",
         help=(
             "fields to include in the response "
             "(see https://api.snapcraft.io/docs/refresh.html "
             "or https://api.snapcraft.io/docs/info.html)"
-        )
+        ),
     )
     parser.add_argument(
-        "--use-info", dest="refresh", action="store_false",
-        help="use `v2/snaps/info` endpoint (default is `v2/snaps/refresh`)"
+        "--use-info",
+        dest="refresh",
+        action="store_false",
+        help="use `v2/snaps/info` endpoint (default is `v2/snaps/refresh`)",
     )
     parser.add_argument(
         "--token-environment-variable",
@@ -61,15 +62,13 @@ def _get_snap_info(info: SnapstoreInfo, args: Namespace) -> dict:
     for entry in response["channel-map"]:
         channel_dict = entry["channel"]
         if (
-            channel_dict["track"] == channel.track and
-            channel_dict["risk"] == channel.risk
+            channel_dict["track"] == channel.track
+            and channel_dict["risk"] == channel.risk
         ):
             return entry
 
     # no matching entry
-    raise ValueError(
-        f"No info for {snap}={channel} on {architecture}"
-    )
+    raise ValueError(f"No info for {snap}={channel} on {architecture}")
 
 
 def _get_refresh_info(info: SnapstoreInfo, args: Namespace) -> dict:
@@ -92,22 +91,15 @@ def _get_refresh_info(info: SnapstoreInfo, args: Namespace) -> dict:
 
     # extract what should be a single result from the response
     if len(response) != 1:
-        raise ValueError(
-            f"Multiple results for {snap} on {architecture}"
-        )
+        raise ValueError(f"Multiple results for {snap} on {architecture}")
     result = response[0]
 
     # check for errors
     if result["result"] == "error":
-        raise ValueError(
-            f"{snap}@{architecture}: {result['error']['message']}"
-        )
+        raise ValueError(f"{snap}@{architecture}: {result['error']['message']}")
 
     # process and return the result
-    return {
-        **result["snap"],
-        **{"effective-channel": result["effective-channel"]}
-    }
+    return {**result["snap"], **{"effective-channel": result["effective-channel"]}}
 
 
 def info_cli():

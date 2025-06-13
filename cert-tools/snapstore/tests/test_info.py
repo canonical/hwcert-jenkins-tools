@@ -28,17 +28,20 @@ class TestSnapstoreInfo:
     class TestGetSnapInfo:
         """Test cases for get_snap_info method."""
 
-        @mark.parametrize("architecture, store, fields",[
-            (None, None, None),
-            ("amd64", None, None),
-            (None, "ubuntu", None),
-            (None, None, ["version", "revision"]),
-            ("amd64", "ubuntu", None),
-            (None, "ubuntu", ["base"]),
-            ("amd64", None, ["version", "revision"]),
-            ("amd64", "ubuntu", ["version", "revision"]),
-            ("amd64", "ubuntu", []),
-        ])
+        @mark.parametrize(
+            "architecture, store, fields",
+            [
+                (None, None, None),
+                ("amd64", None, None),
+                (None, "ubuntu", None),
+                (None, None, ["version", "revision"]),
+                ("amd64", "ubuntu", None),
+                (None, "ubuntu", ["base"]),
+                ("amd64", None, ["version", "revision"]),
+                ("amd64", "ubuntu", ["version", "revision"]),
+                ("amd64", "ubuntu", []),
+            ],
+        )
         def test_get_snap_info(self, snapstore_info, architecture, store, fields):
             """Test get_snap_info with all parameters provided."""
             name = "test-snap"
@@ -51,10 +54,7 @@ class TestSnapstoreInfo:
                 expected_params["fields"] = ",".join(fields)
 
             result = snapstore_info.get_snap_info(
-                snap=name,
-                architecture=architecture,
-                store=store,
-                fields=fields
+                snap=name, architecture=architecture, store=store, fields=fields
             )
 
             snapstore_info.client.get.assert_called_once_with(
@@ -67,13 +67,18 @@ class TestSnapstoreInfo:
     class TestGetRefreshInfo:
         """Test cases for get_refresh_info method."""
 
-        @mark.parametrize("snap_specifier_strings, store, fields",[
-            (["snap-1=latest/beta", "snap-2=latest/edge"], None, None),
-            (["snap-1=latest/beta", "snap-2=latest/edge"], "ubuntu", None),
-            (["snap-1=latest/beta", "snap-2=latest/edge"], None, ["base"]),
-            (["snap-1=latest/beta"], "ubuntu", ["version", "revision"]),
-        ])
-        def test_get_refresh_info(self, snapstore_info, snap_specifier_strings, store, fields):
+        @mark.parametrize(
+            "snap_specifier_strings, store, fields",
+            [
+                (["snap-1=latest/beta", "snap-2=latest/edge"], None, None),
+                (["snap-1=latest/beta", "snap-2=latest/edge"], "ubuntu", None),
+                (["snap-1=latest/beta", "snap-2=latest/edge"], None, ["base"]),
+                (["snap-1=latest/beta"], "ubuntu", ["version", "revision"]),
+            ],
+        )
+        def test_get_refresh_info(
+            self, snapstore_info, snap_specifier_strings, store, fields
+        ):
             """Test get_refresh_info with minimal required parameters."""
             snap_specifiers = [
                 SnapSpecifier.from_string(snap_specifier)
@@ -82,7 +87,7 @@ class TestSnapstoreInfo:
             expected_response = {
                 "results": [
                     {"name": snap_specifier.name, "result": "download"}
-                    for snap_specifier in snap_specifiers                
+                    for snap_specifier in snap_specifiers
                 ]
             }
             snapstore_info.client.post.return_value = expected_response
@@ -96,7 +101,7 @@ class TestSnapstoreInfo:
                         "instance-key": snap_specifier.name,
                     }
                     for snap_specifier in snap_specifiers
-                ]
+                ],
             }
             if fields:
                 expected_payload["fields"] = sorted(fields)

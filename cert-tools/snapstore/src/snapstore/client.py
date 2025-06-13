@@ -24,9 +24,7 @@ class SnapstoreClient:
             return None
 
     def create_headers(
-        self,
-        store: str | None = None,
-        headers: dict | None = None
+        self, store: str | None = None, headers: dict | None = None
     ) -> dict:
         """
         Return a dict containing the headers for all HTTP requests to the
@@ -37,7 +35,7 @@ class SnapstoreClient:
             "Snap-Device-Series": "16",
             **(headers if headers else {}),
             **({"Snap-Device-Store": store} if store else {}),
-            **({"Authorization": authorization} if authorization else {})
+            **({"Authorization": authorization} if authorization else {}),
         }
 
     def get(
@@ -56,7 +54,7 @@ class SnapstoreClient:
             url=f"{self.snapstore_url}/{endpoint}",
             headers=self.create_headers(store, headers),
             params=(params or {}),
-            timeout=10
+            timeout=10,
         )
         response.raise_for_status()
         return response.json()
@@ -77,7 +75,7 @@ class SnapstoreClient:
             url=f"{self.snapstore_url}/{endpoint}",
             headers=self.create_headers(store, headers),
             json=payload,
-            timeout=10
+            timeout=10,
         )
         response.raise_for_status()
         return response.json()

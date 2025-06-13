@@ -11,7 +11,7 @@ APPLICATION = "cert-tools/snapstore"
 
 
 def create_ubuntu_one_store_client(
-    token_environment_variable: str
+    token_environment_variable: str,
 ) -> UbuntuOneStoreClient:
     """
     Return an authenticated craft-store client for the Snap store
@@ -42,7 +42,7 @@ def create_http_client() -> HTTPClient:
 
 
 def create_base_client(
-    token_environment_variable: str | None = None
+    token_environment_variable: str | None = None,
 ) -> UbuntuOneStoreClient | HTTPClient:
     """
     Return a craft-store client for the Snap store

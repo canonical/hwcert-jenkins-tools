@@ -4,7 +4,7 @@ from craft_store.errors import CraftStoreError
 from snapstore.craft import (
     create_ubuntu_one_store_client,
     create_http_client,
-    create_base_client
+    create_base_client,
 )
 
 
@@ -13,7 +13,7 @@ class TestCreateUbuntuOneStoreClient:
 
     def test_successful_creation(self, mocker):
         """Test successful client creation and authentication"""
-        mock_ubuntu_client_class = mocker.patch('snapstore.craft.UbuntuOneStoreClient')
+        mock_ubuntu_client_class = mocker.patch("snapstore.craft.UbuntuOneStoreClient")
         mock_ubuntu_client = mock_ubuntu_client_class.return_value
         mock_ubuntu_client.whoami.return_value = {}
 
@@ -28,11 +28,9 @@ class TestCreateUbuntuOneStoreClient:
 
     def test_authentication_failure(self, mocker):
         """Test handling of authentication failure"""
-        mock_ubuntu_client_class = mocker.patch('snapstore.craft.UbuntuOneStoreClient')
+        mock_ubuntu_client_class = mocker.patch("snapstore.craft.UbuntuOneStoreClient")
         mock_ubuntu_client = mock_ubuntu_client_class.return_value
-        mock_ubuntu_client.whoami.side_effect = CraftStoreError(
-            "Authentication failed"
-        )
+        mock_ubuntu_client.whoami.side_effect = CraftStoreError("Authentication failed")
 
         # problems with the token raise a `CraftStoreError`
         with raises(CraftStoreError, match="Authentication failed"):
@@ -45,7 +43,7 @@ class TestCreateHttpClient:
     def test_successful_creation(self, mocker):
         """Test successful client creation"""
 
-        mock_http_client_class = mocker.patch('snapstore.craft.HTTPClient')
+        mock_http_client_class = mocker.patch("snapstore.craft.HTTPClient")
         mock_http_client = mock_http_client_class.return_value
 
         result = create_http_client()
@@ -59,9 +57,9 @@ class TestCreateBaseClient:
 
     def test_authenticated(self, mocker):
         """Test creation with valid token"""
-        mock_ubuntu_client_class = mocker.patch('snapstore.craft.UbuntuOneStoreClient')
+        mock_ubuntu_client_class = mocker.patch("snapstore.craft.UbuntuOneStoreClient")
         mock_ubuntu_client = mock_ubuntu_client_class.return_value
-        mock_http_client_class = mocker.patch('snapstore.craft.HTTPClient')
+        mock_http_client_class = mocker.patch("snapstore.craft.HTTPClient")
 
         result = create_base_client("TOKEN")
 
@@ -71,12 +69,10 @@ class TestCreateBaseClient:
 
     def test_not_authenticated(self, mocker):
         """Test creation with invalid token"""
-        mock_ubuntu_client_class = mocker.patch('snapstore.craft.UbuntuOneStoreClient')
+        mock_ubuntu_client_class = mocker.patch("snapstore.craft.UbuntuOneStoreClient")
         mock_ubuntu_client = mock_ubuntu_client_class.return_value
-        mock_ubuntu_client.whoami.side_effect = CraftStoreError(
-            "Authentication failed"
-        )
-        mock_http_client_class = mocker.patch('snapstore.craft.HTTPClient')
+        mock_ubuntu_client.whoami.side_effect = CraftStoreError("Authentication failed")
+        mock_http_client_class = mocker.patch("snapstore.craft.HTTPClient")
         mock_http_client = mock_http_client_class.return_value
 
         result = create_base_client("TOKEN")
@@ -87,7 +83,7 @@ class TestCreateBaseClient:
 
     def test_propagates_non_craft_store_errors(self, mocker):
         """Test that non-CraftStoreError exceptions are propagated"""
-        mock_ubuntu_client_class = mocker.patch('snapstore.craft.UbuntuOneStoreClient')
+        mock_ubuntu_client_class = mocker.patch("snapstore.craft.UbuntuOneStoreClient")
         mock_ubuntu_client_class.side_effect = Exception("Unexpected error")
 
         with raises(Exception, match="Unexpected error"):

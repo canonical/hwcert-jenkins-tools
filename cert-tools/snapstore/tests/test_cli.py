@@ -1,11 +1,7 @@
 from pytest import mark, raises
 
 from snapstore.info import SnapstoreInfo
-from snapstore.cli import (
-    get_info_arguments,
-    _get_snap_info,
-    _get_refresh_info
-)
+from snapstore.cli import get_info_arguments, _get_snap_info, _get_refresh_info
 
 
 class TestGetInfoArguments:
@@ -30,10 +26,7 @@ class TestGetInfoArguments:
         args = get_info_arguments(command_line)
         assert args.store == store_name
 
-    @mark.parametrize("fields", [
-        ["base"],
-        ["version", "revision"]
-    ])
+    @mark.parametrize("fields", [["base"], ["version", "revision"]])
     def test_optional_fields_argument(self, fields):
         """Test parsing of optional --fields argument."""
         command_line = ["test-snap", "stable", "amd64", "--fields"] + fields
@@ -51,13 +44,19 @@ class TestGetInfoArguments:
         command_line = ["test-snap", "stable", "amd64"]
         args = get_info_arguments(command_line)
         assert args.refresh is True
-        args = get_info_arguments(command_line + ['--use-info'])
+        args = get_info_arguments(command_line + ["--use-info"])
         assert args.refresh is False
 
     def test_custom_token_environment_variable(self):
         """Test custom token environment variable."""
         token_environmnent_variable = "CREDENTIALS"
-        command_line = ["test-snap", "stable", "amd64", "--token-environment-variable", token_environmnent_variable]
+        command_line = [
+            "test-snap",
+            "stable",
+            "amd64",
+            "--token-environment-variable",
+            token_environmnent_variable,
+        ]
         args = get_info_arguments(command_line)
         assert args.variable == token_environmnent_variable
 
@@ -75,13 +74,13 @@ class TestGetSnapInfo:
                 {
                     "channel": {"track": "latest", "risk": "beta"},
                     "revision": 123,
-                    "version": "1.0.0"
+                    "version": "1.0.0",
                 },
                 {
                     "channel": {"track": "latest", "risk": "edge"},
                     "revision": 124,
-                    "version": "1.0.1"
-                }
+                    "version": "1.0.1",
+                },
             ]
         }
 
@@ -90,7 +89,7 @@ class TestGetSnapInfo:
         assert result == {
             "channel": {"track": "latest", "risk": "beta"},
             "revision": 123,
-            "version": "1.0.0"
+            "version": "1.0.0",
         }
 
     def test_no_matching_channel(self, mocker):
@@ -104,13 +103,13 @@ class TestGetSnapInfo:
                 {
                     "channel": {"track": "latest", "risk": "stable"},
                     "revision": 123,
-                    "version": "1.0.0"
+                    "version": "1.0.0",
                 },
                 {
                     "channel": {"track": "latest", "risk": "edge"},
                     "revision": 124,
-                    "version": "1.0.1"
-                }
+                    "version": "1.0.1",
+                },
             ]
         }
 
@@ -129,12 +128,8 @@ class TestGetRefreshInfo:
         info.get_refresh_info.return_value = [
             {
                 "result": "refresh",
-                "snap": {
-                    "revision": 123,
-                    "version": "1.0.0",
-                    "name": "test-snap"
-                },
-                "effective-channel": "latest/stable"
+                "snap": {"revision": 123, "version": "1.0.0", "name": "test-snap"},
+                "effective-channel": "latest/stable",
             }
         ]
 
@@ -144,7 +139,7 @@ class TestGetRefreshInfo:
             "revision": 123,
             "version": "1.0.0",
             "name": "test-snap",
-            "effective-channel": "latest/stable"
+            "effective-channel": "latest/stable",
         }
         assert result == expected_result
 
@@ -155,12 +150,7 @@ class TestGetRefreshInfo:
         error_message = "The Snap with the given name was not found in the Store."
         info = mocker.create_autospec(SnapstoreInfo, instance=True)
         info.get_refresh_info.return_value = [
-            {
-                "result": "error",
-                "error": {
-                    "message": error_message
-                }
-            }
+            {"result": "error", "error": {"message": error_message}}
         ]
 
         with raises(ValueError, match=error_message):

@@ -49,7 +49,7 @@ class TestSnapstoreClient:
         headers = snapstore_client.create_headers(store="test-store")
         assert headers == {
             "Snap-Device-Series": "16",
-            "Snap-Device-Store": "test-store"
+            "Snap-Device-Store": "test-store",
         }
 
     def test_create_headers_custom(self, snapstore_client):
@@ -66,8 +66,7 @@ class TestSnapstoreClient:
         """Test creating headers with all parameters"""
         custom = {"X-Custom": "value", "X-Other": "data"}
         headers = authorized_snapstore_client.create_headers(
-            store="test-store",
-            headers=custom
+            store="test-store", headers=custom
         )
         assert headers == {
             "Snap-Device-Series": "16",

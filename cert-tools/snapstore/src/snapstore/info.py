@@ -21,7 +21,7 @@ class SnapstoreInfo:
         snap: str,
         architecture: str | None = None,
         store: str | None = None,
-        fields: Iterable[str] | None = None
+        fields: Iterable[str] | None = None,
     ) -> dict:
         """
         Return info for a specific snap, as retrieved from the
@@ -66,7 +66,7 @@ class SnapstoreInfo:
                     "instance-key": snap.name,
                 }
                 for snap in snap_specifiers
-            ]
+            ],
         }
         if fields:
             payload["fields"] = sorted(fields)
