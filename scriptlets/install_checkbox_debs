@@ -16,11 +16,25 @@
 # - https://code.launchpad.net/~checkbox-dev/+archive/ubuntu/beta
 # - https://code.launchpad.net/~checkbox-dev/+archive/ubuntu/edge
 #
+# Additional PPAs can be specified using --ppa for public PPAs or --private-ppa
+# for private PPAs with credentials. In PPA URLs, \$RISK can be used as a placeholder
+# that will be replaced with the actual risk value (e.g., "ppa:example/\$RISK" becomes
+# "ppa:example/stable" when risk is "stable").
+#
 # Returns:
 # 0 on success, non-0 on failure
 
 usage() {
-  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk [--providers <providers>]"
+  echo "Usage: $(basename ${BASH_SOURCE[0]}) risk [--providers <providers>] [--ppa <ppa>] [--private-ppa <url:user:pass:keyid>]"
+  echo ""
+  echo "Options:"
+  echo "  --providers <providers>      Additional checkbox providers to install"
+  echo "  --ppa <ppa>                  Additional public PPA to add (can be used multiple times)"
+  echo "  --private-ppa <url:user:pass:keyid>  Private PPA with credentials (can be used multiple times)"
+  echo ""
+  echo "Examples:"
+  echo "  $(basename ${BASH_SOURCE[0]}) stable --providers \"provider1 provider2\" --ppa \"ppa:public/ppa\" --private-ppa \"https://private-ppa.url:user:pass:keyid\""
+  echo "  $(basename ${BASH_SOURCE[0]}) beta --ppa \"ppa:example/\$RISK\" # \$RISK expands to 'beta'"
 }
 
 if [ "$#" -lt 1 ]; then
@@ -32,29 +46,89 @@ fi
 RISK=$1
 shift
 
-if [ "$1" = "--providers" ]; then
-  shift
-  PROVIDERS="$@"
-  if [ -z "$PROVIDERS" ]; then
-    usage
-    echo "Error: unspecified providers"
-    exit 1
-  fi
-elif [ "$#" -ne 0 ]; then
-  usage
-  echo "Error: unknown arguments $@"
-  exit 1
-fi
+PROVIDERS=""
+ADDITIONAL_PPAS=()
+PRIVATE_PPAS=()
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --providers)
+      shift
+      if [ -z "$1" ]; then
+        usage
+        echo "Error: unspecified providers"
+        exit 1
+      fi
+      PROVIDERS="$1"
+      shift
+      ;;
+    --ppa)
+      shift
+      if [ -z "$1" ]; then
+        usage
+        echo "Error: unspecified PPA"
+        exit 1
+      fi
+      ADDITIONAL_PPAS+=("$1")
+      shift
+      ;;
+    --private-ppa)
+      shift
+      if [ -z "$1" ]; then
+        usage
+        echo "Error: unspecified private PPA"
+        exit 1
+      fi
+      PRIVATE_PPAS+=("$1")
+      shift
+      ;;
+    *)
+      usage
+      echo "Error: unknown argument $1"
+      exit 1
+      ;;
+  esac
+done
 
 log "Installing Checkbox debian packages at risk: $RISK"
 echo "  PPA that will be used: ppa:checkbox-dev/$RISK"
 echo "  See: https://code.launchpad.net/~checkbox-dev/+archive/ubuntu/$RISK"
 [ -n "$PROVIDERS" ] && echo "  Additional providers: $PROVIDERS"
+[ ${#ADDITIONAL_PPAS[@]} -gt 0 ] && echo "  Additional PPAs: ${ADDITIONAL_PPAS[*]}"
+[ ${#PRIVATE_PPAS[@]} -gt 0 ] && echo "  Private PPAs: ${#PRIVATE_PPAS[@]} configured"
 
 wait_for_packages_complete
+
+# Add standard PPAs
 _run sudo add-apt-repository -y ppa:colin-king/stress-ng
 _run sudo add-apt-repository -y ppa:firmware-testing-team/ppa-fwts-stable
 _run sudo add-apt-repository -y ppa:checkbox-dev/$RISK
+
+# Add additional public PPAs
+for ppa in "${ADDITIONAL_PPAS[@]}"; do
+  # Replace \$RISK placeholder with actual risk value
+  ppa_expanded="${ppa//\$RISK/$RISK}"
+  echo "Adding additional PPA: $ppa_expanded"
+  _run sudo add-apt-repository -y "$ppa_expanded"
+done
+
+# Add private PPAs first
+for private_ppa in "${PRIVATE_PPAS[@]}"; do
+  IFS=':' read -r url user pass keyid <<< "$private_ppa"
+  if [ -z "$url" ] || [ -z "$user" ] || [ -z "$pass" ] || [ -z "$keyid" ]; then
+    echo "Error: Invalid private PPA format: $private_ppa"
+    echo "Expected format: url:user:pass:keyid"
+    exit 1
+  fi
+  
+  # Replace \$RISK placeholder with actual risk value
+  url_expanded="${url//\$RISK/$RISK}"
+  echo "Adding private PPA: $url_expanded"
+  _put add_private_ppa.py /tmp/add_private_ppa.py
+  _run sudo python3 /tmp/add_private_ppa.py "$url_expanded" "$user" "$pass" "$keyid"
+  _run sudo rm /tmp/add_private_ppa.py
+done
+
 _run install_packages \
   checkbox-ng python3-checkbox-ng \
   checkbox-provider-base checkbox-provider-resource checkbox-provider-sru $PROVIDERS \
