@@ -124,7 +124,7 @@ for private_ppa in "${PRIVATE_PPAS[@]}"; do
   # Replace \$RISK placeholder with actual risk value
   url_expanded="${url//\$RISK/$RISK}"
   echo "Adding private PPA: $url_expanded"
-  _put add_private_ppa.py /tmp/add_private_ppa.py
+  _put ../add_private_ppa.py /tmp/add_private_ppa.py
   _run sudo python3 /tmp/add_private_ppa.py "$url_expanded" "$user" "$pass" "$keyid"
   _run sudo rm /tmp/add_private_ppa.py
 done
