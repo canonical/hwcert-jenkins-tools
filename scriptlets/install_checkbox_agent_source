@@ -45,5 +45,5 @@ git clone --filter=tree:0 https://github.com/canonical/checkbox.git > /dev/null
 $TOOLS_PATH/version-published/checkout_to_version.py ~/checkbox "$VERSION"
 
 # install checkbox from source
-pipx install checkbox/checkbox-ng[jammy_prod]
+pipx install checkbox/checkbox-ng[`lsb_release -cs`_prod]
 rm -rf checkbox
