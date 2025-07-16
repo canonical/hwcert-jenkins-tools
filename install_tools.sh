@@ -81,7 +81,7 @@ add_to_path $SCRIPTLETS_PATH/sru-helpers
 add_to_path ~/.local/bin
 
 log "Installing agent dependencies"
-install_packages pipx python3-venv sshpass jq > /dev/null
+install_packages pipx python3-venv sshpass jq lsb-release > /dev/null
 
 log "Installing agent tools"
 pipx install $TOOLS_PATH/cert-tools/launcher > /dev/null
